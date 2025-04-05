@@ -1,6 +1,6 @@
 ## 🚦 Routing System
 
-### Router Configuration (`src/router.tsx`)
+### Router Configuration (`src/router.tsx`) example of how to write 
 
 ```tsx
 import { createBrowserRouter } from 'react-router-dom';
