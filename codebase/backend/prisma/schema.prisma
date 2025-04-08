@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  ADMIN
+  SUPERADMIN
+  RECEPTIONIST
+  LAB_TECHNICIAN
+  RADIOLOGIST
+  PHARMACIST
+}
+
+enum TestStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ResultStatus {
+  PENDING
+  COMPLETED
+  APPROVED
+  REJECTED
+}
+
+model Person {
+  id           String    @id @default(uuid())
+  firstName    String
+  middleName   String?
+  lastName     String
+  sex          String
+  dob          DateTime
+  phoneNumber  String?
+  address      String?
+  user         User?
+  patient      Patient?
+}
+
+model Patient {
+  id               String          @id @default(uuid())
+  nationalId       String?         @unique
+  birthCertificate String?
+  emergencyContact String?
+  person           Person          @relation(fields: [personId], references: [id])
+  personId         String          @unique
+  medicalRecords   MedicalRecord[]
+  testRequests     TestRequest[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      RoleType
+  person    Person   @relation(fields: [personId], references: [id])
+  personId  String   @unique
+  createdAt DateTime @default(now())
+  // Inverse relations
+  technicianResults TestResult[]   @relation("TechnicianResults")
+  approvedResults   TestResult[]   @relation("ApprovedResults")
+  medicalRecords    MedicalRecord[] @relation("DoctorMedicalRecords")
+  testRequests      TestRequest[]   @relation(fields: [], references: [])
+  labResults        LabResult[]    @relation(fields: [], references: [])
+  prescriptions     Prescription[] @relation("PrescribedBy")
+  radiologyReports  RadiologyReport[] @relation("RadiologistReports")
+  orders            Order[]          @relation(fields: [], references: [])
+}
+
+model MedicalRecord {
+  id               String             @id @default(uuid())
+  patient          Patient            @relation(fields: [patientId], references: [id])
+  patientId        String
+  visitDate        DateTime
+  diagnosis        String?
+  doctor           User?              @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
+  doctorId         String?
+  notes            String?
+  labResults       LabResult[]
+  prescriptions    Prescription[]
+  radiologyReports RadiologyReport[]
+  orders           Order[]
+}
+
+model LabResult {
+  id             String         @id @default(uuid())
+  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  medicalRecordId String
+  testName       String
+  resultValue    String?
+  unit           String?
+  referenceRange String?
+  testDate       DateTime
+  technician     User?          @relation(fields: [technicianId], references: [id])
+  technicianId   String?
+  notes          String?
+}
+
+model Prescription {
+  id             String         @id @default(uuid())
+  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  medicalRecordId String
+  medicineName   String
+  dosage         String?
+  frequency      String?
+  duration       String?
+  instructions   String?
+  prescribedBy   User?          @relation("PrescribedBy", fields: [prescribedById], references: [id])
+  prescribedById String?
+}
+
+model RadiologyReport {
+  id              String         @id @default(uuid())
+  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  medicalRecordId String
+  imagingType     String
+  bodyPart        String?
+  reportText      String?
+  reportDate      DateTime
+  radiologist     User?          @relation("RadiologistReports", fields: [radiologistId], references: [id])
+  radiologistId   String?
+  notes           String?
+}
+
+model Order {
+  id              String         @id @default(uuid())
+  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  medicalRecordId String
+  orderType       String
+  orderDetails    String
+  orderedBy       User?          @relation(fields: [orderedById], references: [id])
+  orderedById     String?
+  orderDate       DateTime
+  status          String         @default("Pending")
+  notes           String?
+}
+
+model Hospital {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  code         String        @unique
+  region       Region        @relation(fields: [regionId], references: [id])
+  regionId     String
+  city         String
+  zone         String
+  departments  Department[]
+  testRequests TestRequest[]
+
+  createdAt    DateTime      @default(now())
+}
+
+model Region {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  hospitals Hospital[]
+}
+
+model Department {
+  id          String      @id @default(uuid())
+  name        String
+  code        String?
+  hospital    Hospital    @relation(fields: [hospitalId], references: [id])
+  hospitalId  String
+  testTypes   TestType[]
+ 
+}
+
+model TestType {
+  id           String        @id @default(uuid())
+  name         String
+  code         String        @unique
+  department   Department    @relation(fields: [departmentId], references: [id])
+  departmentId String
+  specimens    String[]      @db.VarChar(255)
+  duration     Int
+  requests     TestRequest[]
+}
+
+model TestRequest {
+  id          String       @id @default(uuid())
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  patientId   String
+  doctor      User         @relation(fields: [doctorId], references: [id])
+  doctorId    String
+  testType    TestType     @relation(fields: [testTypeId], references: [id])
+  testTypeId  String
+  hospital    Hospital     @relation(fields: [hospitalId], references: [id])
+  hospitalId  String
+  status      TestStatus   @default(REQUESTED)
+  notes       String?
+  requestedAt DateTime     @default(now())
+  results     TestResult[]
+}
+
+model TestResult {
+  id            String       @id @default(uuid())
+  request       TestRequest  @relation(fields: [requestId], references: [id])
+  requestId     String
+  technician    User         @relation("TechnicianResults", fields: [technicianId], references: [id])
+  technicianId  String
+  values        Json
+  status        ResultStatus @default(PENDING)
+  completedAt   DateTime?
+  approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
+  approvedById  String?
+}
+
