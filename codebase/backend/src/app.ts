@@ -17,7 +17,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => {
-  res.send('Welcome to eHealth API');
+  res.send('Welcome to eHealth APIs');
 });
 
 export default app;
