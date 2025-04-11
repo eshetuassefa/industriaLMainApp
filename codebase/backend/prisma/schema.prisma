@@ -156,10 +156,11 @@ model Hospital {
 }
 
 model Region {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  hospitals Hospital[]
+  id        Int       @id
+  name      String    @unique
+  hospitals Hospital[] 
 }
+
 
 model Department {
   id          String      @id @default(uuid())
