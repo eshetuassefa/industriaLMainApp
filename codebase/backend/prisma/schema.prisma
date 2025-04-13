@@ -55,22 +55,22 @@ model Patient {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      RoleType
-  person    Person   @relation(fields: [personId], references: [id])
-  personId  String   @unique
-  createdAt DateTime @default(now())
-  // Inverse relations
-  technicianResults TestResult[]   @relation("TechnicianResults")
-  approvedResults   TestResult[]   @relation("ApprovedResults")
-  medicalRecords    MedicalRecord[] @relation("DoctorMedicalRecords")
-  testRequests      TestRequest[]   @relation(fields: [], references: [])
-  labResults        LabResult[]    @relation(fields: [], references: [])
-  prescriptions     Prescription[] @relation("PrescribedBy")
+  id                String            @id @default(uuid())
+  email             String            @unique
+  username          String            @unique
+  password          String
+  role              RoleType
+  person            Person            @relation(fields: [personId], references: [id])
+  personId          String            @unique
+  createdAt         DateTime          @default(now())
+  technicianResults TestResult[]      @relation("TechnicianResults")
+  approvedResults   TestResult[]      @relation("ApprovedResults")
+  medicalRecords    MedicalRecord[]   @relation("DoctorMedicalRecords")
+  testRequests      TestRequest[]     @relation(fields: [], references: [])
+  labResults        LabResult[]       @relation(fields: [], references: [])
+  prescriptions     Prescription[]    @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
-  orders            Order[]          @relation(fields: [], references: [])
+  orders            Order[]           @relation(fields: [], references: [])
 }
 
 model MedicalRecord {
@@ -89,87 +89,86 @@ model MedicalRecord {
 }
 
 model LabResult {
-  id             String         @id @default(uuid())
-  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  testName       String
-  resultValue    String?
-  unit           String?
-  referenceRange String?
-  testDate       DateTime
-  technician     User?          @relation(fields: [technicianId], references: [id])
-  technicianId   String?
-  notes          String?
+  testName        String
+  resultValue     String?
+  unit            String?
+  referenceRange  String?
+  testDate        DateTime
+  technician      User?         @relation(fields: [technicianId], references: [id])
+  technicianId    String?
+  notes           String?
 }
 
 model Prescription {
-  id             String         @id @default(uuid())
-  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  medicineName   String
-  dosage         String?
-  frequency      String?
-  duration       String?
-  instructions   String?
-  prescribedBy   User?          @relation("PrescribedBy", fields: [prescribedById], references: [id])
-  prescribedById String?
+  medicineName    String
+  dosage          String?
+  frequency       String?
+  duration        String?
+  instructions    String?
+  prescribedBy    User?         @relation("PrescribedBy", fields: [prescribedById], references: [id])
+  prescribedById  String?
 }
 
 model RadiologyReport {
-  id              String         @id @default(uuid())
-  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
   imagingType     String
   bodyPart        String?
   reportText      String?
   reportDate      DateTime
-  radiologist     User?          @relation("RadiologistReports", fields: [radiologistId], references: [id])
+  radiologist     User?         @relation("RadiologistReports", fields: [radiologistId], references: [id])
   radiologistId   String?
   notes           String?
 }
 
 model Order {
-  id              String         @id @default(uuid())
-  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
   orderType       String
   orderDetails    String
-  orderedBy       User?          @relation(fields: [orderedById], references: [id])
+  orderedBy       User?         @relation(fields: [orderedById], references: [id])
   orderedById     String?
   orderDate       DateTime
-  status          String         @default("Pending")
+  status          String        @default("Pending")
   notes           String?
 }
-
 model Hospital {
   id           String        @id @default(uuid())
   name         String        @unique
-  code         String        @unique
+  code         String        @unique    
   region       Region        @relation(fields: [regionId], references: [id])
   regionId     String
   city         String
   zone         String
   departments  Department[]
   testRequests TestRequest[]
-
   createdAt    DateTime      @default(now())
 }
 
 model Region {
-  id        Int       @id
-  name      String    @unique
-  hospitals Hospital[] 
+  id         String     @id @default(uuid())
+  name       String     @unique
+  hospitals  Hospital[] // 👈 This is the missing part!
 }
 
 
+
+
 model Department {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   code        String?
-  hospital    Hospital    @relation(fields: [hospitalId], references: [id])
+  hospital    Hospital     @relation(fields: [hospitalId], references: [id])
   hospitalId  String
   testTypes   TestType[]
- 
 }
 
 model TestType {
@@ -184,19 +183,19 @@ model TestType {
 }
 
 model TestRequest {
-  id          String       @id @default(uuid())
-  patient     Patient      @relation(fields: [patientId], references: [id])
-  patientId   String
-  doctor      User         @relation(fields: [doctorId], references: [id])
-  doctorId    String
-  testType    TestType     @relation(fields: [testTypeId], references: [id])
-  testTypeId  String
-  hospital    Hospital     @relation(fields: [hospitalId], references: [id])
-  hospitalId  String
-  status      TestStatus   @default(REQUESTED)
-  notes       String?
-  requestedAt DateTime     @default(now())
-  results     TestResult[]
+  id           String        @id @default(uuid())
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  patientId    String
+  doctor       User          @relation(fields: [doctorId], references: [id])
+  doctorId     String
+  testType     TestType      @relation(fields: [testTypeId], references: [id])
+  testTypeId   String
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id])
+  hospitalId   String
+  status       TestStatus    @default(REQUESTED)
+  notes        String?
+  requestedAt  DateTime      @default(now())
+  results      TestResult[]
 }
 
 model TestResult {
@@ -211,4 +210,3 @@ model TestResult {
   approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
   approvedById  String?
 }
-
