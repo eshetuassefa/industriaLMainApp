@@ -47,13 +47,20 @@ model Patient {
   id               String          @id @default(uuid())
   nationalId       String?         @unique
   birthCertificate String?
-  emergencyContact String?
+   emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
+  emergencyContactId String?           @unique
+ 
   person           Person          @relation(fields: [personId], references: [id])
   personId         String          @unique
   medicalRecords   MedicalRecord[]
   testRequests     TestRequest[]
 }
-
+model EmergencyContact {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  patient   Patient? @relation
+}
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -146,7 +153,7 @@ model Hospital {
   name         String        @unique
   code         String        @unique
   region       Region        @relation(fields: [regionId], references: [id])
-  regionId     String
+  regionId     Int
   city         String
   zone         String
   departments  Department[]
