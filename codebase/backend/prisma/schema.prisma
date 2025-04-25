@@ -47,7 +47,7 @@ model Patient {
   id               String          @id @default(uuid())
   nationalId       String?         @unique
   birthCertificate String?
-   emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
+  emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
   emergencyContactId String?           @unique
  
   person           Person          @relation(fields: [personId], references: [id])

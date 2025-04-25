@@ -1,43 +1,32 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import { patientSchema, updatePatientSchema, searchPatientSchema } from '../validators/reception.validator';
 
 const prisma = new PrismaClient();
 
 // Add a new patient
 export const addPatient = async (req: Request, res: Response) => {
     try {
-        const {
-            firstName,
-            middleName,
-            lastName,
-            sex,
-            dob,
-            phoneNumber,
-            address,
-            nationalId,
-            birthCertificate,
-            emergencyContact, 
-        } = req.body;
-
+        const validatedData = patientSchema.parse(req.body);
         const newPatient = await prisma.patient.create({
             data: {
-                nationalId,
-                birthCertificate,
+                nationalId: validatedData.nationalId,
+                birthCertificate: validatedData.birthCertificate,
                 person: {
                     create: {
-                        firstName,
-                        middleName,
-                        lastName,
-                        sex,
-                        dob: new Date(dob),
-                        phoneNumber,
-                        address,
+                        firstName: validatedData.firstName,
+                        middleName: validatedData.middleName,
+                        lastName: validatedData.lastName,
+                        sex: validatedData.sex,
+                        dob: new Date(validatedData.dob),
+                        phoneNumber: validatedData.phoneNumber,
+                        address: validatedData.address,
                     },
                 },
                 emergencyContact: {
                     create: {
-                        name: emergencyContact.name,
-                        phone: emergencyContact.phone,
+                        name: validatedData.emergencyContact.name,
+                        phone: validatedData.emergencyContact.phone,
                     },
                 },
             },
@@ -49,53 +38,44 @@ export const addPatient = async (req: Request, res: Response) => {
 
         res.status(201).json({ message: 'Patient added successfully', patient: newPatient });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to add patient', error });
+        if (error instanceof Error) {
+            res.status(400).json({ message: error.message });
+        } else {
+            console.error(error);
+            res.status(500).json({ message: 'Failed to add patient', error });
+        }
     }
 };
 
 // Update patient details
 export const updatePatient = async (req: Request, res: Response) => {
     try {
-        const {
-            id,
-            firstName,
-            middleName,
-            lastName,
-            sex,
-            dob,
-            phoneNumber,
-            address,
-            nationalId,
-            birthCertificate,
-            emergencyContact, // { name, phone }
-        } = req.body;
-
+        const validatedData = updatePatientSchema.parse(req.body);
         const updatedPatient = await prisma.patient.update({
-            where: { id },
+            where: { id: validatedData.id },
             data: {
-                nationalId,
-                birthCertificate,
+                nationalId: validatedData.nationalId,
+                birthCertificate: validatedData.birthCertificate,
                 person: {
                     update: {
-                        firstName,
-                        middleName,
-                        lastName,
-                        sex,
-                        dob: new Date(dob),
-                        phoneNumber,
-                        address,
+                        firstName: validatedData.firstName,
+                        middleName: validatedData.middleName,
+                        lastName: validatedData.lastName,
+                        sex: validatedData.sex,
+                        dob: new Date(validatedData.dob),
+                        phoneNumber: validatedData.phoneNumber,
+                        address: validatedData.address,
                     },
                 },
                 emergencyContact: {
                     upsert: {
                         update: {
-                            name: emergencyContact.name,
-                            phone: emergencyContact.phone,
+                            name: validatedData.emergencyContact.name,
+                            phone: validatedData.emergencyContact.phone,
                         },
                         create: {
-                            name: emergencyContact.name,
-                            phone: emergencyContact.phone,
+                            name: validatedData.emergencyContact.name,
+                            phone: validatedData.emergencyContact.phone,
                         },
                     },
                 },
@@ -108,16 +88,19 @@ export const updatePatient = async (req: Request, res: Response) => {
 
         res.status(200).json({ message: 'Patient updated successfully', patient: updatedPatient });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to update patient', error });
+        if (error instanceof Error) {
+            res.status(400).json({ message: error.message });
+        } else {
+            console.error(error);
+            res.status(500).json({ message: 'Failed to update patient', error });
+        }
     }
 };
 
 // Fetch all or searched patients
 export const fetchPatients = async (req: Request, res: Response) => {
     try {
-        const { nationalId, name } = req.query;
-
+        const validatedData = searchPatientSchema.parse(req.query);
         const query: any = {
             include: {
                 person: true,
@@ -126,30 +109,32 @@ export const fetchPatients = async (req: Request, res: Response) => {
             where: {},
         };
 
-        if (nationalId) {
-            query.where.nationalId = nationalId as string;
+        if (validatedData.nationalId) {
+            query.where.nationalId = validatedData.nationalId;
         }
 
-        if (name) {
-            const nameSearch = name as string;
+        if (validatedData.name) {
             query.where = {
                 ...query.where,
                 person: {
                     OR: [
-                        { firstName: { contains: nameSearch, mode: 'insensitive' } },
-                        { middleName: { contains: nameSearch, mode: 'insensitive' } },
-                        { lastName: { contains: nameSearch, mode: 'insensitive' } },
+                        { firstName: { contains: validatedData.name, mode: 'insensitive' } },
+                        { middleName: { contains: validatedData.name, mode: 'insensitive' } },
+                        { lastName: { contains: validatedData.name, mode: 'insensitive' } },
                     ],
                 },
             };
         }
 
         const patients = await prisma.patient.findMany(query);
-
         res.status(200).json(patients);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to fetch patients', error });
+        if (error instanceof Error) {
+            res.status(400).json({ message: error.message });
+        } else {
+            console.error(error);
+            res.status(500).json({ message: 'Failed to fetch patients', error });
+        }
     }
 };
 
