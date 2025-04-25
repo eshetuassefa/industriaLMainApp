@@ -6,15 +6,64 @@ import {
     passwordResetSchema, 
     newPasswordSchema 
 } from '../validators/auth.validator';
+import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
 
 export const login: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const validatedData = loginSchema.parse(req.body);
-    // Your login logic here using validatedData
+    
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+      include: {
+        person: true
+      }
+    });
+
+    if (!user) {
+      res.status(401).json({ message: 'Invalid email or password' });
+      return;
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(validatedData.password, user.password);
+    if (!validPassword) {
+      res.status(401).json({ message: 'Invalid email or password' });
+      return;
+    }
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role,
+        personId: user.personId
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key',
+      { expiresIn: '7d' }
+    );
+
     res.status(200).json({ 
       message: 'Login successful',
-      token: 'your-jwt-token',
-      refreshToken: 'your-refresh-token'
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        person: user.person
+      }
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -28,43 +77,38 @@ export const login: RequestHandler = async (req: Request, res: Response, next: N
 export const refreshToken: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const validatedData = refreshTokenSchema.parse(req.body);
-    // Your refresh token logic here using validatedData
+    
+    // Verify refresh token
+    const decoded = jwt.verify(validatedData.refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key');
+    
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { id: (decoded as any).id },
+      include: {
+        person: true
+      }
+    });
+
+    if (!user) {
+      res.status(401).json({ message: 'Invalid refresh token' });
+      return;
+    }
+
+    // Generate new access token
+    const accessToken = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role,
+        personId: user.personId
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '15m' }
+    );
+
     res.status(200).json({ 
       message: 'Token refreshed successfully',
-      token: 'your-new-jwt-token',
-      refreshToken: 'your-new-refresh-token'
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-    } else {
-      next(error);
-    }
-  }
-};
-
-export const resetPassword: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const validatedData = passwordResetSchema.parse(req.body);
-    // Your password reset logic here using validatedData
-    res.status(200).json({ 
-      message: 'Password reset email sent successfully'
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-    } else {
-      next(error);
-    }
-  }
-};
-
-export const setNewPassword: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const validatedData = newPasswordSchema.parse(req.body);
-    // Your new password setting logic here using validatedData
-    res.status(200).json({ 
-      message: 'Password updated successfully'
+      accessToken
     });
   } catch (error) {
     if (error instanceof Error) {

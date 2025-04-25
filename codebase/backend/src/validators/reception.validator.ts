@@ -17,7 +17,7 @@ export const patientSchema = z.object({
     }),
     phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits long'),
     address: z.string().min(5, 'Address must be at least 5 characters long'),
-    nationalId: z.string().min(5, 'National ID must be at least 5 characters long'),
+    nationalId: z.string().optional(),
     birthCertificate: z.string().optional(),
     emergencyContact: emergencyContactSchema,
 });
@@ -34,4 +34,4 @@ export const searchPatientSchema = z.object({
 // Type exports
 export type PatientInput = z.infer<typeof patientSchema>;
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
-export type SearchPatientInput = z.infer<typeof searchPatientSchema>; 
+export type SearchPatientInput = z.infer<typeof searchPatientSchema>;
