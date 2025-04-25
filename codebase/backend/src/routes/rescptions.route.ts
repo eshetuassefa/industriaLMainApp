@@ -1,5 +1,10 @@
+
 import express from 'express';
-import { addPatient, updatePatient, fetchPatients } from '../controllers/reception.controller';
+import {
+  addPatient,
+  updatePatient,
+  fetchPatients
+} from '../controllers/reception.controller';
 
 const router = express.Router();
 
@@ -61,7 +66,7 @@ const router = express.Router();
  *       201:
  *         description: Patient added successfully
  */
-router.post('/add-patient', addPatient);
+router.post('/add-patient', ...addPatient);
 
 /**
  * @swagger
@@ -110,7 +115,8 @@ router.post('/add-patient', addPatient);
  *       200:
  *         description: Patient updated successfully
  */
-router.put('/update-patient', updatePatient);
+router.put('/update-patient', ...updatePatient);
+
 /**
  * @swagger
  * /api/reception/fetch-patients:
@@ -170,7 +176,6 @@ router.put('/update-patient', updatePatient);
  *                       phone:
  *                         type: string
  */
-router.get('/fetch-patients', fetchPatients);
-
+router.get('/fetch-patients', ...fetchPatients);
 
 export default router;
