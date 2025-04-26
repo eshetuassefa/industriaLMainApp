@@ -1,11 +1,11 @@
-
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './docs/swagger';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./docs/swagger";
 
 import authRoutes from "./routes/auth.routes";
+import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
 
 const app = express();
 
@@ -13,11 +13,16 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// API Routes
+app.use("/api/auth", authRoutes); // Authentication routes
+app.use("/api/admin", adminRoutes); // Admin routes to manage staff
 
-app.get('/', (req, res) => {
-  res.send('Welcome to eHealth APIs');
+// Swagger API Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Home route
+app.get("/", (req, res) => {
+  res.send("Welcome to Admin APIs");
 });
 
 export default app;

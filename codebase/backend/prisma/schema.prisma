@@ -14,7 +14,9 @@ enum RoleType {
   LAB_TECHNICIAN
   RADIOLOGIST
   PHARMACIST
+  HEALTHCARE_PROVIDER 
 }
+
 
 enum TestStatus {
   REQUESTED
@@ -47,30 +49,37 @@ model Patient {
   id               String          @id @default(uuid())
   nationalId       String?         @unique
   birthCertificate String?
-  emergencyContact String?
+  emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
+  emergencyContactId String?           @unique
+ 
   person           Person          @relation(fields: [personId], references: [id])
   personId         String          @unique
   medicalRecords   MedicalRecord[]
   testRequests     TestRequest[]
 }
-
-model User {
+model EmergencyContact {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      RoleType
-  person    Person   @relation(fields: [personId], references: [id])
-  personId  String   @unique
-  createdAt DateTime @default(now())
-  // Inverse relations
-  technicianResults TestResult[]   @relation("TechnicianResults")
-  approvedResults   TestResult[]   @relation("ApprovedResults")
-  medicalRecords    MedicalRecord[] @relation("DoctorMedicalRecords")
-  testRequests      TestRequest[]   @relation(fields: [], references: [])
-  labResults        LabResult[]    @relation(fields: [], references: [])
-  prescriptions     Prescription[] @relation("PrescribedBy")
+  name      String
+  phone     String
+  patient   Patient? @relation
+}
+model User {
+  id                String            @id @default(uuid())
+  email             String            @unique
+  username          String            @unique
+  password          String
+  role              RoleType
+  person            Person            @relation(fields: [personId], references: [id])
+  personId          String            @unique
+  createdAt         DateTime          @default(now())
+  technicianResults TestResult[]      @relation("TechnicianResults")
+  approvedResults   TestResult[]      @relation("ApprovedResults")
+  medicalRecords    MedicalRecord[]   @relation("DoctorMedicalRecords")
+  testRequests      TestRequest[]     @relation(fields: [], references: [])
+  labResults        LabResult[]       @relation(fields: [], references: [])
+  prescriptions     Prescription[]    @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
-  orders            Order[]          @relation(fields: [], references: [])
+  orders            Order[]           @relation(fields: [], references: [])
 }
 
 model MedicalRecord {
@@ -146,7 +155,7 @@ model Hospital {
   name         String        @unique
   code         String        @unique
   region       Region        @relation(fields: [regionId], references: [id])
-  regionId     String
+  regionId     Int
   city         String
   zone         String
   departments  Department[]
@@ -156,10 +165,11 @@ model Hospital {
 }
 
 model Region {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  hospitals Hospital[]
+  id        Int       @id
+  name      String    @unique
+  hospitals Hospital[] 
 }
+
 
 model Department {
   id          String      @id @default(uuid())
@@ -210,4 +220,3 @@ model TestResult {
   approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
   approvedById  String?
 }
-
