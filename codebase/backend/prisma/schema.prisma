@@ -31,6 +31,19 @@ enum ResultStatus {
   REJECTED
 }
 
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  EMERGENCY
+  ROUTINE_CHECK
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
 model Person {
   id           String    @id @default(uuid())
   firstName    String
@@ -55,13 +68,16 @@ model Patient {
   personId         String          @unique
   medicalRecords   MedicalRecord[]
   testRequests     TestRequest[]
+  appointments     Appointment[]
 }
+
 model EmergencyContact {
   id        String   @id @default(uuid())
   name      String
   phone     String
   patient   Patient? @relation
 }
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -79,6 +95,7 @@ model User {
   prescriptions     Prescription[] @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
   orders            Order[]          @relation(fields: [], references: [])
+  appointments      Appointment[]
 }
 
 model MedicalRecord {
@@ -218,5 +235,24 @@ model TestResult {
   completedAt   DateTime?
   approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
   approvedById  String?
+}
+
+model Appointment {
+  id        String            @id @default(uuid())
+  patient   Patient           @relation(fields: [patientId], references: [id])
+  patientId String
+  doctor    User              @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  date      DateTime
+  duration  Int               // Duration in minutes
+  type      AppointmentType
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([date])
 }
 
