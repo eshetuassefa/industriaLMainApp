@@ -147,6 +147,8 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *   post:
  *     summary: Add new medical record
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -159,13 +161,64 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *               patientId:
  *                 type: string
  *                 format: uuid
+ *                 description: ID of the patient
  *               visitDate:
  *                 type: string
  *                 format: date-time
+ *                 description: Date of the visit (defaults to current date if not provided)
  *               diagnosis:
  *                 type: string
+ *                 description: Medical diagnosis
  *               notes:
  *                 type: string
+ *                 description: Additional notes
+ *               labResults:
+ *                 type: array
+ *                 description: List of lab test results
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - testType
+ *                     - result
+ *                   properties:
+ *                     testType:
+ *                       type: string
+ *                       example: Blood Test
+ *                     result:
+ *                       type: string
+ *                       example: Normal
+ *               prescriptions:
+ *                 type: array
+ *                 description: List of prescribed medications
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - medication
+ *                     - dosage
+ *                   properties:
+ *                     medication:
+ *                       type: string
+ *                       example: Ibuprofen
+ *                     dosage:
+ *                       type: string
+ *                       example: 200mg
+ *                     frequency:
+ *                       type: string
+ *                       example: Every 6 hours
+ *                     duration:
+ *                       type: string
+ *                       example: 7 days
+ *               radiologyReports:
+ *                 type: array
+ *                 description: List of radiology reports
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - findings
+ *                   properties:
+ *                     findings:
+ *                       type: string
+ *                       example: No abnormalities detected
  *     responses:
  *       201:
  *         description: Medical record created
@@ -174,16 +227,75 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 message:
  *                   type: string
- *                   format: uuid
- *                 visitDate:
- *                   type: string
- *                   format: date-time
- *                 diagnosis:
- *                   type: string
- *                 notes:
- *                   type: string
+ *                   example: Medical record added successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     visitDate:
+ *                       type: string
+ *                       format: date-time
+ *                     diagnosis:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *                     labResults:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           testType:
+ *                             type: string
+ *                           result:
+ *                             type: string
+ *                           testDate:
+ *                             type: string
+ *                             format: date-time
+ *                     prescriptions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           medication:
+ *                             type: string
+ *                           dosage:
+ *                             type: string
+ *                           frequency:
+ *                             type: string
+ *                           duration:
+ *                             type: string
+ *                           prescribedById:
+ *                             type: string
+ *                             format: uuid
+ *                     radiologyReports:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           imagingType:
+ *                             type: string
+ *                           findings:
+ *                             type: string
+ *                           reportDate:
+ *                             type: string
+ *                             format: date-time
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
  */
 router.post('/records', ...addMedicalRecord);
 

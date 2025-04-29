@@ -109,7 +109,7 @@ export const updatePatient = [
 // Fetch all or searched patients
 export const fetchPatients = [
     authenticateToken,
-    authorizeRoles('ADMIN', 'RECEPTIONIST', 'DOCTOR'),
+    authorizeRoles('SUPERADMIN'),
     async (req: Request, res: Response) => {
         try {
             const validatedData = searchPatientSchema.parse(req.query);

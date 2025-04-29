@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 // View all medical records for a patient
 export const getPatientRecords = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'), //NB authorizeRoles need to be updated to include doctor
   async (req: Request, res: Response) => {
     try {
       const { patientId } = fetchPatientSchema.parse(req.params);
@@ -77,7 +77,7 @@ export const getPatientRecords = [
 // Add a medical record (with optional labResults, prescriptions, and radiologyReports)
 export const addMedicalRecord = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const validatedData = addMedicalRecordSchema.parse(req.body);
@@ -130,7 +130,7 @@ export const addMedicalRecord = [
 // Request a lab or radiology test
 export const requestTest = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const validatedData = requestTestSchema.parse(req.body);
@@ -167,7 +167,7 @@ export const requestTest = [
 // Prescribe medicine
 export const prescribeMedicine = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const validatedData = prescribeSchema.parse(req.body);
@@ -217,7 +217,7 @@ export const prescribeMedicine = [
 // Create a new appointment
 export const createAppointment = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const validatedData = createAppointmentSchema.parse(req.body);
