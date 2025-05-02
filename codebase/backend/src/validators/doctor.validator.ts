@@ -6,11 +6,14 @@ export const addMedicalRecordSchema = z.object({
   visitDate: z.string().optional(),
   diagnosis: z.string().optional(),
   notes: z.string().optional(),
-  // Optional arrays for related records
+ 
   labResults: z.array(
     z.object({
       testName: z.string(),
+      testDate: z.string().datetime(),
       resultValue: z.string().optional(),
+      unit: z.string().optional(),
+      referenceRange: z.string().optional(),
     })
   ).optional(),
   prescriptions: z.array(
@@ -24,8 +27,10 @@ export const addMedicalRecordSchema = z.object({
   ).optional(),
   radiologyReports: z.array(
     z.object({
-      scanName: z.string(),
-      findings: z.string().optional(),
+      imagingType: z.string(),
+      reportText: z.string().optional(),
+      bodyPart: z.string().optional(),
+      reportDate: z.string().datetime(),
     })
   ).optional(),
 });

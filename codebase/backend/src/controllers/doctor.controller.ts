@@ -85,22 +85,42 @@ export const addMedicalRecord = [
       const medicalRecord = await prisma.medicalRecord.create({
         data: {
           patientId: validatedData.patientId,
-          visitDate: validatedData.visitDate ? new Date(validatedData.visitDate) : new Date(),
+          visitDate: validatedData.visitDate 
+            ? new Date(validatedData.visitDate) 
+            : new Date(),
           diagnosis: validatedData.diagnosis,
           notes: validatedData.notes,
           doctorId: req.user!.id,
           labResults: validatedData.labResults
-            ? { create: validatedData.labResults.map((lr) => ({ ...lr, testDate: new Date() })) }
+            ? {
+                create: validatedData.labResults.map((lr) => ({
+                  testName: lr.testName,
+                  testDate: new Date(lr.testDate),
+                  resultValue: lr.resultValue,
+                  unit: lr.unit,
+                  referenceRange: lr.referenceRange,
+                })),
+              }
             : undefined,
           prescriptions: validatedData.prescriptions
-            ? { create: validatedData.prescriptions.map((p) => ({ ...p, prescribedById: req.user!.id })) }
+            ? {
+                create: validatedData.prescriptions.map((p) => ({
+                  medicineName: p.medicineName,
+                  dosage: p.dosage,
+                  frequency: p.frequency,
+                  duration: p.duration,
+                  instructions: p.instructions,
+                  prescribedById: req.user!.id,
+                })),
+              }
             : undefined,
           radiologyReports: validatedData.radiologyReports
             ? {
                 create: validatedData.radiologyReports.map((report) => ({
-                  ...report,
-                  imagingType: 'Unknown', 
-                  reportDate: new Date(), 
+                  imagingType: report.imagingType,
+                  reportText: report.reportText,
+                  bodyPart: report.bodyPart,
+                  reportDate: new Date(report.reportDate),
                 })),
               }
             : undefined,

@@ -140,7 +140,6 @@ const router = express.Router();
  *                   type: string
  */
 router.get('/patient/:patientId/records', ...getPatientRecords);
-
 /**
  * @swagger
  * /api/doctor/records:
@@ -157,68 +156,78 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *             type: object
  *             required:
  *               - patientId
+ *               - doctorId
  *             properties:
  *               patientId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the patient
  *               visitDate:
  *                 type: string
  *                 format: date-time
- *                 description: Date of the visit (defaults to current date if not provided)
  *               diagnosis:
  *                 type: string
- *                 description: Medical diagnosis
  *               notes:
  *                 type: string
- *                 description: Additional notes
+ *               doctorId:
+ *                 type: string
+ *                 format: uuid
  *               labResults:
  *                 type: array
- *                 description: List of lab test results
  *                 items:
  *                   type: object
  *                   required:
- *                     - testType
- *                     - result
+ *                     - testName
+ *                     - testDate
  *                   properties:
- *                     testType:
+ *                     testName:
  *                       type: string
- *                       example: Blood Test
- *                     result:
+ *                     testDate:
  *                       type: string
- *                       example: Normal
+ *                       format: date-time
+ *                     resultValue:
+ *                       type: string
+ *                     unit:
+ *                       type: string
+ *                     referenceRange:
+ *                       type: string
  *               prescriptions:
  *                 type: array
- *                 description: List of prescribed medications
  *                 items:
  *                   type: object
  *                   required:
- *                     - medication
- *                     - dosage
+ *                     - medicineName
+ *                     - prescribedById
  *                   properties:
- *                     medication:
+ *                     medicineName:
  *                       type: string
- *                       example: Ibuprofen
  *                     dosage:
  *                       type: string
- *                       example: 200mg
  *                     frequency:
  *                       type: string
- *                       example: Every 6 hours
  *                     duration:
  *                       type: string
- *                       example: 7 days
+ *                     instructions:
+ *                       type: string
+ *                     prescribedById:
+ *                       type: string
+ *                       format: uuid
  *               radiologyReports:
  *                 type: array
- *                 description: List of radiology reports
  *                 items:
  *                   type: object
  *                   required:
- *                     - findings
+ *                     - imagingType
+ *                     - reportDate
  *                   properties:
- *                     findings:
+ *                     imagingType:
  *                       type: string
- *                       example: No abnormalities detected
+ *                     reportText:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     reportDate:
+ *                       type: string
+ *                       format: date-time
  *     responses:
  *       201:
  *         description: Medical record created
@@ -236,66 +245,144 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                     id:
  *                       type: string
  *                       format: uuid
+ *                     patientId:
+ *                       type: string
+ *                       format: uuid
  *                     visitDate:
  *                       type: string
  *                       format: date-time
  *                     diagnosis:
  *                       type: string
+ *                     doctorId:
+ *                       type: string
+ *                       format: uuid
  *                     notes:
  *                       type: string
+ *                     patient:
+ *                       $ref: '#/components/schemas/Patient'
  *                     labResults:
  *                       type: array
  *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           testType:
- *                             type: string
- *                           result:
- *                             type: string
- *                           testDate:
- *                             type: string
- *                             format: date-time
+ *                         $ref: '#/components/schemas/LabResult'
  *                     prescriptions:
  *                       type: array
  *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           medication:
- *                             type: string
- *                           dosage:
- *                             type: string
- *                           frequency:
- *                             type: string
- *                           duration:
- *                             type: string
- *                           prescribedById:
- *                             type: string
- *                             format: uuid
+ *                         $ref: '#/components/schemas/Prescription'
  *                     radiologyReports:
  *                       type: array
  *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           imagingType:
- *                             type: string
- *                           findings:
- *                             type: string
- *                           reportDate:
- *                             type: string
- *                             format: date-time
- *       400:
- *         description: Validation error
- *       500:
- *         description: Internal server error
+ *                         $ref: '#/components/schemas/RadiologyReport'
+ * components:
+ *   schemas:
+ *     Patient:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         nationalId:
+ *           type: string
+ *         birthCertificate:
+ *           type: string
+ *         emergencyContactId:
+ *           type: string
+ *           format: uuid
+ *         personId:
+ *           type: string
+ *           format: uuid
+ *         person:
+ *           $ref: '#/components/schemas/Person'
+ *     Person:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         firstName:
+ *           type: string
+ *         middleName:
+ *           type: string
+ *         lastName:
+ *           type: string
+ *         sex:
+ *           type: string
+ *         dob:
+ *           type: string
+ *           format: date-time
+ *         phoneNumber:
+ *           type: string
+ *         address:
+ *           type: string
+ *     LabResult:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         medicalRecordId:
+ *           type: string
+ *           format: uuid
+ *         testName:
+ *           type: string
+ *         resultValue:
+ *           type: string
+ *         unit:
+ *           type: string
+ *         referenceRange:
+ *           type: string
+ *         testDate:
+ *           type: string
+ *           format: date-time
+ *         technicianId:
+ *           type: string
+ *           format: uuid
+ *         notes:
+ *           type: string
+ *     Prescription:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         medicalRecordId:
+ *           type: string
+ *           format: uuid
+ *         medicineName:
+ *           type: string
+ *         dosage:
+ *           type: string
+ *         frequency:
+ *           type: string
+ *         duration:
+ *           type: string
+ *         instructions:
+ *           type: string
+ *         prescribedById:
+ *           type: string
+ *           format: uuid
+ *     RadiologyReport:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         medicalRecordId:
+ *           type: string
+ *           format: uuid
+ *         imagingType:
+ *           type: string
+ *         bodyPart:
+ *           type: string
+ *         reportText:
+ *           type: string
+ *         reportDate:
+ *           type: string
+ *           format: date-time
+ *         radiologistId:
+ *           type: string
+ *           format: uuid
+ *         notes:
+ *           type: string
  */
 router.post('/records', ...addMedicalRecord);
 
