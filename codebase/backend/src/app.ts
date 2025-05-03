@@ -9,6 +9,7 @@ import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
 
 const app = express();
 
+// Security middleware
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

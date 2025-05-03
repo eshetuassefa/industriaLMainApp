@@ -12,6 +12,7 @@ enum RoleType {
   SUPERADMIN
   RECEPTIONIST
   LAB_TECHNICIAN
+  DOCTOR
   RADIOLOGIST
   PHARMACIST
   HEALTHCARE_PROVIDER 
@@ -32,6 +33,19 @@ enum ResultStatus {
   REJECTED
 }
 
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  EMERGENCY
+  ROUTINE_CHECK
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
 model Person {
   id           String    @id @default(uuid())
   firstName    String
@@ -47,7 +61,7 @@ model Person {
 
 model Patient {
   id               String          @id @default(uuid())
-  nationalId       String?         @unique
+  nationalId       String?         
   birthCertificate String?
   emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
   emergencyContactId String?           @unique
@@ -56,6 +70,14 @@ model Patient {
   personId         String          @unique
   medicalRecords   MedicalRecord[]
   testRequests     TestRequest[]
+  appointments     Appointment[]
+}
+
+model EmergencyContact {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  patient   Patient? @relation
 }
 model EmergencyContact {
   id        String   @id @default(uuid())
@@ -79,7 +101,8 @@ model User {
   labResults        LabResult[]       @relation(fields: [], references: [])
   prescriptions     Prescription[]    @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
-  orders            Order[]           @relation(fields: [], references: [])
+  orders            Order[]          @relation(fields: [], references: [])
+  appointments      Appointment[]
 }
 
 model MedicalRecord {
@@ -220,3 +243,23 @@ model TestResult {
   approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
   approvedById  String?
 }
+
+model Appointment {
+  id        String            @id @default(uuid())
+  patient   Patient           @relation(fields: [patientId], references: [id])
+  patientId String
+  doctor    User              @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  date      DateTime
+  duration  Int               // Duration in minutes
+  type      AppointmentType
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([date])
+}
+
