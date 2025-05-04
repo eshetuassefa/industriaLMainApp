@@ -15,9 +15,8 @@ enum RoleType {
   DOCTOR
   RADIOLOGIST
   PHARMACIST
-  HEALTHCARE_PROVIDER 
+  HEALTHCARE_PROVIDER
 }
-
 
 enum TestStatus {
   REQUESTED
@@ -47,44 +46,39 @@ enum AppointmentStatus {
 }
 
 model Person {
-  id           String    @id @default(uuid())
-  firstName    String
-  middleName   String?
-  lastName     String
-  sex          String
-  dob          DateTime
-  phoneNumber  String?
-  address      String?
-  user         User?
-  patient      Patient?
+  id          String   @id @default(uuid())
+  firstName   String
+  middleName  String?
+  lastName    String
+  sex         String
+  dob         DateTime
+  phoneNumber String?
+  address     String?
+  user        User?
+  patient     Patient?
 }
 
 model Patient {
-  id               String          @id @default(uuid())
-  nationalId       String?         
-  birthCertificate String?
-  emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
+  id                 String            @id @default(uuid())
+  nationalId         String?
+  birthCertificate   String?
+  emergencyContact   EmergencyContact? @relation(fields: [emergencyContactId], references: [id])
   emergencyContactId String?           @unique
- 
-  person           Person          @relation(fields: [personId], references: [id])
-  personId         String          @unique
-  medicalRecords   MedicalRecord[]
-  testRequests     TestRequest[]
-  appointments     Appointment[]
+
+  person         Person          @relation(fields: [personId], references: [id])
+  personId       String          @unique
+  medicalRecords MedicalRecord[]
+  testRequests   TestRequest[]
+  appointments   Appointment[]
 }
 
 model EmergencyContact {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String
-  patient   Patient? @relation
+  id      String   @id @default(uuid())
+  name    String
+  phone   String
+  patient Patient? @relation
 }
-model EmergencyContact {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String
-  patient   Patient? @relation
-}
+
 model User {
   id                String            @id @default(uuid())
   email             String            @unique
@@ -101,17 +95,19 @@ model User {
   labResults        LabResult[]       @relation(fields: [], references: [])
   prescriptions     Prescription[]    @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
-  orders            Order[]          @relation(fields: [], references: [])
+  orders            Order[]           @relation(fields: [], references: [])
   appointments      Appointment[]
+
+  acceptedTestRequests TestRequest[] @relation("TestRequestAccepted")
 }
 
 model MedicalRecord {
-  id               String             @id @default(uuid())
-  patient          Patient            @relation(fields: [patientId], references: [id])
+  id               String            @id @default(uuid())
+  patient          Patient           @relation(fields: [patientId], references: [id])
   patientId        String
   visitDate        DateTime
   diagnosis        String?
-  doctor           User?              @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
+  doctor           User?             @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
   doctorId         String?
   notes            String?
   labResults       LabResult[]
@@ -121,55 +117,55 @@ model MedicalRecord {
 }
 
 model LabResult {
-  id             String         @id @default(uuid())
-  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  testName       String
-  resultValue    String?
-  unit           String?
-  referenceRange String?
-  testDate       DateTime
-  technician     User?          @relation(fields: [technicianId], references: [id])
-  technicianId   String?
-  notes          String?
+  testName        String
+  resultValue     String?
+  unit            String?
+  referenceRange  String?
+  testDate        DateTime
+  technician      User?         @relation(fields: [technicianId], references: [id])
+  technicianId    String?
+  notes           String?
 }
 
 model Prescription {
-  id             String         @id @default(uuid())
-  medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  medicineName   String
-  dosage         String?
-  frequency      String?
-  duration       String?
-  instructions   String?
-  prescribedBy   User?          @relation("PrescribedBy", fields: [prescribedById], references: [id])
-  prescribedById String?
+  medicineName    String
+  dosage          String?
+  frequency       String?
+  duration        String?
+  instructions    String?
+  prescribedBy    User?         @relation("PrescribedBy", fields: [prescribedById], references: [id])
+  prescribedById  String?
 }
 
 model RadiologyReport {
-  id              String         @id @default(uuid())
-  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
   imagingType     String
   bodyPart        String?
   reportText      String?
   reportDate      DateTime
-  radiologist     User?          @relation("RadiologistReports", fields: [radiologistId], references: [id])
+  radiologist     User?         @relation("RadiologistReports", fields: [radiologistId], references: [id])
   radiologistId   String?
   notes           String?
 }
 
 model Order {
-  id              String         @id @default(uuid())
-  medicalRecord   MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
+  id              String        @id @default(uuid())
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
   orderType       String
   orderDetails    String
-  orderedBy       User?          @relation(fields: [orderedById], references: [id])
+  orderedBy       User?         @relation(fields: [orderedById], references: [id])
   orderedById     String?
   orderDate       DateTime
-  status          String         @default("Pending")
+  status          String        @default("Pending")
   notes           String?
 }
 
@@ -184,24 +180,22 @@ model Hospital {
   departments  Department[]
   testRequests TestRequest[]
 
-  createdAt    DateTime      @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Region {
-  id        Int       @id
-  name      String    @unique
-  hospitals Hospital[] 
+  id        Int        @id
+  name      String     @unique
+  hospitals Hospital[]
 }
 
-
 model Department {
-  id          String      @id @default(uuid())
-  name        String
-  code        String?
-  hospital    Hospital    @relation(fields: [hospitalId], references: [id])
-  hospitalId  String
-  testTypes   TestType[]
- 
+  id         String     @id @default(uuid())
+  name       String
+  code       String?
+  hospital   Hospital   @relation(fields: [hospitalId], references: [id])
+  hospitalId String
+  testTypes  TestType[]
 }
 
 model TestType {
@@ -229,19 +223,23 @@ model TestRequest {
   notes       String?
   requestedAt DateTime     @default(now())
   results     TestResult[]
+
+  acceptedBy   User?     @relation("TestRequestAccepted", fields: [acceptedById], references: [id])
+  acceptedById String?
+  acceptedAt   DateTime? // Timestamp for when the request is accepted
 }
 
 model TestResult {
-  id            String       @id @default(uuid())
-  request       TestRequest  @relation(fields: [requestId], references: [id])
-  requestId     String
-  technician    User         @relation("TechnicianResults", fields: [technicianId], references: [id])
-  technicianId  String
-  values        Json
-  status        ResultStatus @default(PENDING)
-  completedAt   DateTime?
-  approvedBy    User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
-  approvedById  String?
+  id           String       @id @default(uuid())
+  request      TestRequest  @relation(fields: [requestId], references: [id])
+  requestId    String
+  technician   User         @relation("TechnicianResults", fields: [technicianId], references: [id])
+  technicianId String
+  values       Json
+  status       ResultStatus @default(PENDING)
+  completedAt  DateTime? // Timestamp when the result is submitted
+  approvedBy   User?        @relation("ApprovedResults", fields: [approvedById], references: [id])
+  approvedById String?
 }
 
 model Appointment {
@@ -251,7 +249,7 @@ model Appointment {
   doctor    User              @relation(fields: [doctorId], references: [id])
   doctorId  String
   date      DateTime
-  duration  Int               // Duration in minutes
+  duration  Int // Duration in minutes
   type      AppointmentType
   status    AppointmentStatus @default(SCHEDULED)
   notes     String?
@@ -262,4 +260,3 @@ model Appointment {
   @@index([doctorId])
   @@index([date])
 }
-

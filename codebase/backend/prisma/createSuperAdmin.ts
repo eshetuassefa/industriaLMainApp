@@ -29,14 +29,15 @@ async function main() {
     },
   });
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      role: 'SUPERADMIN',
-      personId: person.id,
-    },
-  });
+const user = await prisma.user.create({
+  data: {
+    email,
+    password: hashedPassword,
+    role: "SUPERADMIN",
+    username: "superadmin", // ✅ REQUIRED FIELD
+    personId: person.id,
+  },
+});
 
   console.log('✅ Superadmin created:', user);
 }

@@ -6,6 +6,7 @@ import swaggerSpec from "./docs/swagger";
 
 import authRoutes from "./routes/auth.routes";
 import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
+import labResultRouter from "./routes/labResult.route"; // Updated to use lab result routes
 
 const app = express();
 
@@ -17,6 +18,8 @@ app.use(express.json());
 // API Routes
 app.use("/api/auth", authRoutes); // Authentication routes
 app.use("/api/admin", adminRoutes); // Admin routes to manage staff
+app.use("/api/lab-results", labResultRouter);
+
 
 // Swagger API Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

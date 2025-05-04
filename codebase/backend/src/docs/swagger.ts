@@ -6,13 +6,14 @@ const options = {
     info: {
       title: "eHealth API",
       version: "1.0.0",
+      description: "API for managing lab test results, healthcare data, etc.",
     },
     components: {
       securitySchemes: {
         bearerAuth: {
           type: "http",
           scheme: "bearer",
-          bearerFormat: "JWT",
+          bearerFormat: "JWT", // expected format of token (Bearer JWT)
         },
       },
       schemas: {
@@ -30,9 +31,9 @@ const options = {
         },
       },
     },
-    security: [{ bearerAuth: [] }],
+    security: [{ bearerAuth: [] }], // Apply to all routes globally unless overridden
   },
-  apis: ["./src/routes/*.ts"],
+  apis: ["./src/routes/*.ts"], // Path to your route files (ensure correct path)
 };
 
 const swaggerSpec = swaggerJsdoc(options);
