@@ -233,6 +233,72 @@ export const prescribeMedicine = [
     }
   }
 ];
+export const getPrescriptionById = [
+  authenticateToken,
+  authorizeRoles('SUPERADMIN'),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const prescription = await prisma.prescription.findUnique({
+        where: { id },
+        include: {
+          medicalRecord: {
+            include: {
+              patient: true
+            }
+          }
+        }
+      });
+
+      if (!prescription) {
+        return res.status(404).json({ message: 'Prescription not found' });
+      }
+
+      res.status(200).json({
+        message: 'Prescription retrieved successfully',
+        data: prescription
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: 'Error retrieving prescription' });
+      }
+    }
+  }
+];
+
+export const getAllPrescriptions = [
+  authenticateToken,
+  authorizeRoles('SUPERADMIN'),
+  async (req: Request, res: Response) => {
+    try {
+      const prescriptions = await prisma.prescription.findMany({
+        include: {
+          medicalRecord: {
+            include: {
+              patient: true
+            }
+          }
+        },
+        orderBy: { id: 'desc' }
+      });
+
+      res.status(200).json({
+        message: 'Prescriptions retrieved successfully',
+        data: prescriptions
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: 'Error retrieving prescriptions' });
+      }
+    }
+  }
+];
 
 // Create a new appointment
 export const createAppointment = [
@@ -280,7 +346,7 @@ export const createAppointment = [
 // Get all appointments for a doctor
 export const getDoctorAppointments = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const appointments = await prisma.appointment.findMany({
@@ -313,11 +379,51 @@ export const getDoctorAppointments = [
     }
   }
 ];
+// Get single appointments for a doctor
+export const getAppointments = [
+  authenticateToken,
+  authorizeRoles('SUPERADMIN'),
+  async (req: Request, res: Response) => {
+    try {
+      const { appointmentId } = appointmentIdSchema.parse(req.params);
+     
+
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          id: appointmentId,
+          doctorId: req.user!.id
+        },
+        include: {
+          patient: {
+            include: {
+              person: true
+            }
+          }
+        },
+        orderBy: {
+          date: 'asc'
+        }
+      });
+
+      res.status(200).json({
+        message: 'Appointments retrieved successfully',
+        data: appointments
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching appointments' });
+      }
+    }
+  }
+];
 
 // Update an appointment
 export const updateAppointment = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const { appointmentId } = appointmentIdSchema.parse(req.params);
@@ -359,7 +465,7 @@ export const updateAppointment = [
 // Delete an appointment
 export const deleteAppointment = [
   authenticateToken,
-  authorizeRoles('DOCTOR'),
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const { appointmentId } = appointmentIdSchema.parse(req.params);

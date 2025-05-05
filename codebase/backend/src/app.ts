@@ -1,3 +1,4 @@
+import { LabResult } from './../node_modules/.prisma/client/index.d';
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,6 +8,8 @@ import swaggerSpec from "./docs/swagger";
 import authRoutes from "./routes/auth.routes";
 import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
 import labResultRouter from "./routes/labResult.route"; // Updated to use lab result routes
+import receptionRoutes from "./routes/rescptions.route";  
+import doctorRoutes from "./routes/doctor.route";    
 
 const app = express();
 
@@ -19,6 +22,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes); // Authentication routes
 app.use("/api/admin", adminRoutes); // Admin routes to manage staff
 app.use("/api/lab-results", labResultRouter);
+app.use('/api/reception', receptionRoutes);  
+app.use('/api/doctor', doctorRoutes);  
 
 
 // Swagger API Documentation

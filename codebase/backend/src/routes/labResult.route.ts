@@ -1,45 +1,13 @@
+import { LabResult } from './../../node_modules/.prisma/client/index.d';
+import { login } from './../controllers/auth.controller';
 import { Router } from "express";
 import {
-  acceptTestRequest,
   submitTestResult,
   getTestResult,
 } from "../controllers/labResult.controller";
-import {
-  authenticateToken,
-  authorizeLabTechnician,
-  // checkTestRequestOwnership
-} from "../middleware/auth.middleware";
 
 const router = Router();
 
-/**
- * @swagger
- * /api/lab-results/accept-request/{requestId}:
- *   patch:
- *     summary: Lab technician accepts a test request
- *     tags: [Lab Results]
- *     parameters:
- *       - name: requestId
- *         in: path
- *         required: true
- *         description: The ID of the test request to accept
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Successfully accepted the test request
- *       403:
- *         description: Forbidden – only lab technicians allowed
- *       500:
- *         description: Internal server error
- */
-router.patch(
-  "/accept-request/:requestId",
-  authenticateToken,
-  authorizeLabTechnician(),
-  // checkTestRequestOwnership(req.params.requestId), // Optional ownership check
-  acceptTestRequest
-);
 
 /**
  * @swagger
@@ -74,8 +42,7 @@ router.patch(
  */
 router.post(
   "/submit-result/:requestId",
-  authenticateToken,
-  authorizeLabTechnician(),
+ 
   // checkTestRequestOwnership(req.params.requestId), // Optional ownership check
   submitTestResult
 );
@@ -101,30 +68,6 @@ router.post(
  *       404:
  *         description: Result not found
  */
-router.get("/view-result/:requestId", authenticateToken, getTestResult);
-/**
- * @swagger
- * /api/lab-results/accept-request/{requestId}:
- *   patch:
- *     summary: Lab technician accepts a test request
- *     tags: [Lab Results]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: requestId
- *         in: path
- *         required: true
- *         description: The ID of the test request to accept
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Successfully accepted the test request
- *       403:
- *         description: Forbidden – only lab technicians allowed
- *       401:
- *         description: Unauthorized – token missing or invalid
- */
-router.patch("/accept-request/:requestId", authenticateToken, authorizeLabTechnician(), acceptTestRequest);
+router.get("/view-result/:requestId", getTestResult);
 
 export default router;

@@ -34,7 +34,7 @@ const user = await prisma.user.create({
     email,
     password: hashedPassword,
     role: "SUPERADMIN",
-    username: "superadmin", // ✅ REQUIRED FIELD
+ 
     personId: person.id,
   },
 });

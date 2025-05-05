@@ -8,6 +8,9 @@ import {
   getDoctorAppointments,
   updateAppointment,
   deleteAppointment,
+  getAppointments,
+  getPrescriptionById,
+  getAllPrescriptions
 } from '../controllers/doctor.controller';
 
 const router = express.Router();
@@ -482,6 +485,163 @@ router.post('/test-requests', ...requestTest);
  *                   type: string
  */
 router.post('/prescriptions', ...prescribeMedicine);
+/**
+ * @swagger
+ * /api/doctor/prescriptions:
+ *   get:
+ *     summary: Get all prescriptions
+ *     tags: [Doctor]
+ *     responses:
+ *       200:
+ *         description: List of all prescriptions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Prescriptions retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       medicineName:
+ *                         type: string
+ *                       dosage:
+ *                         type: string
+ *                       frequency:
+ *                         type: string
+ *                       duration:
+ *                         type: string
+ *                       instructions:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       medicalRecord:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           visitDate:
+ *                             type: string
+ *                             format: date-time
+ *                       prescribedBy:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           person:
+ *                             type: object
+ *                             properties:
+ *                               firstName:
+ *                                 type: string
+ *                               lastName:
+ *                                 type: string
+ *   
+ */
+router.get('/prescriptions', ...getAllPrescriptions);
+/**
+ * @swagger
+ * /api/doctor/prescriptions/{id}:
+ *   get:
+ *     summary: Get prescription by prescriptionID
+ *     tags: [Doctor]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Prescription UUID
+ *     responses:
+ *       200:
+ *         description: Prescription details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Prescription retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     medicineName:
+ *                       type: string
+ *                     dosage:
+ *                       type: string
+ *                     frequency:
+ *                       type: string
+ *                     duration:
+ *                       type: string
+ *                     instructions:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         visitDate:
+ *                           type: string
+ *                           format: date-time
+ *                         diagnosis:
+ *                           type: string
+ *                     prescribedBy:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         person:
+ *                           type: object
+ *                           properties:
+ *                             firstName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *                     patient:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         person:
+ *                           type: object
+ *                           properties:
+ *                             firstName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *       404:
+ *         description: Prescription not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Prescription not found
+ *    
+ */
+router.get('/prescriptions/:id', ...getPrescriptionById);
 
 /**
  * @swagger
@@ -609,6 +769,47 @@ router.post('/appointments', ...createAppointment);
  *                                 type: string
  */
 router.get('/appointments', ...getDoctorAppointments);
+/**
+ * @swagger
+ * /api/doctor/appointments/{appointmentId}:
+ *   get:
+ *     summary: get an appointment by appointmentId
+ *     tags: [Doctor]
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     
+ *     responses:
+ *       200:
+ *         description: Appointment updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     date:
+ *                       type: string
+ *                       format: date-time
+ *                     duration:
+ *                       type: integer
+ *                     type:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ */
+router.get('/appointments/:appointmentId', ...getAppointments);
 
 /**
  * @swagger

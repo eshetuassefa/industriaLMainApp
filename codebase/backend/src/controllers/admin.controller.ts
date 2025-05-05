@@ -11,6 +11,7 @@ const prisma = new PrismaClient();
 
 const allowedRoles: RoleType[] = [
   "RECEPTIONIST",
+  "SUPERADMIN",
   "PHARMACIST",
   "LAB_TECHNICIAN",
   "RADIOLOGIST",
