@@ -7,57 +7,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum RoleType {
-  ADMIN
-  SUPERADMIN
-  RECEPTIONIST
-  LAB_TECHNICIAN
-  RADIOLOGIST
-  PHARMACIST
-}
-
-enum TestStatus {
-  REQUESTED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum ResultStatus {
-  PENDING
-  COMPLETED
-  APPROVED
-  REJECTED
-}
-
 model Person {
-  id           String    @id @default(uuid())
-  firstName    String
-  middleName   String?
-  lastName     String
-  sex          String
-  dob          DateTime
-  phoneNumber  String?
-  address      String?
-  user         User?
-  patient      Patient?
+  id          String   @id @default(uuid())
+  firstName   String
+  middleName  String?
+  lastName    String
+  sex         String
+  dob         DateTime
+  phoneNumber String?
+  address     String?
+  patient     Patient?
+  user        User?
 }
+
 
 model Patient {
   id               String          @id @default(uuid())
-  nationalId       String?         @unique
+  nationalId       String?         
   birthCertificate String?
-  emergencyContact String?
+  emergencyContact  EmergencyContact?  @relation(fields: [emergencyContactId], references: [id])
+  emergencyContactId String?           @unique
+ 
   person           Person          @relation(fields: [personId], references: [id])
   personId         String          @unique
   medicalRecords   MedicalRecord[]
   testRequests     TestRequest[]
+  appointments     Appointment[]
+}
+
+model EmergencyContact {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  patient   Patient? @relation
 }
 
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  username  String? @unique
   role      RoleType
   person    Person   @relation(fields: [personId], references: [id])
   personId  String   @unique
@@ -71,7 +60,9 @@ model User {
   prescriptions     Prescription[] @relation("PrescribedBy")
   radiologyReports  RadiologyReport[] @relation("RadiologistReports")
   orders            Order[]          @relation(fields: [], references: [])
+  appointments      Appointment[]
 }
+
 
 model MedicalRecord {
   id               String             @id @default(uuid())
@@ -87,7 +78,6 @@ model MedicalRecord {
   radiologyReports RadiologyReport[]
   orders           Order[]
 }
-
 model LabResult {
   id             String         @id @default(uuid())
   medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])
@@ -126,6 +116,7 @@ model RadiologyReport {
   radiologist     User?          @relation("RadiologistReports", fields: [radiologistId], references: [id])
   radiologistId   String?
   notes           String?
+  imagePath       String?        // Path to the stored image
 }
 
 model Order {
@@ -146,7 +137,7 @@ model Hospital {
   name         String        @unique
   code         String        @unique
   region       Region        @relation(fields: [regionId], references: [id])
-  regionId     String
+  regionId     Int
   city         String
   zone         String
   departments  Department[]
@@ -212,3 +203,58 @@ model TestResult {
   approvedById  String?
 }
 
+model Appointment {
+  id        String            @id @default(uuid())
+  patient   Patient           @relation(fields: [patientId], references: [id])
+  patientId String
+  doctor    User              @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  date      DateTime
+  duration  Int               // Duration in minutes
+  type      AppointmentType
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([date])
+}
+
+enum RoleType {
+  ADMIN
+  SUPERADMIN
+  RECEPTIONIST
+  HEALTHCARE_PROVIDER
+  LAB_TECHNICIAN
+  RADIOLOGIST
+  PHARMACIST
+}
+
+enum TestStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ResultStatus {
+  PENDING
+  COMPLETED
+  APPROVED
+  REJECTED
+}
+
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  EMERGENCY
+  ROUTINE_CHECK
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}

@@ -1,23 +1,41 @@
-
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from './docs/swagger';
+import { LabResult } from './../node_modules/.prisma/client/index.d';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./docs/swagger";
 
 import authRoutes from "./routes/auth.routes";
+import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
+import labResultRouter from "./routes/labResult.route"; // Updated to use lab result routes
+import receptionRoutes from "./routes/rescptions.route";  
+import doctorRoutes from "./routes/doctor.route";    
+import superadminRoutes from "./routes/superadmin.route";
+import radiologyRoutes from './routes/radiology.route';
+
 
 const app = express();
 
+// Security middleware
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// API Routes
+app.use("/api/auth", authRoutes); // Authentication routes
+app.use("/api/admin", adminRoutes); // Admin routes to manage staff
+app.use("/api/lab-results", labResultRouter);
+app.use('/api/reception', receptionRoutes);  
+app.use('/api/doctor', doctorRoutes);  
+app.use('/api/superadmin', superadminRoutes);
+app.use('/api/radiology', radiologyRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Welcome to eHealth APIs');
+// Swagger API Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Home route
+app.get("/", (req, res) => {
+  res.send("Welcome to Admin APIs");
 });
 
 export default app;
