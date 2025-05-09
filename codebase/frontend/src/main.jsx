@@ -1,19 +1,18 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider } from "react-router-dom";
-import { router } from "./router";
-import "./index.css";
+import { BrowserRouter } from "react-router-dom";
 
+import "./index.css";
+// import App from "./App";
+import App from "./router"; // Import the router instead of App
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <React.Suspense fallback="Loading ...">
-        <RouterProvider router={router} />
-      </React.Suspense>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </React.StrictMode>
   );
 }
-
