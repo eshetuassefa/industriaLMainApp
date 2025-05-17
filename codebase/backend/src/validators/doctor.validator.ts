@@ -5,8 +5,14 @@ export const addMedicalRecordSchema = z.object({
   patientId: z.string().uuid('Invalid Patient ID'),
   visitDate: z.string().optional(),
   diagnosis: z.string().optional(),
+  // New fields
+  chiefComplaint: z.string().optional(),
+  bloodPressure: z.string().optional(),
+  heartRate: z.number().int().positive().optional(),
+  temperature: z.number().optional(),
+  physicalExamination: z.string().optional(),
+  // Existing fields
   notes: z.string().optional(),
- 
   labResults: z.array(
     z.object({
       testName: z.string(),
