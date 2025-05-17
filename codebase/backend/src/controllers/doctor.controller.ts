@@ -18,16 +18,28 @@ const prisma = new PrismaClient();
 // View all medical records for a patient
 export const getPatientRecords = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'), //NB authorizeRoles need to be updated to include doctor
+  authorizeRoles('SUPERADMIN'),
   async (req: Request, res: Response) => {
     try {
       const { patientId } = fetchPatientSchema.parse(req.params);
-      
-    
+
+      // Fetch patient details with safe selection
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
-        include: {
-          person: true 
+        select: {
+          id: true,
+          personId: true,
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              dob: true,
+              sex: true,
+              phoneNumber: true,
+              address: true
+            }
+          }
         }
       });
 
@@ -35,7 +47,7 @@ export const getPatientRecords = [
         return res.status(404).json({ message: 'Patient not found' });
       }
 
-      // Then fetch medical records
+      // Fetch medical records with secure relationships
       const records = await prisma.medicalRecord.findMany({
         where: { patientId },
         include: {
@@ -43,24 +55,52 @@ export const getPatientRecords = [
           prescriptions: true,
           radiologyReports: true,
           doctor: {
-            include: {
-              person: true // Include doctor's personal information
+            select: {
+              id: true,
+              role: true,
+              person: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                
+                }
+              }
             }
           }
         },
         orderBy: { visitDate: 'desc' }
       });
 
+      // Format response with safe data structure
       res.status(200).json({
         message: 'Medical records retrieved successfully',
         data: {
-          patient: {
-            id: patient.id,
-            personId: patient.personId,
-            
-            person: patient.person 
-          },
-          records
+          patient,
+          records: records.map(record => ({
+            id: record.id,
+            visitDate: record.visitDate,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+            diagnosis: record.diagnosis,
+            chiefComplaint: record.chiefComplaint,
+            bloodPressure: record.bloodPressure,
+            heartRate: record.heartRate,
+            temperature: record.temperature,
+            physicalExamination: record.physicalExamination,
+            notes: record.notes,
+            doctor: {
+              id: record.doctor?.id,
+              role: record.doctor?.role,
+              name: record.doctor?.person ? {
+                firstName: record.doctor.person.firstName,
+                lastName: record.doctor.person.lastName
+              } : null
+            },
+            labResults: record.labResults,
+            prescriptions: record.prescriptions,
+            radiologyReports: record.radiologyReports
+          }))
         }
       });
     } catch (error) {
@@ -73,8 +113,8 @@ export const getPatientRecords = [
     }
   }
 ];
-
 // Add a medical record (with optional labResults, prescriptions, and radiologyReports)
+
 export const addMedicalRecord = [
   authenticateToken,
   authorizeRoles('SUPERADMIN'),
@@ -82,46 +122,55 @@ export const addMedicalRecord = [
     try {
       const validatedData = addMedicalRecordSchema.parse(req.body);
 
+      // Create medical record with all fields
       const medicalRecord = await prisma.medicalRecord.create({
         data: {
           patientId: validatedData.patientId,
           visitDate: validatedData.visitDate 
             ? new Date(validatedData.visitDate) 
             : new Date(),
+          // New vital fields
+          chiefComplaint: validatedData.chiefComplaint,
+          bloodPressure: validatedData.bloodPressure,
+          heartRate: validatedData.heartRate,
+          temperature: validatedData.temperature,
+          physicalExamination: validatedData.physicalExamination,
+          // Existing medical fields
           diagnosis: validatedData.diagnosis,
           notes: validatedData.notes,
+          // Relationships
           doctorId: req.user!.id,
           labResults: validatedData.labResults
             ? {
-                create: validatedData.labResults.map((lr) => ({
+                create: validatedData.labResults.map(lr => ({
                   testName: lr.testName,
                   testDate: new Date(lr.testDate),
                   resultValue: lr.resultValue,
                   unit: lr.unit,
                   referenceRange: lr.referenceRange,
-                })),
+                }))
               }
             : undefined,
           prescriptions: validatedData.prescriptions
             ? {
-                create: validatedData.prescriptions.map((p) => ({
+                create: validatedData.prescriptions.map(p => ({
                   medicineName: p.medicineName,
                   dosage: p.dosage,
                   frequency: p.frequency,
                   duration: p.duration,
                   instructions: p.instructions,
                   prescribedById: req.user!.id,
-                })),
+                }))
               }
             : undefined,
           radiologyReports: validatedData.radiologyReports
             ? {
-                create: validatedData.radiologyReports.map((report) => ({
+                create: validatedData.radiologyReports.map(report => ({
                   imagingType: report.imagingType,
                   reportText: report.reportText,
                   bodyPart: report.bodyPart,
                   reportDate: new Date(report.reportDate),
-                })),
+                }))
               }
             : undefined,
         },
@@ -130,12 +179,26 @@ export const addMedicalRecord = [
           labResults: true,
           prescriptions: true,
           radiologyReports: true,
-        },
+          doctor: {
+            include: {
+              person: true
+            }
+          }
+        }
       });
 
+      // Return complete response with all fields
       res.status(201).json({
         message: 'Medical record added successfully',
-        data: medicalRecord,
+        data: {
+          ...medicalRecord,
+          // Explicitly list critical fields for clarity
+          chiefComplaint: medicalRecord.chiefComplaint,
+          bloodPressure: medicalRecord.bloodPressure,
+          heartRate: medicalRecord.heartRate,
+          temperature: medicalRecord.temperature,
+          physicalExamination: medicalRecord.physicalExamination
+        }
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -144,7 +207,7 @@ export const addMedicalRecord = [
       console.error(error);
       res.status(500).json({ message: 'Error adding medical record' });
     }
-  },
+  }
 ];
 
 // Request a lab or radiology test

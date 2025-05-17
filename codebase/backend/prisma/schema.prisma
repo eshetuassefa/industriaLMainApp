@@ -70,14 +70,28 @@ model MedicalRecord {
   patientId        String
   visitDate        DateTime
   diagnosis        String?
+  
+ 
+  // Timestamps
+  createdAt        DateTime?           @default(now())
+  updatedAt        DateTime?           @updatedAt
+  chiefComplaint   String?            // Explicit field for the primary reason of the visit
+  bloodPressure    String?            // e.g., "120/80" (string to capture non-numeric formats)
+  heartRate        Int?               // beats per minute (numeric value)
+  temperature      Float?             // body temperature in °C/°F
+  physicalExamination String?         // Free-text description of physical findings
+
+
   doctor           User?              @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
   doctorId         String?
-  notes            String?
+  notes            String?            // General notes (retained for other purposes)
+  
   labResults       LabResult[]
   prescriptions    Prescription[]
   radiologyReports RadiologyReport[]
   orders           Order[]
 }
+
 model LabResult {
   id             String         @id @default(uuid())
   medicalRecord  MedicalRecord  @relation(fields: [medicalRecordId], references: [id])

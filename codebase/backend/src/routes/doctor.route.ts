@@ -59,7 +59,6 @@ const router = express.Router();
  *                         personId:
  *                           type: string
  *                           format: uuid
- *                         
  *                         person:
  *                           type: object
  *                           properties:
@@ -77,7 +76,6 @@ const router = express.Router();
  *                               type: string
  *                             phoneNumber:
  *                               type: string
- *                           
  *                             address:
  *                               type: string
  *                     records:
@@ -93,6 +91,27 @@ const router = express.Router();
  *                             format: date-time
  *                           diagnosis:
  *                             type: string
+ *                           # New fields start here
+ *                           chiefComplaint:
+ *                             type: string
+ *                             description: Primary reason for the medical visit
+ *                           bloodPressure:
+ *                             type: string
+ *                             example: "120/80"
+ *                             description: Blood pressure measurement
+ *                           heartRate:
+ *                             type: integer
+ *                             example: 72
+ *                             description: Heart rate in BPM
+ *                           temperature:
+ *                             type: number
+ *                             format: float
+ *                             example: 36.6
+ *                             description: Body temperature in Celsius
+ *                           physicalExamination:
+ *                             type: string
+ *                             description: Findings from physical exam
+ *                           # Existing fields
  *                           notes:
  *                             type: string
  *                           doctor:
@@ -159,7 +178,6 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *             type: object
  *             required:
  *               - patientId
- *               - doctorId
  *             properties:
  *               patientId:
  *                 type: string
@@ -169,11 +187,26 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                 format: date-time
  *               diagnosis:
  *                 type: string
+ *               # New fields
+ *               chiefComplaint:
+ *                 type: string
+ *                 description: Patient's primary reason for the visit
+ *               bloodPressure:
+ *                 type: string
+ *                 example: "120/80"
+ *               heartRate:
+ *                 type: integer
+ *                 example: 72
+ *               temperature:
+ *                 type: number
+ *                 format: float
+ *                 example: 36.6
+ *               physicalExamination:
+ *                 type: string
+ *                 description: Findings from physical examination
+ *               # Existing fields
  *               notes:
  *                 type: string
- *               doctorId:
- *                 type: string
- *                 format: uuid
  *               labResults:
  *                 type: array
  *                 items:
@@ -199,7 +232,6 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                   type: object
  *                   required:
  *                     - medicineName
- *                     - prescribedById
  *                   properties:
  *                     medicineName:
  *                       type: string
@@ -211,9 +243,6 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                       type: string
  *                     instructions:
  *                       type: string
- *                     prescribedById:
- *                       type: string
- *                       format: uuid
  *               radiologyReports:
  *                 type: array
  *                 items:
@@ -256,11 +285,26 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                       format: date-time
  *                     diagnosis:
  *                       type: string
- *                     doctorId:
+ *                     # New fields
+ *                     chiefComplaint:
  *                       type: string
- *                       format: uuid
+ *                     bloodPressure:
+ *                       type: string
+ *                     heartRate:
+ *                       type: integer
+ *                     temperature:
+ *                       type: number
+ *                     physicalExamination:
+ *                       type: string
+ *                     # Existing fields
  *                     notes:
  *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *                     patient:
  *                       $ref: '#/components/schemas/Patient'
  *                     labResults:
