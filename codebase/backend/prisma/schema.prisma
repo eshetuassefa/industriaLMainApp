@@ -86,6 +86,7 @@ model MedicalRecord {
   prescriptions    Prescription[]
   radiologyReports RadiologyReport[]
   orders           Order[]
+  radiologyRequests RadiologyRequest[]
 }
 
 model LabResult {
@@ -115,18 +116,35 @@ model Prescription {
   prescribedById  String?
 }
 
-model RadiologyReport {
+model RadiologyRequest {
   id              String        @id @default(uuid())
   medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
   imagingType     String
   bodyPart        String?
-  reportText      String?
-  reportDate      DateTime
-  radiologist     User?         @relation("RadiologistReports", fields: [radiologistId], references: [id])
-  radiologistId   String?
   notes           String?
+  status          TestStatus    @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  report          RadiologyReport?
 }
+model RadiologyReport {
+  id                  String        @id @default(uuid())
+  medicalRecord       MedicalRecord @relation(fields: [medicalRecordId], references: [id])
+  medicalRecordId     String
+  imagingType         String
+  bodyPart            String?
+  reportText          String?
+  reportDate          DateTime
+  radiologist         User?         @relation("RadiologistReports", fields: [radiologistId], references: [id])
+  radiologistId       String?
+  notes               String?
+
+  radiologyRequest    RadiologyRequest? @relation(fields: [radiologyRequestId], references: [id])
+  radiologyRequestId  String? @unique
+}
+
 
 model Order {
   id              String        @id @default(uuid())
@@ -249,6 +267,7 @@ enum TestStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  PENDING
 }
 
 enum ResultStatus {
