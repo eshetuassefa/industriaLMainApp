@@ -117,7 +117,7 @@ export const getPatientRecords = [
 
 export const addMedicalRecord = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles("HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = addMedicalRecordSchema.parse(req.body);
