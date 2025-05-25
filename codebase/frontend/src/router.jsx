@@ -18,12 +18,9 @@ const router = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/about" element={<About />} />
-        <Route
-          path="/receptionist/receptionist"
-          element={<ReceptionistPage />}
-        />
-        <Route path="/pharmacist/pharmacist" element={<PharmacyPage />} />
-        <Route path="/admin/admin" element={<AdminPage />} />
+        <Route path="/receptionist" element={<ReceptionistPage />} />
+        <Route path="/pharmacist" element={<PharmacyPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         {/* Add AdminMenu route */}
       </Routes>
       <Footer />

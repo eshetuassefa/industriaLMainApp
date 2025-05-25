@@ -444,99 +444,119 @@ export default function PharmacyPage() {
   );
 
   // Handle prescription selection
-  const handlePrescriptionSelect = (prescription) => {
-    setSelectedPrescription(prescription);
+  const handlePrescriptionSelect = async (prescription) => {
+    try {
+      await setSelectedPrescription(prescription);
+    } catch (error) {
+      console.error('Error selecting prescription:', error);
+    }
   };
 
   // Handle patient selection
-  const handlePatientSelect = (patient) => {
-    setSelectedPatient(patient);
-    setNewPrescription({
-      ...newPrescription,
-      patientId: patient.id.toString(),
-    });
+  const handlePatientSelect = async (patient) => {
+    try {
+      await setSelectedPatient(patient);
+      await setNewPrescription({
+        ...newPrescription,
+        patientId: patient.id.toString(),
+      });
+    } catch (error) {
+      console.error('Error selecting patient:', error);
+    }
   };
 
   // Handle new prescription form submission
-  const handleNewPrescriptionSubmit = () => {
-    const newPrescriptionId =
-      prescriptions.length > 0
-        ? Math.max(...prescriptions.map((p) => p.id)) + 1
-        : 1;
-    const selectedPatientData = patients.find(
-      (p) => p.id === Number.parseInt(newPrescription.patientId)
-    );
+  const handleNewPrescriptionSubmit = async () => {
+    try {
+      const newPrescriptionId =
+        prescriptions.length > 0
+          ? Math.max(...prescriptions.map((p) => p.id)) + 1
+          : 1;
+      const selectedPatientData = patients.find(
+        (p) => p.id === Number.parseInt(newPrescription.patientId)
+      );
 
-    const prescriptionToAdd = {
-      ...newPrescription,
-      id: newPrescriptionId,
-      patientName: selectedPatientData.name,
-      status: "Pending",
-    };
+      const prescriptionToAdd = {
+        ...newPrescription,
+        id: newPrescriptionId,
+        patientName: selectedPatientData.name,
+        status: "Pending",
+      };
 
-    setPrescriptions([...prescriptions, prescriptionToAdd]);
-    setNewPrescription({
-      patientId: "",
-      doctor: "",
-      dateIssued: format(new Date(), "yyyy-MM-dd"),
-      expiryDate: format(
-        new Date(new Date().setMonth(new Date().getMonth() + 1)),
-        "yyyy-MM-dd"
-      ),
-      medications: [],
-      notes: "",
-    });
-    setShowNewPrescriptionDialog(false);
+      await setPrescriptions([...prescriptions, prescriptionToAdd]);
+      await setNewPrescription({
+        patientId: "",
+        doctor: "",
+        dateIssued: format(new Date(), "yyyy-MM-dd"),
+        expiryDate: format(
+          new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          "yyyy-MM-dd"
+        ),
+        medications: [],
+        notes: "",
+      });
+      setShowNewPrescriptionDialog(false);
 
-    // Add notification
-    addNotification(
-      `New prescription created for ${selectedPatientData.name}`,
-      "info"
-    );
+      // Add notification
+      await addNotification(
+        `New prescription created for ${selectedPatientData.name}`,
+        "info"
+      );
+    } catch (error) {
+      console.error('Error creating new prescription:', error);
+    }
   };
 
   // Handle adding medication to prescription
-  const handleAddMedicationToPrescription = () => {
-    const selectedMedication = medications.find(
-      (m) => m.id === Number.parseInt(medicationToAdd.medicationId)
-    );
+  const handleAddMedicationToPrescription = async () => {
+    try {
+      const selectedMedication = medications.find(
+        (m) => m.id === Number.parseInt(medicationToAdd.medicationId)
+      );
 
-    if (selectedMedication) {
-      const newMedicationItem = {
-        id:
-          newPrescription.medications.length > 0
-            ? Math.max(...newPrescription.medications.map((m) => m.id)) + 1
-            : 1,
-        name: selectedMedication.name,
-        dosage: medicationToAdd.dosage,
-        frequency: medicationToAdd.frequency,
-        quantity: Number.parseInt(medicationToAdd.quantity),
-        instructions: medicationToAdd.instructions,
-      };
+      if (selectedMedication) {
+        const newMedicationItem = {
+          id:
+            newPrescription.medications.length > 0
+              ? Math.max(...newPrescription.medications.map((m) => m.id)) + 1
+              : 1,
+          name: selectedMedication.name,
+          dosage: medicationToAdd.dosage,
+          frequency: medicationToAdd.frequency,
+          quantity: Number.parseInt(medicationToAdd.quantity),
+          instructions: medicationToAdd.instructions,
+        };
 
-      setNewPrescription({
-        ...newPrescription,
-        medications: [...newPrescription.medications, newMedicationItem],
-      });
+        await setNewPrescription({
+          ...newPrescription,
+          medications: [...newPrescription.medications, newMedicationItem],
+        });
 
-      setMedicationToAdd({
-        medicationId: "",
-        dosage: "",
-        frequency: "",
-        quantity: 0,
-        instructions: "",
-      });
+        await setMedicationToAdd({
+          medicationId: "",
+          dosage: "",
+          frequency: "",
+          quantity: 0,
+          instructions: "",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding medication to prescription:', error);
     }
   };
 
   // Handle removing medication from prescription
-  const handleRemoveMedicationFromPrescription = (medicationId) => {
-    setNewPrescription({
-      ...newPrescription,
-      medications: newPrescription.medications.filter(
-        (m) => m.id !== medicationId
-      ),
-    });
+  const handleRemoveMedicationFromPrescription = async (medicationId) => {
+    try {
+      await setNewPrescription({
+        ...newPrescription,
+        medications: newPrescription.medications.filter(
+          (m) => m.id !== medicationId
+        ),
+      });
+    } catch (error) {
+      console.error('Error removing medication from prescription:', error);
+    }
   };
 
   // Handle new medication form submission
@@ -871,6 +891,87 @@ export default function PharmacyPage() {
       name: category,
       value: count
     }));
+  };
+
+  // Handle dispensing medication
+  const handleDispenseMedication = async (prescriptionId) => {
+    try {
+      const updatedPrescriptions = prescriptions.map((p) =>
+        p.id === prescriptionId ? { ...p, status: "Dispensed" } : p
+      );
+      await setPrescriptions(updatedPrescriptions);
+      addNotification("Medication dispensed successfully", "success");
+    } catch (error) {
+      console.error('Error dispensing medication:', error);
+    }
+  };
+
+  // Handle rejecting prescription
+  const handleRejectPrescription = async (prescriptionId) => {
+    try {
+      const updatedPrescriptions = prescriptions.map((p) =>
+        p.id === prescriptionId ? { ...p, status: "Rejected" } : p
+      );
+      await setPrescriptions(updatedPrescriptions);
+      addNotification("Prescription rejected", "warning");
+    } catch (error) {
+      console.error('Error rejecting prescription:', error);
+    }
+  };
+
+  // Handle adding new medication
+  const handleAddNewMedication = async () => {
+    try {
+      const newMedicationId =
+        medications.length > 0
+          ? Math.max(...medications.map((m) => m.id)) + 1
+          : 1;
+
+      const medicationToAdd = {
+        ...newMedication,
+        id: newMedicationId,
+      };
+
+      await setMedications([...medications, medicationToAdd]);
+      await setNewMedication({
+        name: "",
+        category: "",
+        quantity: 0,
+        expiryDate: format(
+          new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          "yyyy-MM-dd"
+        ),
+        price: 0,
+      });
+      setShowNewMedicationDialog(false);
+      addNotification("New medication added successfully", "success");
+    } catch (error) {
+      console.error('Error adding new medication:', error);
+    }
+  };
+
+  // Handle updating medication
+  const handleUpdateMedication = async (medicationId) => {
+    try {
+      const updatedMedications = medications.map((m) =>
+        m.id === medicationId ? { ...m, ...editingMedication } : m
+      );
+      await setMedications(updatedMedications);
+      await setEditingMedication(null);
+      addNotification("Medication updated successfully", "success");
+    } catch (error) {
+      console.error('Error updating medication:', error);
+    }
+  };
+
+  // Handle deleting medication
+  const handleDeleteMedication = async (medicationId) => {
+    try {
+      await setMedications(medications.filter((m) => m.id !== medicationId));
+      addNotification("Medication deleted successfully", "success");
+    } catch (error) {
+      console.error('Error deleting medication:', error);
+    }
   };
 
   return (

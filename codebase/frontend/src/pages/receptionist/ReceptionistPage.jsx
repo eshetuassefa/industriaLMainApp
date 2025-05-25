@@ -269,7 +269,7 @@ const [forwardDetails, setForwardDetails] = useState({
   });
 
   // Update the handleApplyFilters function with proper date handling
-  const handleApplyFilters = () => {
+  const handleApplyFilters = async () => {
     try {
       const filteredAppointments = appointments.filter(appointment => {
         // Ensure we have valid dates for comparison
@@ -296,10 +296,10 @@ const [forwardDetails, setForwardDetails] = useState({
         return matchesDate && matchesStatus && matchesDoctor && matchesDepartment;
       });
 
-      setFilteredAppointments(filteredAppointments);
+      await setFilteredAppointments(filteredAppointments);
     } catch (error) {
       console.error('Error applying filters:', error);
-      setFilteredAppointments(appointments);
+      await setFilteredAppointments(appointments);
     }
   };
 
@@ -332,167 +332,213 @@ const formatDate = (date) => {
   return format(date, "yyyy-MM-dd");
 };
   // Handle patient selection
-  const handlePatientSelect = (patient) => {
-    setSelectedPatient(patient);
+  const handlePatientSelect = async (patient) => {
+    try {
+      await setSelectedPatient(patient);
+    } catch (error) {
+      console.error('Error selecting patient:', error);
+    }
   };
 
   // Add handleEditPatient function
-const handleEditPatient = (patient) => {
-  setEditingPatient({...patient}); // Create a copy of the patient object
-  setIsEditing(true);
-  setShowNewPatientDialog(true);
+const handleEditPatient = async (patient) => {
+  try {
+    await setEditingPatient({...patient});
+    await setIsEditing(true);
+    setShowNewPatientDialog(true);
+  } catch (error) {
+    console.error('Error editing patient:', error);
+  }
 };
 // Add handleUpdatePatient function
-const handleUpdatePatient = () => {
-  if (!editingPatient) return;
-  
-  const updatedPatients = patients.map((patient) =>
-    patient.id === editingPatient.id ? { ...editingPatient } : patient
-  );
-  
-  setPatients(updatedPatients);
-  setIsEditing(false);
-  setEditingPatient(null);
-  setShowNewPatientDialog(false);
-  addNotification(`Patient ${editingPatient.name} has been updated`);
+const handleUpdatePatient = async () => {
+  try {
+    if (!editingPatient) return;
+    
+    const updatedPatients = patients.map((patient) =>
+      patient.id === editingPatient.id ? { ...editingPatient } : patient
+    );
+    
+    await setPatients(updatedPatients);
+    await setIsEditing(false);
+    await setEditingPatient(null);
+    setShowNewPatientDialog(false);
+    await addNotification(`Patient ${editingPatient.name} has been updated`);
+  } catch (error) {
+    console.error('Error updating patient:', error);
+  }
 };
   // Handle new patient form submission
-  const handleNewPatientSubmit = () => {
-    const newPatientId =
-      patients.length > 0 ? Math.max(...patients.map((p) => p.id)) + 1 : 1;
-    const patientToAdd = {
-      ...newPatient,
-      id: newPatientId,
-      lastVisit: format(new Date(), "yyyy-MM-dd"),
-    };
-    setPatients([...patients, patientToAdd]);
-     setNewPatient({
-    name: "",
-    nationalId: "", // Add this line
-    dob: "",
-    contact: "",
-    email: "",
-    address: "",
-    insurance: "",
-  });
-    setShowNewPatientDialog(false);
+  const handleNewPatientSubmit = async () => {
+    try {
+      const newPatientId =
+        patients.length > 0 ? Math.max(...patients.map((p) => p.id)) + 1 : 1;
+      const patientToAdd = {
+        ...newPatient,
+        id: newPatientId,
+        lastVisit: format(new Date(), "yyyy-MM-dd"),
+      };
+      await setPatients([...patients, patientToAdd]);
+       setNewPatient({
+      name: "",
+      nationalId: "", // Add this line
+      dob: "",
+      contact: "",
+      email: "",
+      address: "",
+      insurance: "",
+    });
+      setShowNewPatientDialog(false);
 
-    // Add notification
-    addNotification(`New patient ${patientToAdd.name} has been registered`);
+      // Add notification
+      await addNotification(`New patient ${patientToAdd.name} has been registered`);
+    } catch (error) {
+      console.error('Error adding new patient:', error);
+    }
   };
 
   // Handle new appointment form submission
-  const handleNewAppointmentSubmit = () => {
-    const newAppointmentId =
-      appointments.length > 0
-        ? Math.max(...appointments.map((a) => a.id)) + 1
-        : 1;
-    const selectedPatientData = patients.find(
-      (p) => p.id === Number.parseInt(newAppointment.patientId)
-    );
+  const handleNewAppointmentSubmit = async () => {
+    try {
+      const newAppointmentId =
+        appointments.length > 0
+          ? Math.max(...appointments.map((a) => a.id)) + 1
+          : 1;
+      const selectedPatientData = patients.find(
+        (p) => p.id === Number.parseInt(newAppointment.patientId)
+      );
 
-    const appointmentToAdd = {
-      ...newAppointment,
-      id: newAppointmentId,
-      patientName: selectedPatientData.name,
-      date: format(newAppointment.date, "yyyy-MM-dd"),
-      status: "Scheduled",
-    };
+      const appointmentToAdd = {
+        ...newAppointment,
+        id: newAppointmentId,
+        patientName: selectedPatientData.name,
+        date: format(newAppointment.date, "yyyy-MM-dd"),
+        status: "Scheduled",
+      };
 
-    setAppointments((prevAppointments) => [...prevAppointments, appointmentToAdd]);
-    setNewAppointment({
-      patientId: "",
-      date: new Date(),
-      time: "",
-      doctor: "",
-      department: "",
-      notes: "",
-    });
-    setShowNewAppointmentDialog(false);
+      await setAppointments((prevAppointments) => [...prevAppointments, appointmentToAdd]);
+      await setNewAppointment({
+        patientId: "",
+        date: new Date(),
+        time: "",
+        doctor: "",
+        department: "",
+        notes: "",
+      });
+      setShowNewAppointmentDialog(false);
 
-    // Add notification
-    addNotification(
-      `New appointment scheduled for ${selectedPatientData.name} on ${format(
-        newAppointment.date,
-        "MMM dd, yyyy"
-      )} at ${newAppointment.time}`
-    );
+      // Add notification
+      await addNotification(
+        `New appointment scheduled for ${selectedPatientData.name} on ${format(
+          newAppointment.date,
+          "MMM dd, yyyy"
+        )} at ${newAppointment.time}`
+      );
+    } catch (error) {
+      console.error('Error creating new appointment:', error);
+    }
   };
-  const handleForwardSubmit = () => {
-  // Here you would typically make an API call to forward the patient
-  addNotification(`Patient ${selectedPatient.name} has been forwarded to healthcare provider`);
-  setShowForwardDialog(false);
-  setForwardDetails({
-    patientId: "",
-    providerId: "",
-    reason: "",
-    priority: "normal",
-  });
-};
+  const handleForwardSubmit = async () => {
+    try {
+      // Here you would typically make an API call to forward the patient
+      await addNotification(`Patient ${selectedPatient.name} has been forwarded to healthcare provider`);
+      setShowForwardDialog(false);
+      await setForwardDetails({
+        patientId: "",
+        providerId: "",
+        reason: "",
+        priority: "normal",
+      });
+    } catch (error) {
+      console.error('Error forwarding patient:', error);
+    }
+  };
 
  // Update the updateAppointmentStatus function
-const updateAppointmentStatus = (appointmentId, newStatus) => {
-  setAppointments((prevAppointments) =>
-    prevAppointments.map((appointment) => {
-      if (appointment.id === appointmentId) {
-        const updatedAppointment = {
-          ...appointment,
-          status: newStatus,
-          date: typeof appointment.date === 'string' 
-            ? appointment.date 
-            : format(appointment.date, "yyyy-MM-dd")
-        };
-        
-        // Add notification for status change
-        const patient = patients.find((p) => p.id === appointment.patientId);
-        if (patient) {
-          addNotification(
-            `${patient.name}'s appointment status changed to ${newStatus}`
-          );
+const updateAppointmentStatus = async (appointmentId, newStatus) => {
+  try {
+    await setAppointments((prevAppointments) =>
+      prevAppointments.map((appointment) => {
+        if (appointment.id === appointmentId) {
+          const updatedAppointment = {
+            ...appointment,
+            status: newStatus,
+            date: typeof appointment.date === 'string' 
+              ? appointment.date 
+              : format(appointment.date, "yyyy-MM-dd")
+          };
+          
+          // Add notification for status change
+          const patient = patients.find((p) => p.id === appointment.patientId);
+          if (patient) {
+            addNotification(
+              `${patient.name}'s appointment status changed to ${newStatus}`
+            );
+          }
+          
+          return updatedAppointment;
         }
-        
-        return updatedAppointment;
-      }
-      return appointment;
-    })
-  );
+        return appointment;
+      })
+    );
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+  }
 };
 
   // Add notification
-  const addNotification = (message) => {
-    const newNotification = {
-      id:
-        notifications.length > 0
-          ? Math.max(...notifications.map((n) => n.id)) + 1
-          : 1,
-      message,
-      time: "Just now",
-    };
-    setNotifications([newNotification, ...notifications]);
+  const addNotification = async (message) => {
+    try {
+      const newNotification = {
+        id:
+          notifications.length > 0
+            ? Math.max(...notifications.map((n) => n.id)) + 1
+            : 1,
+        message,
+        time: "Just now",
+      };
+      await setNotifications([newNotification, ...notifications]);
+    } catch (error) {
+      console.error('Error adding notification:', error);
+    }
   };
   
 // Add this useEffect to update today's appointments
 useEffect(() => {
-  const filteredAppointments = appointments.filter(
-    (appointment) => appointment.date === todayDate
-  );
-  setTodayAppointments(filteredAppointments);
+  const updateTodayAppointments = async () => {
+    try {
+      const filteredAppointments = appointments.filter(
+        (appointment) => appointment.date === todayDate
+      );
+      await setTodayAppointments(filteredAppointments);
+    } catch (error) {
+      console.error('Error updating today\'s appointments:', error);
+    }
+  };
+  updateTodayAppointments();
 }, [appointments, todayDate]);
 
   // Update available times when doctor is selected
   useEffect(() => {
-    if (newAppointment.doctor) {
-      const doctor = doctors.find((d) => d.name === newAppointment.doctor);
-      if (doctor) {
-        setSelectedDoctor(doctor);
-        setAvailableTimes(doctor.availability);
-        setNewAppointment((prev) => ({
-          ...prev,
-          department: doctor.department,
-          time: "",
-        }));
+    const updateDoctorAvailability = async () => {
+      try {
+        if (newAppointment.doctor) {
+          const doctor = doctors.find((d) => d.name === newAppointment.doctor);
+          if (doctor) {
+            await setSelectedDoctor(doctor);
+            await setAvailableTimes(doctor.availability);
+            await setNewAppointment((prev) => ({
+              ...prev,
+              department: doctor.department,
+              time: "",
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error updating doctor availability:', error);
       }
-    }
+    };
+    updateDoctorAvailability();
   }, [newAppointment.doctor]);
 
   return (
