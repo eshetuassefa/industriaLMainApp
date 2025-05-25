@@ -60,7 +60,9 @@ const initialStaff = {
       phone: "+1 (555) 123-4567",
       role: "Cardiologist",
       department: "Health Providers",
-      password: "hashedPassword123"
+      password: "hashedPassword123",
+      sex: "Female",
+      dateOfBirth: "1985-05-15"
     }
   ],
   pharmacy: [
@@ -73,7 +75,9 @@ const initialStaff = {
       phone: "+1 (555) 345-6789",
       role: "Pharmacist",
       department: "Pharmacy",
-      password: "hashedPassword123"
+      password: "hashedPassword123",
+      sex: "Male",
+      dateOfBirth: "1990-08-22"
     }
   ],
   lab: [
@@ -86,7 +90,9 @@ const initialStaff = {
       phone: "+1 (555) 567-8901",
       role: "Lab Technician",
       department: "Lab",
-      password: "hashedPassword123"
+      password: "hashedPassword123",
+      sex: "Male",
+      dateOfBirth: "1988-03-30"
     }
   ],
   radiology: [
@@ -99,7 +105,9 @@ const initialStaff = {
       phone: "+1 (555) 789-0123",
       role: "Radiologist",
       department: "Radiology",
-      password: "hashedPassword123"
+      password: "hashedPassword123",
+      sex: "Male",
+      dateOfBirth: "1982-11-12"
     }
   ],
   receptionists: [
@@ -112,7 +120,9 @@ const initialStaff = {
       phone: "+1 (555) 901-2345",
       role: "Receptionist",
       department: "Receptionists",
-      password: "hashedPassword123"
+      password: "hashedPassword123",
+      sex: "Male",
+      dateOfBirth: "1995-07-25"
     }
   ]
 };
@@ -193,7 +203,9 @@ export default function AdminPage() {
     phone: "",
     role: "",
     department: "",
-    password: ""
+    password: "",
+    sex: "",
+    dateOfBirth: ""
   });
   const [adminUsers, setAdminUsers] = useState([
     {
@@ -214,159 +226,206 @@ export default function AdminPage() {
   });
   const [activities, setActivities] = useState(initialActivities);
 
-  const handleAddStaff = () => {
-    // Validate required fields
-    if (!addStaffForm.firstName || !addStaffForm.lastName || !addStaffForm.email || !addStaffForm.password || !addStaffForm.department || !addStaffForm.role) {
-      alert("Please fill in all required fields marked with *");
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(addStaffForm.email)) {
-      alert("Please enter a valid email address");
-      return;
-    }
-
-    // Create new staff member
-    const newStaff = {
-      ...addStaffForm,
-      id: Date.now(),
-      department: addStaffForm.department
-    };
-
-    // Update staff state
-    setStaff(prev => {
-      const deptKey = Object.keys(prev).find(
-        key => key.toLowerCase() === addStaffForm.department.toLowerCase()
-      );
-      
-      if (!deptKey) {
-        console.error("Department not found:", addStaffForm.department);
-        return prev;
+  const handleAddStaff = async () => {
+    try {
+      // Validate required fields
+      if (!addStaffForm.firstName || !addStaffForm.lastName || !addStaffForm.email || !addStaffForm.password || !addStaffForm.department || !addStaffForm.role) {
+        alert("Please fill in all required fields marked with *");
+        return;
       }
-      
-      // Check if email already exists
-      const emailExists = Object.values(prev).some(dept => 
-        dept.some(staff => staff.email.toLowerCase() === addStaffForm.email.toLowerCase())
-      );
 
-      if (emailExists) {
-        alert("This email address is already registered");
-        return prev;
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(addStaffForm.email)) {
+        alert("Please enter a valid email address");
+        return;
       }
-      
-      return {
-        ...prev,
-        [deptKey]: [...(prev[deptKey] || []), newStaff]
+
+      // Create new staff member
+      const newStaff = {
+        ...addStaffForm,
+        id: Date.now(),
+        department: addStaffForm.department
       };
-    });
 
-    // Reset form and close dialog
-    setShowAddStaffDialog(false);
-    setAddStaffForm({
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      role: "",
-      department: "",
-      password: ""
-    });
-
-    // Show success message
-    alert("Staff member added successfully!");
-
-    // Add activity
-    addActivity('registration', `New ${addStaffForm.department} staff member added`, addStaffForm.department);
-  };
-
-  const handleEditStaff = (staff) => {
-    if (!staff) return;
-    
-    setEditStaff(staff);
-    setEditStaffForm({
-      ...staff,
-      department: staff.department || ""
-    });
-    setShowEditDialog(true);
-  };
-
-  const handleEditStaffSave = () => {
-    if (!editStaffForm) return;
-
-    if (!editStaffForm.firstName || !editStaffForm.lastName || !editStaffForm.email) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    setStaff(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(dept => {
-        updated[dept] = updated[dept].map(s =>
-          s.id === editStaffForm.id ? { ...editStaffForm } : s
+      // Update staff state
+      await setStaff(prev => {
+        const deptKey = Object.keys(prev).find(
+          key => key.toLowerCase() === addStaffForm.department.toLowerCase()
         );
+        
+        if (!deptKey) {
+          console.error("Department not found:", addStaffForm.department);
+          return prev;
+        }
+        
+        // Check if email already exists
+        const emailExists = Object.values(prev).some(dept => 
+          dept.some(staff => staff.email.toLowerCase() === addStaffForm.email.toLowerCase())
+        );
+
+        if (emailExists) {
+          alert("This email address is already registered");
+          return prev;
+        }
+        
+        return {
+          ...prev,
+          [deptKey]: [...(prev[deptKey] || []), newStaff]
+        };
       });
-      return updated;
-    });
 
-    addActivity('update', `${editStaffForm.department} staff member updated`, editStaffForm.department);
-
-    setShowEditDialog(false);
-    setEditStaffForm(null);
-    setEditStaff(null);
-  };
-
-  const handleDeleteStaff = (staffId) => {
-    setDeleteStaffId(staffId);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDeleteStaff = () => {
-    const staffToDelete = Object.values(staff).flat().find(s => s.id === deleteStaffId);
-    
-    setStaff((prev) => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach((dept) => {
-        updated[dept] = updated[dept].filter((s) => s.id !== deleteStaffId);
+      // Reset form and close dialog
+      setShowAddStaffDialog(false);
+      setAddStaffForm({
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        role: "",
+        department: "",
+        password: "",
+        sex: "",
+        dateOfBirth: ""
       });
-      return updated;
-    });
 
-    if (staffToDelete) {
-      addActivity('deletion', `${staffToDelete.department} staff member removed`, staffToDelete.department);
+      // Show success message
+      alert("Staff member added successfully!");
+
+      // Add activity
+      await addActivity('registration', `New ${addStaffForm.department} staff member added`, addStaffForm.department);
+    } catch (error) {
+      console.error("Error adding staff:", error);
+      alert("An error occurred while adding the staff member");
     }
-
-    setShowDeleteDialog(false);
-    setDeleteStaffId(null);
   };
 
-  const handleEditAdmin = (admin) => {
-    setEditStaffForm({ ...admin });
-    setShowEditDialog(true);
+  const handleEditStaff = async (staff) => {
+    try {
+      if (!staff) return;
+      
+      await setEditStaff(staff);
+      await setEditStaffForm({
+        ...staff,
+        department: staff.department || ""
+      });
+      setShowEditDialog(true);
+    } catch (error) {
+      console.error("Error editing staff:", error);
+      alert("An error occurred while preparing to edit the staff member");
+    }
   };
 
-  const handleDeleteAdmin = (adminId) => {
-    setDeleteStaffId(adminId);
-    setShowDeleteDialog(true);
+  const handleEditStaffSave = async () => {
+    try {
+      if (!editStaffForm) return;
+
+      if (!editStaffForm.firstName || !editStaffForm.lastName || !editStaffForm.email) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      await setStaff(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(dept => {
+          updated[dept] = updated[dept].map(s =>
+            s.id === editStaffForm.id ? { ...editStaffForm } : s
+          );
+        });
+        return updated;
+      });
+
+      await addActivity('update', `${editStaffForm.department} staff member updated`, editStaffForm.department);
+
+      setShowEditDialog(false);
+      setEditStaffForm(null);
+      setEditStaff(null);
+    } catch (error) {
+      console.error("Error saving staff edits:", error);
+      alert("An error occurred while saving the changes");
+    }
   };
 
-  const handleUpdateAdmin = () => {
-    if (!editStaffForm) return;
-    setAdminUsers(prev => 
-      prev.map(admin => 
-        admin.id === editStaffForm.id ? { ...editStaffForm } : admin
-      )
-    );
-    setShowEditDialog(false);
-    setEditStaffForm(null);
+  const handleDeleteStaff = async (staffId) => {
+    try {
+      await setDeleteStaffId(staffId);
+      setShowDeleteDialog(true);
+    } catch (error) {
+      console.error("Error preparing to delete staff:", error);
+      alert("An error occurred while preparing to delete the staff member");
+    }
   };
 
-  const handleDeleteAdminConfirm = () => {
-    setAdminUsers(prev => prev.filter(admin => admin.id !== deleteStaffId));
-    setShowDeleteDialog(false);
-    setDeleteStaffId(null);
+  const confirmDeleteStaff = async () => {
+    try {
+      const staffToDelete = Object.values(staff).flat().find(s => s.id === deleteStaffId);
+      
+      await setStaff((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((dept) => {
+          updated[dept] = updated[dept].filter((s) => s.id !== deleteStaffId);
+        });
+        return updated;
+      });
+
+      if (staffToDelete) {
+        await addActivity('deletion', `${staffToDelete.department} staff member removed`, staffToDelete.department);
+      }
+
+      setShowDeleteDialog(false);
+      setDeleteStaffId(null);
+    } catch (error) {
+      console.error("Error deleting staff:", error);
+      alert("An error occurred while deleting the staff member");
+    }
+  };
+
+  const handleEditAdmin = async (admin) => {
+    try {
+      await setEditStaffForm({ ...admin });
+      setShowEditDialog(true);
+    } catch (error) {
+      console.error("Error editing admin:", error);
+      alert("An error occurred while preparing to edit the admin");
+    }
+  };
+
+  const handleDeleteAdmin = async (adminId) => {
+    try {
+      await setDeleteStaffId(adminId);
+      setShowDeleteDialog(true);
+    } catch (error) {
+      console.error("Error preparing to delete admin:", error);
+      alert("An error occurred while preparing to delete the admin");
+    }
+  };
+
+  const handleUpdateAdmin = async () => {
+    try {
+      if (!editStaffForm) return;
+      await setAdminUsers(prev => 
+        prev.map(admin => 
+          admin.id === editStaffForm.id ? { ...editStaffForm } : admin
+        )
+      );
+      setShowEditDialog(false);
+      setEditStaffForm(null);
+    } catch (error) {
+      console.error("Error updating admin:", error);
+      alert("An error occurred while updating the admin");
+    }
+  };
+
+  const handleDeleteAdminConfirm = async () => {
+    try {
+      await setAdminUsers(prev => prev.filter(admin => admin.id !== deleteStaffId));
+      setShowDeleteDialog(false);
+      setDeleteStaffId(null);
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      alert("An error occurred while deleting the admin");
+    }
   };
 
   const getStaffList = () => {
@@ -395,6 +454,8 @@ export default function AdminPage() {
       { key: "phone", label: "Phone" },
       { key: "role", label: "Role" },
       { key: "department", label: "Department" },
+      { key: "sex", label: "Sex" },
+      { key: "dateOfBirth", label: "Date of Birth" },
       { key: "password", label: "Password" },
       { key: "actions", label: "Actions" }
     ];
@@ -426,25 +487,29 @@ export default function AdminPage() {
     return 'just now';
   };
 
-  const addActivity = (type, message, department) => {
-    const newActivity = {
-      id: Date.now(),
-      type,
-      message,
-      time: new Date(),
-      status: type === 'warning' ? 'warning' : 'info',
-      department
-    };
-    
-    setActivities(prev => [newActivity, ...prev].slice(0, 10)); // Keep only last 10 activities
+  const addActivity = async (type, message, department) => {
+    try {
+      const newActivity = {
+        id: Date.now(),
+        type,
+        message,
+        time: new Date(),
+        status: type === 'warning' ? 'warning' : 'info',
+        department
+      };
+      
+      await setActivities(prev => [newActivity, ...prev].slice(0, 10)); // Keep only last 10 activities
+    } catch (error) {
+      console.error("Error adding activity:", error);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Page</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Page</h1>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -452,7 +517,7 @@ export default function AdminPage() {
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <User className="h-5 w-5" />
                   <span>Admin Users</span>
@@ -479,20 +544,20 @@ export default function AdminPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Username</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Email</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Role</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Status</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Actions</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Username</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Email</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Role</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Status</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {adminUsers.map((admin) => (
                           <tr key={admin.id}>
-                            <td className="px-4 py-2 text-sm text-gray-900">{admin.username}</td>
-                            <td className="px-4 py-2 text-sm text-gray-500">{admin.email}</td>
-                            <td className="px-4 py-2 text-sm text-gray-500">{admin.role}</td>
-                            <td className="px-4 py-2 text-sm text-gray-500">
+                            <td className="px-2 py-2 text-sm text-gray-900">{admin.username}</td>
+                            <td className="px-2 py-2 text-sm text-gray-500">{admin.email}</td>
+                            <td className="px-2 py-2 text-sm text-gray-500">{admin.role}</td>
+                            <td className="px-2 py-2 text-sm text-gray-500">
                               <Badge variant={admin.status === "Active" ? "success" : "destructive"}>
                                 {admin.status}
                               </Badge>
@@ -530,8 +595,8 @@ export default function AdminPage() {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-6 mt-16">
-        <div className="flex">
-          <div className="fixed left-0 top-16 h-[calc(100vh-5rem)] w-60 bg-gray-50 border-r border-gray-200 z-10 overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row">
+          <div className="lg:fixed lg:left-0 lg:top-16 lg:h-[calc(100vh-5rem)] lg:w-60 bg-white border-r border-gray-200 z-10 overflow-y-auto overflow-x-hidden mb-4 lg:mb-0">
             <div className="flex flex-col gap-1 p-4">
               {[
                 { value: "dashboard", label: "Dashboard", icon: Building2 },
@@ -547,28 +612,28 @@ export default function AdminPage() {
                   className={`w-full py-3 px-4 text-left rounded-md text-base font-medium transition-colors hover:bg-gray-100 flex items-center gap-2 ${
                     activeTab === tab.value
                       ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-50 text-gray-700"
+                      : "bg-white text-gray-700"
                   }`}
                 >
                   <tab.icon className="h-5 w-5" />
-                  {tab.label}
+                  <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex-1 ml-60 px-6 pb-6">
+          <div className="flex-1 lg:ml-60 px-4 lg:px-6 pb-6">
             {activeTab === "dashboard" ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Admin Dashboard</h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h2 className="text-xl sm:text-2xl font-bold">Admin Dashboard</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(staffTabMap).map(([tabValue, staffKey]) => (
-                    <Card key={tabValue}>
+                    <Card key={tabValue} className="hover:shadow-lg transition-shadow">
                       <CardHeader>
-                        <CardTitle>
+                        <CardTitle className="text-lg">
                           {tabValue.split(/(?=[A-Z])/).join(" ")}
                         </CardTitle>
                         <CardDescription>
@@ -589,7 +654,7 @@ export default function AdminPage() {
                             }}
                           >
                             <UserPlus className="h-4 w-4" />
-                            Add Staff
+                            <span className="hidden sm:inline">Add Staff</span>
                           </Button>
                         </div>
                       </CardContent>
@@ -597,14 +662,14 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle>Recent Activities</CardTitle>
                       <CardDescription>Latest system activities</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto">
                         {activities.map((activity) => (
                           <div
                             key={activity.id}
@@ -617,7 +682,7 @@ export default function AdminPage() {
                             }`}></div>
                             <div className="flex-1">
                               <p className="font-medium">{activity.message}</p>
-                              <div className="flex items-center justify-between text-sm text-gray-500">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm text-gray-500 gap-2">
                                 <span>{activity.department}</span>
                                 <span>{formatTimeAgo(activity.time)}</span>
                               </div>
@@ -628,18 +693,18 @@ export default function AdminPage() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle>Quick Actions</CardTitle>
                       <CardDescription>Common administrative tasks</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {Object.entries(staffTabMap).map(([tabValue, staffKey]) => (
                           <Button
                             key={tabValue}
                             variant="outline"
-                            className="w-full h-24 flex flex-col items-center justify-center gap-2"
+                            className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50"
                             onClick={() => setActiveTab(tabValue)}
                           >
                             {tabValue === "health-providers" && <Stethoscope className="h-6 w-6" />}
@@ -647,7 +712,7 @@ export default function AdminPage() {
                             {tabValue === "lab" && <Microscope className="h-6 w-6" />}
                             {tabValue === "radiology" && <Scan className="h-6 w-6" />}
                             {tabValue === "receptionists" && <Users className="h-6 w-6" />}
-                            <span>Manage {tabValue.split(/(?=[A-Z])/).join(" ")}</span>
+                            <span className="text-sm">Manage {tabValue.split(/(?=[A-Z])/).join(" ")}</span>
                           </Button>
                         ))}
                       </div>
@@ -657,16 +722,16 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h2 className="text-xl sm:text-2xl font-bold">
                     {activeTab.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
                   </h2>
                   <Button
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                     onClick={() => setShowAddStaffDialog(true)}
                   >
                     <UserPlus className="h-4 w-4" />
-                    Add New
+                    <span>Add New</span>
                   </Button>
                 </div>
 
@@ -680,7 +745,7 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <Card>
+                <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle>Staff List</CardTitle>
                     <CardDescription>
@@ -696,7 +761,7 @@ export default function AdminPage() {
                               {getStaffColumns().map((column) => (
                                 <th
                                   key={column.key}
-                                  className="py-3 px-2 text-sm font-bold text-gray-500  text-left whitespace-nowrap"
+                                  className="py-1.5 px-1.5 text-xs font-medium text-gray-500 text-left whitespace-nowrap"
                                 >
                                   {column.label}
                                 </th>
@@ -706,47 +771,53 @@ export default function AdminPage() {
                           <tbody className="divide-y divide-gray-200 bg-white">
                             {getStaffList().map((staff) => (
                               <tr key={staff.id} className="hover:bg-gray-50">
-                                <td className="py-2 px-2 text-sm text-gray-900 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-900 whitespace-nowrap">
                                   {staff.firstName}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.middleName}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.lastName}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.email}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.phone}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.role}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.department}
                                 </td>
-                                <td className="py-2 px-2 text-sm text-gray-500 whitespace-nowrap">
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
+                                  {staff.sex}
+                                </td>
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
+                                  {staff.dateOfBirth}
+                                </td>
+                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
                                   {staff.password ? "••••••••" : ""}
                                 </td>
-                                <td className="py-2 px-2 whitespace-nowrap">
-                                  <div className="flex items-center gap-1">
+                                <td className="py-1 px-1.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-0.5">
                                     <Button
                                       variant="outline"
                                       size="icon"
-                                      className="w-8 h-8 flex items-center justify-center"
+                                      className="w-6 h-6 flex items-center justify-center"
                                       onClick={() => handleEditStaff(staff)}
                                     >
-                                      <Pencil className="h-4 w-4" />
+                                      <Pencil className="h-3 w-3" />
                                     </Button>
                                     <Button
                                       variant="destructive"
                                       size="icon"
-                                      className="w-8 h-8 flex items-center justify-center"
+                                      className="w-6 h-6 flex items-center justify-center"
                                       onClick={() => handleDeleteStaff(staff.id)}
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 </td>
@@ -764,9 +835,8 @@ export default function AdminPage() {
         </div>
       </main>
 
-      {/* Add Staff Dialog */}
       <Dialog open={showAddStaffDialog} onOpenChange={setShowAddStaffDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Staff Member</DialogTitle>
             <DialogDescription>
@@ -833,6 +903,34 @@ export default function AdminPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="sex">Sex *</Label>
+                  <Select
+                    value={addStaffForm.sex}
+                    onValueChange={value => setAddStaffForm(f => ({ ...f, sex: value }))}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sex" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                  <Input 
+                    id="dateOfBirth" 
+                    type="date"
+                    value={addStaffForm.dateOfBirth} 
+                    onChange={e => setAddStaffForm(f => ({...f, dateOfBirth: e.target.value}))} 
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="role">Role *</Label>
                   <Input 
                     id="role" 
@@ -890,7 +988,9 @@ export default function AdminPage() {
                     phone: "",
                     role: "",
                     department: "",
-                    password: ""
+                    password: "",
+                    sex: "",
+                    dateOfBirth: ""
                   });
                 }}
               >
@@ -907,9 +1007,8 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Staff Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Staff Member</DialogTitle>
           </DialogHeader>
@@ -962,6 +1061,32 @@ export default function AdminPage() {
                     value={editStaffForm.phone || ""} 
                     onChange={e => setEditStaffForm(f => ({...f, phone: e.target.value}))} 
                     placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editSex">Sex *</Label>
+                  <Select
+                    value={editStaffForm.sex}
+                    onValueChange={value => setEditStaffForm(f => ({ ...f, sex: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sex" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editDateOfBirth">Date of Birth *</Label>
+                  <Input 
+                    id="editDateOfBirth" 
+                    type="date"
+                    value={editStaffForm.dateOfBirth} 
+                    onChange={e => setEditStaffForm(f => ({...f, dateOfBirth: e.target.value}))} 
                   />
                 </div>
               </div>
@@ -1020,7 +1145,6 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Staff Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -1040,9 +1164,8 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Admin Dialog */}
       <Dialog open={showAddAdminDialog} onOpenChange={setShowAddAdminDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Admin User</DialogTitle>
             <DialogDescription>
