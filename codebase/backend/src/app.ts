@@ -10,7 +10,7 @@ import adminRoutes from "./routes/admin.route"; // Updated to use admin routes
 import labResultRouter from "./routes/labResult.route"; // Updated to use lab result routes
 import receptionRoutes from "./routes/rescptions.route";  
 import doctorRoutes from "./routes/doctor.route";    
-
+import superadminRoutes from "./routes/superadmin.route"; // Updated to use superadmin routes
 const app = express();
 
 // Security middleware
@@ -24,7 +24,7 @@ app.use("/api/admin", adminRoutes); // Admin routes to manage staff
 app.use("/api/lab-results", labResultRouter);
 app.use('/api/reception', receptionRoutes);  
 app.use('/api/doctor', doctorRoutes);  
-
+app.use("/api/superadmin", superadminRoutes);
 
 // Swagger API Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
