@@ -1,13 +1,78 @@
-import { LabResult } from './../../node_modules/.prisma/client/index.d';
-import { login } from './../controllers/auth.controller';
 import { Router } from "express";
 import {
+  createTestRequest,
+  startTestRequest,
   submitTestResult,
   getTestResult,
 } from "../controllers/labResult.controller";
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/lab-results/create-request:
+ *   post:
+ *     summary: Healthcare provider creates a new lab test request
+ *     tags: [Lab Results]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               patientId:
+ *                 type: string
+ *               testTypeId:
+ *                 type: string
+ *               hospitalId:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *             required:
+ *               - patientId
+ *               - testTypeId
+ *               - hospitalId
+ *     responses:
+ *       201:
+ *         description: Test request created successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Related entity not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/create-request", createTestRequest);
+
+/**
+ * @swagger
+ * /api/lab-results/start-request/{requestId}:
+ *   post:
+ *     summary: Lab technician starts processing a test request
+ *     tags: [Lab Results]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: requestId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the test request to start
+ *     responses:
+ *       200:
+ *         description: Test request started successfully
+ *       400:
+ *         description: Invalid test request status
+ *       404:
+ *         description: Test request not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/start-request/:requestId", startTestRequest);
 
 /**
  * @swagger
@@ -15,13 +80,15 @@ const router = Router();
  *   post:
  *     summary: Lab technician submits test result
  *     tags: [Lab Results]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: requestId
  *         in: path
  *         required: true
- *         description: The ID of the test request to submit results for
  *         schema:
  *           type: string
+ *         description: ID of the test request to submit results for
  *     requestBody:
  *       required: true
  *       content:
@@ -35,17 +102,14 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Test result submitted successfully
- *       403:
- *         description: Forbidden – only lab technicians allowed
+ *       400:
+ *         description: Invalid input or test request status
+ *       404:
+ *         description: Test request not found
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
-router.post(
-  "/submit-result/:requestId",
- 
-  // checkTestRequestOwnership(req.params.requestId), // Optional ownership check
-  submitTestResult
-);
+router.post("/submit-result/:requestId", submitTestResult);
 
 /**
  * @swagger
@@ -53,20 +117,24 @@ router.post(
  *   get:
  *     summary: Healthcare provider views test result
  *     tags: [Lab Results]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: requestId
  *         in: path
  *         required: true
- *         description: The test request ID
  *         schema:
  *           type: string
+ *         description: ID of the test request
  *     responses:
  *       200:
- *         description: Successfully retrieved the test result
+ *         description: Test result retrieved successfully
  *       403:
- *         description: Forbidden – only healthcare providers allowed
+ *         description: Access denied
  *       404:
- *         description: Result not found
+ *         description: Test result not found
+ *       500:
+ *         description: Server error
  */
 router.get("/view-result/:requestId", getTestResult);
 

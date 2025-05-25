@@ -43,20 +43,23 @@ export const authenticateToken = async (
   };
 
 // Role-based middleware
+
 export const authorizeRoles = (...roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.user) {
-        res.status(401).json({ message: 'User not authenticated' });
-        return;
-      }
-  
-      if (!roles.includes(req.user.role)) {
-        res.status(403).json({
-          message: `Access denied. Required roles: ${roles.join(', ')}`
-        });
-        return;
-      }
-  
-      next();
-    };
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    console.log("User Role:", req.user.role); // Debug log
+
+    if (!roles.includes(req.user.role)) {
+      res.status(403).json({
+        message: `Access denied. Required roles: ${roles.join(", ")}`,
+      });
+      return;
+    }
+
+    next();
   };
+};

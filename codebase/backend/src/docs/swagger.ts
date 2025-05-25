@@ -33,7 +33,7 @@ const options = {
     },
     security: [{ bearerAuth: [] }], // Apply to all routes globally unless overridden
   },
-  apis: ["./src/routes/*.ts"], // Path to your route files (ensure correct path)
+  apis: ["./src/routes/**/*.ts"], // ✅ FIXED: recursive include
 };
 
 const swaggerSpec = swaggerJsdoc(options);
