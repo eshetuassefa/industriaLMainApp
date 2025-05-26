@@ -12,6 +12,7 @@ import receptionRoutes from "./routes/rescptions.route";
 import doctorRoutes from "./routes/doctor.route";    
 import superadminRoutes from "./routes/superadmin.route"; // Updated to use superadmin routes
 import radiologistRoutes from "./routes/radiologist.route"; // Radiologist routes
+import pharmaciyRoutes from "./routes/pharmacist.route"; // Pharmacy routes
 const app = express();
 
 // Security middleware
@@ -27,6 +28,7 @@ app.use('/api/reception', receptionRoutes);
 app.use('/api/doctor', doctorRoutes);  
 app.use("/api/superadmin", superadminRoutes);
 app.use("/api/radiology", radiologistRoutes); // Radiologist routes
+app.use("/api/pharmacy", pharmaciyRoutes); // Pharmacy routes
 // Swagger API Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

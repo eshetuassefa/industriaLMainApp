@@ -50,17 +50,20 @@ model User {
   person            Person            @relation(fields: [personId], references: [id])
   personId          String            @unique
   createdAt         DateTime          @default(now())
+
   // Inverse relations
-  technicianResults TestResult[]      @relation("TechnicianResults")
-  approvedResults   TestResult[]      @relation("ApprovedResults")
-  medicalRecords    MedicalRecord[]   @relation("DoctorMedicalRecords")
-  testRequests      TestRequest[]     @relation(fields: [], references: [])
-  labResults        LabResult[]       @relation(fields: [], references: [])
-  prescriptions     Prescription[]    @relation("PrescribedBy")
-  radiologyReports  RadiologyReport[] @relation("RadiologistReports")
-  orders            Order[]           @relation(fields: [], references: [])
-  appointments      Appointment[]
+  technicianResults       TestResult[]      @relation("TechnicianResults")
+  approvedResults         TestResult[]      @relation("ApprovedResults")
+  medicalRecords          MedicalRecord[]   @relation("DoctorMedicalRecords")
+  testRequests            TestRequest[]     @relation(fields: [], references: [])
+  labResults              LabResult[]       @relation(fields: [], references: [])
+  prescriptions           Prescription[]    @relation("PrescribedBy")
+  deliveredPrescriptions  Prescription[]    @relation("DeliveredByPharmacist") // ✅ Add this line
+  radiologyReports        RadiologyReport[] @relation("RadiologistReports")
+  orders                  Order[]           @relation(fields: [], references: [])
+  appointments            Appointment[]
 }
+
 
 model MedicalRecord {
   id        String   @id @default(uuid())
@@ -102,7 +105,6 @@ model LabResult {
   technicianId    String?
   notes           String?
 }
-
 model Prescription {
   id              String        @id @default(uuid())
   medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
@@ -112,9 +114,29 @@ model Prescription {
   frequency       String?
   duration        String?
   instructions    String?
+
   prescribedBy    User?         @relation("PrescribedBy", fields: [prescribedById], references: [id])
   prescribedById  String?
+
+  // NEW FIELDS
+  deliveredBy     User?         @relation("DeliveredByPharmacist", fields: [deliveredById], references: [id])
+  deliveredById   String?
+  deliveredAt     DateTime?
+  deliveryStatus  DeliveryStatus @default(PENDING)
 }
+enum PrescriptionStatus {
+  PRESCRIBED
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+
 
 model RadiologyRequest {
   id              String        @id @default(uuid())
