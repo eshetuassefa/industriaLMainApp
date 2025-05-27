@@ -6,7 +6,7 @@ import LoginForm from "./Component/LoginForm/LoginForm";
 import Home from "./Component/Home/Home";
 import About from "./Component/About/About";
 import Footer from "./Component/Footer/Footer";
-import ReceptionistPage from "./pages/receptionist/ReceptionistPage"; // Import ReceptionistPage
+import ReceptionistPage from "./pages/receptionist/ReceptionistPage";
 import PharmacyPage from "./pages/pharmacist/PharmacistPage";
 import AdminPage from "./pages/admin/AdminPage";
 
