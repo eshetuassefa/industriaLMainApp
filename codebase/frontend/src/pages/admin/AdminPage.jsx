@@ -45,14 +45,14 @@ import {
   CheckCircle,
   Scan,
   Pencil,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 // Sample data for demonstration
 const initialStaff = {
   healthProviders: [
-    { 
-      id: 1, 
+    {
+      id: 1,
       firstName: "Sarah",
       middleName: "Elizabeth",
       lastName: "Wilson",
@@ -62,12 +62,12 @@ const initialStaff = {
       department: "Health Providers",
       password: "hashedPassword123",
       sex: "Female",
-      dateOfBirth: "1985-05-15"
-    }
+      dateOfBirth: "1985-05-15",
+    },
   ],
   pharmacy: [
-    { 
-      id: 1, 
+    {
+      id: 1,
       firstName: "John",
       middleName: "Robert",
       lastName: "Smith",
@@ -77,12 +77,12 @@ const initialStaff = {
       department: "Pharmacy",
       password: "hashedPassword123",
       sex: "Male",
-      dateOfBirth: "1990-08-22"
-    }
+      dateOfBirth: "1990-08-22",
+    },
   ],
   lab: [
-    { 
-      id: 1, 
+    {
+      id: 1,
       firstName: "Robert",
       middleName: "William",
       lastName: "Johnson",
@@ -92,12 +92,12 @@ const initialStaff = {
       department: "Lab",
       password: "hashedPassword123",
       sex: "Male",
-      dateOfBirth: "1988-03-30"
-    }
+      dateOfBirth: "1988-03-30",
+    },
   ],
   radiology: [
-    { 
-      id: 1, 
+    {
+      id: 1,
       firstName: "James",
       middleName: "Edward",
       lastName: "Wilson",
@@ -107,12 +107,12 @@ const initialStaff = {
       department: "Radiology",
       password: "hashedPassword123",
       sex: "Male",
-      dateOfBirth: "1982-11-12"
-    }
+      dateOfBirth: "1982-11-12",
+    },
   ],
   receptionists: [
-    { 
-      id: 1, 
+    {
+      id: 1,
       firstName: "David",
       middleName: "Thomas",
       lastName: "Wilson",
@@ -122,18 +122,18 @@ const initialStaff = {
       department: "Receptionists",
       password: "hashedPassword123",
       sex: "Male",
-      dateOfBirth: "1995-07-25"
-    }
-  ]
+      dateOfBirth: "1995-07-25",
+    },
+  ],
 };
 
 // Add this mapping at the top of your component, after initialStaff
 const staffTabMap = {
   "health-providers": "healthProviders",
-  "pharmacy": "pharmacy",
-  "lab": "lab",
-  "radiology": "radiology",
-  "receptionists": "receptionists"
+  pharmacy: "pharmacy",
+  lab: "lab",
+  radiology: "radiology",
+  receptionists: "receptionists",
 };
 
 // Add this after the initialStaff constant
@@ -144,7 +144,7 @@ const initialActivities = [
     message: "New health provider registration request",
     time: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
     status: "pending",
-    department: "Health Providers"
+    department: "Health Providers",
   },
   {
     id: 2,
@@ -152,7 +152,7 @@ const initialActivities = [
     message: "Pharmacy inventory needs attention",
     time: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
     status: "warning",
-    department: "Pharmacy"
+    department: "Pharmacy",
   },
   {
     id: 3,
@@ -160,8 +160,8 @@ const initialActivities = [
     message: "Lab technician schedule update required",
     time: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     status: "info",
-    department: "Lab"
-  }
+    department: "Lab",
+  },
 ];
 
 export default function AdminPage() {
@@ -205,7 +205,7 @@ export default function AdminPage() {
     department: "",
     password: "",
     sex: "",
-    dateOfBirth: ""
+    dateOfBirth: "",
   });
   const [adminUsers, setAdminUsers] = useState([
     {
@@ -213,8 +213,8 @@ export default function AdminPage() {
       username: "admin",
       email: "admin@hospital.com",
       role: "Super Admin",
-      status: "Active"
-    }
+      status: "Active",
+    },
   ]);
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const [addAdminForm, setAddAdminForm] = useState({
@@ -222,14 +222,21 @@ export default function AdminPage() {
     email: "",
     password: "",
     role: "Admin",
-    status: "Active"
+    status: "Active",
   });
   const [activities, setActivities] = useState(initialActivities);
 
   const handleAddStaff = async () => {
     try {
       // Validate required fields
-      if (!addStaffForm.firstName || !addStaffForm.lastName || !addStaffForm.email || !addStaffForm.password || !addStaffForm.department || !addStaffForm.role) {
+      if (
+        !addStaffForm.firstName ||
+        !addStaffForm.lastName ||
+        !addStaffForm.email ||
+        !addStaffForm.password ||
+        !addStaffForm.department ||
+        !addStaffForm.role
+      ) {
         alert("Please fill in all required fields marked with *");
         return;
       }
@@ -245,33 +252,36 @@ export default function AdminPage() {
       const newStaff = {
         ...addStaffForm,
         id: Date.now(),
-        department: addStaffForm.department
+        department: addStaffForm.department,
       };
 
       // Update staff state
-      await setStaff(prev => {
+      await setStaff((prev) => {
         const deptKey = Object.keys(prev).find(
-          key => key.toLowerCase() === addStaffForm.department.toLowerCase()
+          (key) => key.toLowerCase() === addStaffForm.department.toLowerCase()
         );
-        
+
         if (!deptKey) {
           console.error("Department not found:", addStaffForm.department);
           return prev;
         }
-        
+
         // Check if email already exists
-        const emailExists = Object.values(prev).some(dept => 
-          dept.some(staff => staff.email.toLowerCase() === addStaffForm.email.toLowerCase())
+        const emailExists = Object.values(prev).some((dept) =>
+          dept.some(
+            (staff) =>
+              staff.email.toLowerCase() === addStaffForm.email.toLowerCase()
+          )
         );
 
         if (emailExists) {
           alert("This email address is already registered");
           return prev;
         }
-        
+
         return {
           ...prev,
-          [deptKey]: [...(prev[deptKey] || []), newStaff]
+          [deptKey]: [...(prev[deptKey] || []), newStaff],
         };
       });
 
@@ -287,14 +297,18 @@ export default function AdminPage() {
         department: "",
         password: "",
         sex: "",
-        dateOfBirth: ""
+        dateOfBirth: "",
       });
 
       // Show success message
       alert("Staff member added successfully!");
 
       // Add activity
-      await addActivity('registration', `New ${addStaffForm.department} staff member added`, addStaffForm.department);
+      await addActivity(
+        "registration",
+        `New ${addStaffForm.department} staff member added`,
+        addStaffForm.department
+      );
     } catch (error) {
       console.error("Error adding staff:", error);
       alert("An error occurred while adding the staff member");
@@ -304,11 +318,11 @@ export default function AdminPage() {
   const handleEditStaff = async (staff) => {
     try {
       if (!staff) return;
-      
+
       await setEditStaff(staff);
       await setEditStaffForm({
         ...staff,
-        department: staff.department || ""
+        department: staff.department || "",
       });
       setShowEditDialog(true);
     } catch (error) {
@@ -321,22 +335,30 @@ export default function AdminPage() {
     try {
       if (!editStaffForm) return;
 
-      if (!editStaffForm.firstName || !editStaffForm.lastName || !editStaffForm.email) {
+      if (
+        !editStaffForm.firstName ||
+        !editStaffForm.lastName ||
+        !editStaffForm.email
+      ) {
         alert("Please fill in all required fields");
         return;
       }
 
-      await setStaff(prev => {
+      await setStaff((prev) => {
         const updated = { ...prev };
-        Object.keys(updated).forEach(dept => {
-          updated[dept] = updated[dept].map(s =>
+        Object.keys(updated).forEach((dept) => {
+          updated[dept] = updated[dept].map((s) =>
             s.id === editStaffForm.id ? { ...editStaffForm } : s
           );
         });
         return updated;
       });
 
-      await addActivity('update', `${editStaffForm.department} staff member updated`, editStaffForm.department);
+      await addActivity(
+        "update",
+        `${editStaffForm.department} staff member updated`,
+        editStaffForm.department
+      );
 
       setShowEditDialog(false);
       setEditStaffForm(null);
@@ -359,8 +381,10 @@ export default function AdminPage() {
 
   const confirmDeleteStaff = async () => {
     try {
-      const staffToDelete = Object.values(staff).flat().find(s => s.id === deleteStaffId);
-      
+      const staffToDelete = Object.values(staff)
+        .flat()
+        .find((s) => s.id === deleteStaffId);
+
       await setStaff((prev) => {
         const updated = { ...prev };
         Object.keys(updated).forEach((dept) => {
@@ -370,7 +394,11 @@ export default function AdminPage() {
       });
 
       if (staffToDelete) {
-        await addActivity('deletion', `${staffToDelete.department} staff member removed`, staffToDelete.department);
+        await addActivity(
+          "deletion",
+          `${staffToDelete.department} staff member removed`,
+          staffToDelete.department
+        );
       }
 
       setShowDeleteDialog(false);
@@ -404,8 +432,8 @@ export default function AdminPage() {
   const handleUpdateAdmin = async () => {
     try {
       if (!editStaffForm) return;
-      await setAdminUsers(prev => 
-        prev.map(admin => 
+      await setAdminUsers((prev) =>
+        prev.map((admin) =>
           admin.id === editStaffForm.id ? { ...editStaffForm } : admin
         )
       );
@@ -419,7 +447,9 @@ export default function AdminPage() {
 
   const handleDeleteAdminConfirm = async () => {
     try {
-      await setAdminUsers(prev => prev.filter(admin => admin.id !== deleteStaffId));
+      await setAdminUsers((prev) =>
+        prev.filter((admin) => admin.id !== deleteStaffId)
+      );
       setShowDeleteDialog(false);
       setDeleteStaffId(null);
     } catch (error) {
@@ -432,14 +462,15 @@ export default function AdminPage() {
     if (activeTab in staffTabMap) {
       const staffList = staff[staffTabMap[activeTab]] || [];
       if (!searchQuery) return staffList;
-      
+
       const query = searchQuery.toLowerCase();
-      return staffList.filter(staff => 
-        staff.firstName?.toLowerCase().includes(query) ||
-        staff.lastName?.toLowerCase().includes(query) ||
-        staff.email?.toLowerCase().includes(query) ||
-        staff.role?.toLowerCase().includes(query) ||
-        staff.department?.toLowerCase().includes(query)
+      return staffList.filter(
+        (staff) =>
+          staff.firstName?.toLowerCase().includes(query) ||
+          staff.lastName?.toLowerCase().includes(query) ||
+          staff.email?.toLowerCase().includes(query) ||
+          staff.role?.toLowerCase().includes(query) ||
+          staff.department?.toLowerCase().includes(query)
       );
     }
     return [];
@@ -457,34 +488,34 @@ export default function AdminPage() {
       { key: "sex", label: "Sex" },
       { key: "dateOfBirth", label: "Date of Birth" },
       { key: "password", label: "Password" },
-      { key: "actions", label: "Actions" }
+      { key: "actions", label: "Actions" },
     ];
   };
 
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
-    
+
     let interval = Math.floor(seconds / 31536000);
     if (interval > 1) return `${interval} years ago`;
-    if (interval === 1) return '1 year ago';
-    
+    if (interval === 1) return "1 year ago";
+
     interval = Math.floor(seconds / 2592000);
     if (interval > 1) return `${interval} months ago`;
-    if (interval === 1) return '1 month ago';
-    
+    if (interval === 1) return "1 month ago";
+
     interval = Math.floor(seconds / 86400);
     if (interval > 1) return `${interval} days ago`;
-    if (interval === 1) return '1 day ago';
-    
+    if (interval === 1) return "1 day ago";
+
     interval = Math.floor(seconds / 3600);
     if (interval > 1) return `${interval} hours ago`;
-    if (interval === 1) return '1 hour ago';
-    
+    if (interval === 1) return "1 hour ago";
+
     interval = Math.floor(seconds / 60);
     if (interval > 1) return `${interval} minutes ago`;
-    if (interval === 1) return '1 minute ago';
-    
-    return 'just now';
+    if (interval === 1) return "1 minute ago";
+
+    return "just now";
   };
 
   const addActivity = async (type, message, department) => {
@@ -494,22 +525,24 @@ export default function AdminPage() {
         type,
         message,
         time: new Date(),
-        status: type === 'warning' ? 'warning' : 'info',
-        department
+        status: type === "warning" ? "warning" : "info",
+        department,
       };
-      
-      await setActivities(prev => [newActivity, ...prev].slice(0, 10)); // Keep only last 10 activities
+
+      await setActivities((prev) => [newActivity, ...prev].slice(0, 10)); // Keep only last 10 activities
     } catch (error) {
       console.error("Error adding activity:", error);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-[#fdf9f5]">
       <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">
         <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Page</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Admin Page
+            </h1>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -544,21 +577,43 @@ export default function AdminPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Username</th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Email</th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Role</th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Status</th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">Actions</th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
+                            Username
+                          </th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
+                            Email
+                          </th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
+                            Role
+                          </th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
+                            Status
+                          </th>
+                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {adminUsers.map((admin) => (
                           <tr key={admin.id}>
-                            <td className="px-2 py-2 text-sm text-gray-900">{admin.username}</td>
-                            <td className="px-2 py-2 text-sm text-gray-500">{admin.email}</td>
-                            <td className="px-2 py-2 text-sm text-gray-500">{admin.role}</td>
+                            <td className="px-2 py-2 text-sm text-gray-900">
+                              {admin.username}
+                            </td>
                             <td className="px-2 py-2 text-sm text-gray-500">
-                              <Badge variant={admin.status === "Active" ? "success" : "destructive"}>
+                              {admin.email}
+                            </td>
+                            <td className="px-2 py-2 text-sm text-gray-500">
+                              {admin.role}
+                            </td>
+                            <td className="px-2 py-2 text-sm text-gray-500">
+                              <Badge
+                                variant={
+                                  admin.status === "Active"
+                                    ? "success"
+                                    : "destructive"
+                                }
+                              >
                                 {admin.status}
                               </Badge>
                             </td>
@@ -600,7 +655,11 @@ export default function AdminPage() {
             <div className="flex flex-col gap-1 p-4">
               {[
                 { value: "dashboard", label: "Dashboard", icon: Building2 },
-                { value: "health-providers", label: "Health Providers", icon: Stethoscope },
+                {
+                  value: "health-providers",
+                  label: "Health Providers",
+                  icon: Stethoscope,
+                },
                 { value: "pharmacy", label: "Pharmacy", icon: Pill },
                 { value: "lab", label: "Lab Technicians", icon: Microscope },
                 { value: "radiology", label: "Radiology", icon: Scan },
@@ -626,12 +685,17 @@ export default function AdminPage() {
             {activeTab === "dashboard" ? (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-xl sm:text-2xl font-bold">Admin Dashboard</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold">
+                    Admin Dashboard
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(staffTabMap).map(([tabValue, staffKey]) => (
-                    <Card key={tabValue} className="hover:shadow-lg transition-shadow">
+                    <Card
+                      key={tabValue}
+                      className="hover:shadow-lg transition-shadow"
+                    >
                       <CardHeader>
                         <CardTitle className="text-lg">
                           {tabValue.split(/(?=[A-Z])/).join(" ")}
@@ -643,8 +707,12 @@ export default function AdminPage() {
                       <CardContent>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-3xl font-bold">{staff[staffKey].length}</p>
-                            <p className="text-sm text-gray-500">Active Staff</p>
+                            <p className="text-3xl font-bold">
+                              {staff[staffKey].length}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Active Staff
+                            </p>
                           </div>
                           <Button
                             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
@@ -666,7 +734,9 @@ export default function AdminPage() {
                   <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle>Recent Activities</CardTitle>
-                      <CardDescription>Latest system activities</CardDescription>
+                      <CardDescription>
+                        Latest system activities
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto">
@@ -674,12 +744,18 @@ export default function AdminPage() {
                           <div
                             key={activity.id}
                             className={`flex items-start space-x-3 p-3 border rounded-lg ${
-                              activity.status === 'warning' ? 'bg-yellow-50' : 'bg-white'
+                              activity.status === "warning"
+                                ? "bg-yellow-50"
+                                : "bg-white"
                             }`}
                           >
-                            <div className={`w-2 h-2 mt-1.5 rounded-full ${
-                              activity.status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                            }`}></div>
+                            <div
+                              className={`w-2 h-2 mt-1.5 rounded-full ${
+                                activity.status === "warning"
+                                  ? "bg-yellow-500"
+                                  : "bg-blue-500"
+                              }`}
+                            ></div>
                             <div className="flex-1">
                               <p className="font-medium">{activity.message}</p>
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm text-gray-500 gap-2">
@@ -696,25 +772,41 @@ export default function AdminPage() {
                   <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle>Quick Actions</CardTitle>
-                      <CardDescription>Common administrative tasks</CardDescription>
+                      <CardDescription>
+                        Common administrative tasks
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {Object.entries(staffTabMap).map(([tabValue, staffKey]) => (
-                          <Button
-                            key={tabValue}
-                            variant="outline"
-                            className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50"
-                            onClick={() => setActiveTab(tabValue)}
-                          >
-                            {tabValue === "health-providers" && <Stethoscope className="h-6 w-6" />}
-                            {tabValue === "pharmacy" && <Pill className="h-6 w-6" />}
-                            {tabValue === "lab" && <Microscope className="h-6 w-6" />}
-                            {tabValue === "radiology" && <Scan className="h-6 w-6" />}
-                            {tabValue === "receptionists" && <Users className="h-6 w-6" />}
-                            <span className="text-sm">Manage {tabValue.split(/(?=[A-Z])/).join(" ")}</span>
-                          </Button>
-                        ))}
+                        {Object.entries(staffTabMap).map(
+                          ([tabValue, staffKey]) => (
+                            <Button
+                              key={tabValue}
+                              variant="outline"
+                              className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-gray-50"
+                              onClick={() => setActiveTab(tabValue)}
+                            >
+                              {tabValue === "health-providers" && (
+                                <Stethoscope className="h-6 w-6" />
+                              )}
+                              {tabValue === "pharmacy" && (
+                                <Pill className="h-6 w-6" />
+                              )}
+                              {tabValue === "lab" && (
+                                <Microscope className="h-6 w-6" />
+                              )}
+                              {tabValue === "radiology" && (
+                                <Scan className="h-6 w-6" />
+                              )}
+                              {tabValue === "receptionists" && (
+                                <Users className="h-6 w-6" />
+                              )}
+                              <span className="text-sm">
+                                Manage {tabValue.split(/(?=[A-Z])/).join(" ")}
+                              </span>
+                            </Button>
+                          )
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -724,7 +816,12 @@ export default function AdminPage() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-xl sm:text-2xl font-bold">
-                    {activeTab.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                    {activeTab
+                      .split("-")
+                      .map(
+                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                      )
+                      .join(" ")}
                   </h2>
                   <Button
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
@@ -749,7 +846,7 @@ export default function AdminPage() {
                   <CardHeader>
                     <CardTitle>Staff List</CardTitle>
                     <CardDescription>
-                      Manage {activeTab.split('-').join(' ')} staff members
+                      Manage {activeTab.split("-").join(" ")} staff members
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -815,7 +912,9 @@ export default function AdminPage() {
                                       variant="destructive"
                                       size="icon"
                                       className="w-6 h-6 flex items-center justify-center"
-                                      onClick={() => handleDeleteStaff(staff.id)}
+                                      onClick={() =>
+                                        handleDeleteStaff(staff.id)
+                                      }
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
@@ -840,64 +939,92 @@ export default function AdminPage() {
           <DialogHeader>
             <DialogTitle>Add New Staff Member</DialogTitle>
             <DialogDescription>
-              Enter the details for the new staff member. Fields marked with * are required.
+              Enter the details for the new staff member. Fields marked with *
+              are required.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            handleAddStaff();
-          }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddStaff();
+            }}
+          >
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>
-                  <Input 
-                    id="firstName" 
-                    value={addStaffForm.firstName} 
-                    onChange={e => setAddStaffForm(f => ({...f, firstName: e.target.value.trim()}))} 
+                  <Input
+                    id="firstName"
+                    value={addStaffForm.firstName}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        firstName: e.target.value.trim(),
+                      }))
+                    }
                     placeholder="Enter first name"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="middleName">Middle Name</Label>
-                  <Input 
-                    id="middleName" 
-                    value={addStaffForm.middleName} 
-                    onChange={e => setAddStaffForm(f => ({...f, middleName: e.target.value.trim()}))} 
-                    placeholder="Enter middle name" 
+                  <Input
+                    id="middleName"
+                    value={addStaffForm.middleName}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        middleName: e.target.value.trim(),
+                      }))
+                    }
+                    placeholder="Enter middle name"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name *</Label>
-                  <Input 
-                    id="lastName" 
-                    value={addStaffForm.lastName} 
-                    onChange={e => setAddStaffForm(f => ({...f, lastName: e.target.value.trim()}))} 
+                  <Input
+                    id="lastName"
+                    value={addStaffForm.lastName}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        lastName: e.target.value.trim(),
+                      }))
+                    }
                     placeholder="Enter last name"
-                    required 
+                    required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <Input 
-                    id="email" 
+                  <Input
+                    id="email"
                     type="email"
-                    value={addStaffForm.email} 
-                    onChange={e => setAddStaffForm(f => ({...f, email: e.target.value.trim()}))} 
+                    value={addStaffForm.email}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        email: e.target.value.trim(),
+                      }))
+                    }
                     placeholder="Enter email address"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input 
-                    id="phone" 
-                    value={addStaffForm.phone} 
-                    onChange={e => setAddStaffForm(f => ({...f, phone: e.target.value.trim()}))} 
-                    placeholder="Enter phone number" 
+                  <Input
+                    id="phone"
+                    value={addStaffForm.phone}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        phone: e.target.value.trim(),
+                      }))
+                    }
+                    placeholder="Enter phone number"
                   />
                 </div>
               </div>
@@ -906,7 +1033,9 @@ export default function AdminPage() {
                   <Label htmlFor="sex">Sex *</Label>
                   <Select
                     value={addStaffForm.sex}
-                    onValueChange={value => setAddStaffForm(f => ({ ...f, sex: value }))}
+                    onValueChange={(value) =>
+                      setAddStaffForm((f) => ({ ...f, sex: value }))
+                    }
                     required
                   >
                     <SelectTrigger>
@@ -920,64 +1049,82 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                  <Input 
-                    id="dateOfBirth" 
+                  <Input
+                    id="dateOfBirth"
                     type="date"
-                    value={addStaffForm.dateOfBirth} 
-                    onChange={e => setAddStaffForm(f => ({...f, dateOfBirth: e.target.value}))} 
-                    required 
+                    value={addStaffForm.dateOfBirth}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        dateOfBirth: e.target.value,
+                      }))
+                    }
+                    required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="role">Role *</Label>
-                  <Input 
-                    id="role" 
-                    value={addStaffForm.role} 
-                    onChange={e => setAddStaffForm(f => ({...f, role: e.target.value.trim()}))} 
+                  <Input
+                    id="role"
+                    value={addStaffForm.role}
+                    onChange={(e) =>
+                      setAddStaffForm((f) => ({
+                        ...f,
+                        role: e.target.value.trim(),
+                      }))
+                    }
                     placeholder="Enter role"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department *</Label>
                   <Select
                     value={addStaffForm.department}
-                    onValueChange={value => setAddStaffForm(f => ({ ...f, department: value }))}
+                    onValueChange={(value) =>
+                      setAddStaffForm((f) => ({ ...f, department: value }))
+                    }
                     required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="healthProviders">Health Providers</SelectItem>
+                      <SelectItem value="healthProviders">
+                        Health Providers
+                      </SelectItem>
                       <SelectItem value="pharmacy">Pharmacy</SelectItem>
                       <SelectItem value="lab">Lab</SelectItem>
                       <SelectItem value="radiology">Radiology</SelectItem>
-                      <SelectItem value="receptionists">Receptionists</SelectItem>
+                      <SelectItem value="receptionists">
+                        Receptionists
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2 w-full">
                 <Label htmlFor="password">Password *</Label>
-                <Input 
-                  id="password" 
+                <Input
+                  id="password"
                   type="password"
-                  value={addStaffForm.password} 
-                  onChange={e => setAddStaffForm(f => ({...f, password: e.target.value}))} 
+                  value={addStaffForm.password}
+                  onChange={(e) =>
+                    setAddStaffForm((f) => ({ ...f, password: e.target.value }))
+                  }
                   placeholder="Enter password"
                   className="w-full"
-                  required 
+                  required
                   minLength={6}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
+                variant="outline"
                 onClick={() => {
                   setShowAddStaffDialog(false);
                   setAddStaffForm({
@@ -990,13 +1137,13 @@ export default function AdminPage() {
                     department: "",
                     password: "",
                     sex: "",
-                    dateOfBirth: ""
+                    dateOfBirth: "",
                   });
                 }}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
@@ -1017,28 +1164,43 @@ export default function AdminPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editFirstName">First Name *</Label>
-                  <Input 
-                    id="editFirstName" 
-                    value={editStaffForm.firstName} 
-                    onChange={e => setEditStaffForm(f => ({...f, firstName: e.target.value}))} 
+                  <Input
+                    id="editFirstName"
+                    value={editStaffForm.firstName}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({
+                        ...f,
+                        firstName: e.target.value,
+                      }))
+                    }
                     placeholder="Enter first name"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editMiddleName">Middle Name</Label>
-                  <Input 
-                    id="editMiddleName" 
-                    value={editStaffForm.middleName || ""} 
-                    onChange={e => setEditStaffForm(f => ({...f, middleName: e.target.value}))} 
+                  <Input
+                    id="editMiddleName"
+                    value={editStaffForm.middleName || ""}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({
+                        ...f,
+                        middleName: e.target.value,
+                      }))
+                    }
                     placeholder="Enter middle name"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editLastName">Last Name *</Label>
-                  <Input 
-                    id="editLastName" 
-                    value={editStaffForm.lastName} 
-                    onChange={e => setEditStaffForm(f => ({...f, lastName: e.target.value}))} 
+                  <Input
+                    id="editLastName"
+                    value={editStaffForm.lastName}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({
+                        ...f,
+                        lastName: e.target.value,
+                      }))
+                    }
                     placeholder="Enter last name"
                   />
                 </div>
@@ -1046,20 +1208,24 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editEmail">Email *</Label>
-                  <Input 
-                    id="editEmail" 
+                  <Input
+                    id="editEmail"
                     type="email"
-                    value={editStaffForm.email} 
-                    onChange={e => setEditStaffForm(f => ({...f, email: e.target.value}))} 
+                    value={editStaffForm.email}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({ ...f, email: e.target.value }))
+                    }
                     placeholder="Enter email address"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editPhone">Phone</Label>
-                  <Input 
-                    id="editPhone" 
-                    value={editStaffForm.phone || ""} 
-                    onChange={e => setEditStaffForm(f => ({...f, phone: e.target.value}))} 
+                  <Input
+                    id="editPhone"
+                    value={editStaffForm.phone || ""}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({ ...f, phone: e.target.value }))
+                    }
                     placeholder="Enter phone number"
                   />
                 </div>
@@ -1069,7 +1235,9 @@ export default function AdminPage() {
                   <Label htmlFor="editSex">Sex *</Label>
                   <Select
                     value={editStaffForm.sex}
-                    onValueChange={value => setEditStaffForm(f => ({ ...f, sex: value }))}
+                    onValueChange={(value) =>
+                      setEditStaffForm((f) => ({ ...f, sex: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select sex" />
@@ -1082,21 +1250,28 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editDateOfBirth">Date of Birth *</Label>
-                  <Input 
-                    id="editDateOfBirth" 
+                  <Input
+                    id="editDateOfBirth"
                     type="date"
-                    value={editStaffForm.dateOfBirth} 
-                    onChange={e => setEditStaffForm(f => ({...f, dateOfBirth: e.target.value}))} 
+                    value={editStaffForm.dateOfBirth}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({
+                        ...f,
+                        dateOfBirth: e.target.value,
+                      }))
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editRole">Role *</Label>
-                  <Input 
-                    id="editRole" 
-                    value={editStaffForm.role} 
-                    onChange={e => setEditStaffForm(f => ({...f, role: e.target.value}))} 
+                  <Input
+                    id="editRole"
+                    value={editStaffForm.role}
+                    onChange={(e) =>
+                      setEditStaffForm((f) => ({ ...f, role: e.target.value }))
+                    }
                     placeholder="Enter role"
                   />
                 </div>
@@ -1104,28 +1279,39 @@ export default function AdminPage() {
                   <Label htmlFor="editDepartment">Department *</Label>
                   <Select
                     value={editStaffForm.department}
-                    onValueChange={value => setEditStaffForm(f => ({ ...f, department: value }))}
+                    onValueChange={(value) =>
+                      setEditStaffForm((f) => ({ ...f, department: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="healthProviders">Health Providers</SelectItem>
+                      <SelectItem value="healthProviders">
+                        Health Providers
+                      </SelectItem>
                       <SelectItem value="pharmacy">Pharmacy</SelectItem>
                       <SelectItem value="lab">Lab</SelectItem>
                       <SelectItem value="radiology">Radiology</SelectItem>
-                      <SelectItem value="receptionists">Receptionists</SelectItem>
+                      <SelectItem value="receptionists">
+                        Receptionists
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2 w-full">
                 <Label htmlFor="editPassword">Password</Label>
-                <Input 
-                  id="editPassword" 
+                <Input
+                  id="editPassword"
                   type="password"
-                  value={editStaffForm.password || ""} 
-                  onChange={e => setEditStaffForm(f => ({...f, password: e.target.value}))} 
+                  value={editStaffForm.password || ""}
+                  onChange={(e) =>
+                    setEditStaffForm((f) => ({
+                      ...f,
+                      password: e.target.value,
+                    }))
+                  }
                   placeholder="Enter new password (leave blank to keep current)"
                   className="w-full"
                 />
@@ -1133,11 +1319,14 @@ export default function AdminPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowEditDialog(false);
-              setEditStaffForm(null);
-              setEditStaff(null);
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditDialog(false);
+                setEditStaffForm(null);
+                setEditStaff(null);
+              }}
+            >
               Cancel
             </Button>
             <Button onClick={handleEditStaffSave}>Save Changes</Button>
@@ -1150,11 +1339,15 @@ export default function AdminPage() {
           <DialogHeader>
             <DialogTitle>Delete Staff Member</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this staff member? This action cannot be undone.
+              Are you sure you want to delete this staff member? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDeleteStaff}>
@@ -1178,7 +1371,9 @@ export default function AdminPage() {
               <Input
                 id="username"
                 value={addAdminForm.username}
-                onChange={(e) => setAddAdminForm(f => ({...f, username: e.target.value}))}
+                onChange={(e) =>
+                  setAddAdminForm((f) => ({ ...f, username: e.target.value }))
+                }
                 placeholder="Enter username"
               />
             </div>
@@ -1188,7 +1383,9 @@ export default function AdminPage() {
                 id="email"
                 type="email"
                 value={addAdminForm.email}
-                onChange={(e) => setAddAdminForm(f => ({...f, email: e.target.value}))}
+                onChange={(e) =>
+                  setAddAdminForm((f) => ({ ...f, email: e.target.value }))
+                }
                 placeholder="Enter email address"
               />
             </div>
@@ -1198,7 +1395,9 @@ export default function AdminPage() {
                 id="password"
                 type="password"
                 value={addAdminForm.password}
-                onChange={(e) => setAddAdminForm(f => ({...f, password: e.target.value}))}
+                onChange={(e) =>
+                  setAddAdminForm((f) => ({ ...f, password: e.target.value }))
+                }
                 placeholder="Enter password"
               />
             </div>
@@ -1206,7 +1405,9 @@ export default function AdminPage() {
               <Label htmlFor="role">Role</Label>
               <Select
                 value={addAdminForm.role}
-                onValueChange={(value) => setAddAdminForm(f => ({...f, role: value}))}
+                onValueChange={(value) =>
+                  setAddAdminForm((f) => ({ ...f, role: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -1214,26 +1415,34 @@ export default function AdminPage() {
                 <SelectContent>
                   <SelectItem value="Super Admin">Super Admin</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Department Admin">Department Admin</SelectItem>
+                  <SelectItem value="Department Admin">
+                    Department Admin
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddAdminDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddAdminDialog(false)}
+            >
               Cancel
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => {
-                setAdminUsers(prev => [...prev, { ...addAdminForm, id: Date.now() }]);
+                setAdminUsers((prev) => [
+                  ...prev,
+                  { ...addAdminForm, id: Date.now() },
+                ]);
                 setShowAddAdminDialog(false);
                 setAddAdminForm({
                   username: "",
                   email: "",
                   password: "",
                   role: "Admin",
-                  status: "Active"
+                  status: "Active",
                 });
               }}
             >
@@ -1245,4 +1454,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
