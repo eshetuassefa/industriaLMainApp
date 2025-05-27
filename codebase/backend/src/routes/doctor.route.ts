@@ -2,16 +2,13 @@ import express from 'express';
 import {
   getPatientRecords,
   addMedicalRecord,
-  requestTest,
-  prescribeMedicine,
   createAppointment,
   getDoctorAppointments,
-  updateAppointment,
-  deleteAppointment,
   getAppointments,
-  getPrescriptionById,
-  getAllPrescriptions
+  updateAppointment,
+  deleteAppointment
 } from '../controllers/doctor.controller';
+import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -19,154 +16,37 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Doctor
- *   description: Endpoints for doctors to manage patient data
+ *   description: Endpoints for doctors to manage patient data and appointments
  */
-
 
 /**
  * @swagger
- * /api/doctor/patient/{patientId}/records:
+ * /api/doctor/patients/{patientId}/records:
  *   get:
- *     summary: View all medical records for a patient
+ *     summary: Get all medical records for a patient
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: patientId
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
- *         description: Patient UUID
+ *         description: ID of the patient
  *     responses:
  *       200:
- *         description: Patient information and medical records
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     patient:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           format: uuid
- *                         personId:
- *                           type: string
- *                           format: uuid
- *                         person:
- *                           type: object
- *                           properties:
- *                             id:
- *                               type: string
- *                               format: uuid
- *                             firstName:
- *                               type: string
- *                             lastName:
- *                               type: string
- *                             dateOfBirth:
- *                               type: string
- *                               format: date
- *                             gender:
- *                               type: string
- *                             phoneNumber:
- *                               type: string
- *                             address:
- *                               type: string
- *                     records:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           visitDate:
- *                             type: string
- *                             format: date-time
- *                           diagnosis:
- *                             type: string
- *                           # New fields start here
- *                           chiefComplaint:
- *                             type: string
- *                             description: Primary reason for the medical visit
- *                           bloodPressure:
- *                             type: string
- *                             example: "120/80"
- *                             description: Blood pressure measurement
- *                           heartRate:
- *                             type: integer
- *                             example: 72
- *                             description: Heart rate in BPM
- *                           temperature:
- *                             type: number
- *                             format: float
- *                             example: 36.6
- *                             description: Body temperature in Celsius
- *                           physicalExamination:
- *                             type: string
- *                             description: Findings from physical exam
- *                           # Existing fields
- *                           notes:
- *                             type: string
- *                           doctor:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: string
- *                                 format: uuid
- *                               person:
- *                                 type: object
- *                                 properties:
- *                                   firstName:
- *                                     type: string
- *                                   lastName:
- *                                     type: string
- *                           labResults:
- *                             type: array
- *                             items:
- *                               type: object
- *                               properties:
- *                                 testName:
- *                                   type: string
- *                                 resultValue:
- *                                   type: string
- *                           prescriptions:
- *                             type: array
- *                             items:
- *                               type: object
- *                               properties:
- *                                 medicineName:
- *                                   type: string
- *                                 dosage:
- *                                   type: string
- *                                 frequency:
- *                                   type: string
- *                                 duration:
- *                                   type: string
- *                                 instructions:
- *                                   type: string
+ *         description: Medical records retrieved successfully
  *       404:
  *         description: Patient not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
  */
-router.get('/patient/:patientId/records', ...getPatientRecords);
+router.get('/patients/:patientId/records', getPatientRecords);
+
 /**
  * @swagger
- * /api/doctor/records:
+ * /api/doctor/medical-records:
  *   post:
- *     summary: Add new medical record
+ *     summary: Add a new medical record
  *     tags: [Doctor]
  *     security:
  *       - bearerAuth: []
@@ -181,39 +61,27 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *             properties:
  *               patientId:
  *                 type: string
- *                 format: uuid
  *               visitDate:
  *                 type: string
  *                 format: date-time
  *               diagnosis:
  *                 type: string
- *               # New fields
  *               chiefComplaint:
  *                 type: string
- *                 description: Patient's primary reason for the visit
  *               bloodPressure:
  *                 type: string
- *                 example: "120/80"
  *               heartRate:
- *                 type: integer
- *                 example: 72
+ *                 type: number
  *               temperature:
  *                 type: number
- *                 format: float
- *                 example: 36.6
  *               physicalExamination:
  *                 type: string
- *                 description: Findings from physical examination
- *               # Existing fields
  *               notes:
  *                 type: string
  *               labResults:
  *                 type: array
  *                 items:
  *                   type: object
- *                   required:
- *                     - testName
- *                     - testDate
  *                   properties:
  *                     testName:
  *                       type: string
@@ -230,10 +98,8 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                 type: array
  *                 items:
  *                   type: object
- *                   required:
- *                     - medicineName
  *                   properties:
- *                     medicineName:
+ *                     drug:
  *                       type: string
  *                     dosage:
  *                       type: string
@@ -247,9 +113,6 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                 type: array
  *                 items:
  *                   type: object
- *                   required:
- *                     - imagingType
- *                     - reportDate
  *                   properties:
  *                     imagingType:
  *                       type: string
@@ -262,430 +125,11 @@ router.get('/patient/:patientId/records', ...getPatientRecords);
  *                       format: date-time
  *     responses:
  *       201:
- *         description: Medical record created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Medical record added successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     patientId:
- *                       type: string
- *                       format: uuid
- *                     visitDate:
- *                       type: string
- *                       format: date-time
- *                     diagnosis:
- *                       type: string
- *                     # New fields
- *                     chiefComplaint:
- *                       type: string
- *                     bloodPressure:
- *                       type: string
- *                     heartRate:
- *                       type: integer
- *                     temperature:
- *                       type: number
- *                     physicalExamination:
- *                       type: string
- *                     # Existing fields
- *                     notes:
- *                       type: string
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *                     patient:
- *                       $ref: '#/components/schemas/Patient'
- *                     labResults:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/LabResult'
- *                     prescriptions:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Prescription'
- *                     radiologyReports:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/RadiologyReport'
- * components:
- *   schemas:
- *     Patient:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         nationalId:
- *           type: string
- *         birthCertificate:
- *           type: string
- *         emergencyContactId:
- *           type: string
- *           format: uuid
- *         personId:
- *           type: string
- *           format: uuid
- *         person:
- *           $ref: '#/components/schemas/Person'
- *     Person:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         firstName:
- *           type: string
- *         middleName:
- *           type: string
- *         lastName:
- *           type: string
- *         sex:
- *           type: string
- *         dob:
- *           type: string
- *           format: date-time
- *         phoneNumber:
- *           type: string
- *         address:
- *           type: string
- *     LabResult:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         medicalRecordId:
- *           type: string
- *           format: uuid
- *         testName:
- *           type: string
- *         resultValue:
- *           type: string
- *         unit:
- *           type: string
- *         referenceRange:
- *           type: string
- *         testDate:
- *           type: string
- *           format: date-time
- *         technicianId:
- *           type: string
- *           format: uuid
- *         notes:
- *           type: string
- *     Prescription:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         medicalRecordId:
- *           type: string
- *           format: uuid
- *         medicineName:
- *           type: string
- *         dosage:
- *           type: string
- *         frequency:
- *           type: string
- *         duration:
- *           type: string
- *         instructions:
- *           type: string
- *         prescribedById:
- *           type: string
- *           format: uuid
- *     RadiologyReport:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         medicalRecordId:
- *           type: string
- *           format: uuid
- *         imagingType:
- *           type: string
- *         bodyPart:
- *           type: string
- *         reportText:
- *           type: string
- *         reportDate:
- *           type: string
- *           format: date-time
- *         radiologistId:
- *           type: string
- *           format: uuid
- *         notes:
- *           type: string
+ *         description: Medical record added successfully
+ *       400:
+ *         description: Invalid input data
  */
-router.post('/records', ...addMedicalRecord);
-
-/**
- * @swagger
- * /api/doctor/test-requests:
- *   post:
- *     summary: Request a lab or radiology test
- *     tags: [Doctor]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - patientId
- *               - testTypeId
- *               - hospitalId
- *             properties:
- *               patientId:
- *                 type: string
- *                 format: uuid
- *               testTypeId:
- *                 type: string
- *                 format: uuid
- *               hospitalId:
- *                 type: string
- *                 format: uuid
- *               notes:
- *                 type: string
- *     responses:
- *       201:
- *         description: Test request created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   format: uuid
- *                 status:
- *                   type: string
- *                   enum: [REQUESTED, IN_PROGRESS, COMPLETED, CANCELLED]
- *                 requestedAt:
- *                   type: string
- *                   format: date-time
- */
-router.post('/test-requests', ...requestTest);
-
-/**
- * @swagger
- * /api/doctor/prescriptions:
- *   post:
- *     summary: Prescribe medicine to a patient
- *     tags: [Doctor]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - patientId
- *               - medicineName
- *             properties:
- *               patientId:
- *                 type: string
- *                 format: uuid
- *               medicineName:
- *                 type: string
- *               dosage:
- *                 type: string
- *               frequency:
- *                 type: string
- *               duration:
- *                 type: string
- *               instructions:
- *                 type: string
- *     responses:
- *       201:
- *         description: Prescription created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   format: uuid
- *                 medicineName:
- *                   type: string
- *                 dosage:
- *                   type: string
- *                 frequency:
- *                   type: string
- */
-router.post('/prescriptions', ...prescribeMedicine);
-/**
- * @swagger
- * /api/doctor/prescriptions:
- *   get:
- *     summary: Get all prescriptions
- *     tags: [Doctor]
- *     responses:
- *       200:
- *         description: List of all prescriptions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Prescriptions retrieved successfully
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       medicineName:
- *                         type: string
- *                       dosage:
- *                         type: string
- *                       frequency:
- *                         type: string
- *                       duration:
- *                         type: string
- *                       instructions:
- *                         type: string
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       medicalRecord:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           visitDate:
- *                             type: string
- *                             format: date-time
- *                       prescribedBy:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           person:
- *                             type: object
- *                             properties:
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *   
- */
-router.get('/prescriptions', ...getAllPrescriptions);
-/**
- * @swagger
- * /api/doctor/prescriptions/{id}:
- *   get:
- *     summary: Get prescription by prescriptionID
- *     tags: [Doctor]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Prescription UUID
- *     responses:
- *       200:
- *         description: Prescription details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Prescription retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     medicineName:
- *                       type: string
- *                     dosage:
- *                       type: string
- *                     frequency:
- *                       type: string
- *                     duration:
- *                       type: string
- *                     instructions:
- *                       type: string
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     medicalRecord:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           format: uuid
- *                         visitDate:
- *                           type: string
- *                           format: date-time
- *                         diagnosis:
- *                           type: string
- *                     prescribedBy:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           format: uuid
- *                         person:
- *                           type: object
- *                           properties:
- *                             firstName:
- *                               type: string
- *                             lastName:
- *                               type: string
- *                     patient:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           format: uuid
- *                         person:
- *                           type: object
- *                           properties:
- *                             firstName:
- *                               type: string
- *                             lastName:
- *                               type: string
- *       404:
- *         description: Prescription not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Prescription not found
- *    
- */
-router.get('/prescriptions/:id', ...getPrescriptionById);
+router.post('/medical-records', addMedicalRecord);
 
 /**
  * @swagger
@@ -693,6 +137,8 @@ router.get('/prescriptions/:id', ...getPrescriptionById);
  *   post:
  *     summary: Create a new appointment
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -702,68 +148,25 @@ router.get('/prescriptions/:id', ...getPrescriptionById);
  *             required:
  *               - patientId
  *               - date
- *               - duration
- *               - type
+ *               - time
  *             properties:
  *               patientId:
  *                 type: string
- *                 format: uuid
  *               date:
  *                 type: string
- *                 format: date-time
- *               duration:
- *                 type: integer
- *                 minimum: 15
- *                 maximum: 240
- *               type:
+ *                 format: date
+ *               time:
  *                 type: string
- *                 enum: [CONSULTATION, FOLLOW_UP, EMERGENCY, ROUTINE_CHECK]
+ *                 format: time
  *               notes:
  *                 type: string
- *               status:
- *                 type: string
- *                 enum: [SCHEDULED, CANCELLED, COMPLETED]
- *                 default: SCHEDULED
  *     responses:
  *       201:
  *         description: Appointment created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     date:
- *                       type: string
- *                       format: date-time
- *                     duration:
- *                       type: integer
- *                     type:
- *                       type: string
- *                     status:
- *                       type: string
- *                     patient:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           format: uuid
- *                         person:
- *                           type: object
- *                           properties:
- *                             firstName:
- *                               type: string
- *                             lastName:
- *                               type: string
+ *       400:
+ *         description: Invalid input data
  */
-router.post('/appointments', ...createAppointment);
+router.post('/appointments', createAppointment);
 
 /**
  * @swagger
@@ -771,89 +174,36 @@ router.post('/appointments', ...createAppointment);
  *   get:
  *     summary: Get all appointments for the doctor
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of appointments
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       date:
- *                         type: string
- *                         format: date-time
- *                       duration:
- *                         type: integer
- *                       type:
- *                         type: string
- *                       status:
- *                         type: string
- *                       patient:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                             format: uuid
- *                           person:
- *                             type: object
- *                             properties:
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
+ *         description: Appointments retrieved successfully
  */
-router.get('/appointments', ...getDoctorAppointments);
+router.get('/appointments', getDoctorAppointments);
+
 /**
  * @swagger
  * /api/doctor/appointments/{appointmentId}:
  *   get:
- *     summary: get an appointment by appointmentId
+ *     summary: Get a specific appointment
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: appointmentId
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
- *     
+ *         description: ID of the appointment
  *     responses:
  *       200:
- *         description: Appointment updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     date:
- *                       type: string
- *                       format: date-time
- *                     duration:
- *                       type: integer
- *                     type:
- *                       type: string
- *                     status:
- *                       type: string
+ *         description: Appointment retrieved successfully
+ *       404:
+ *         description: Appointment not found
  */
-router.get('/appointments/:appointmentId', ...getAppointments);
+router.get('/appointments/:appointmentId', getAppointments);
 
 /**
  * @swagger
@@ -861,13 +211,15 @@ router.get('/appointments/:appointmentId', ...getAppointments);
  *   put:
  *     summary: Update an appointment
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: appointmentId
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *         description: ID of the appointment
  *     requestBody:
  *       required: true
  *       content:
@@ -877,46 +229,19 @@ router.get('/appointments/:appointmentId', ...getAppointments);
  *             properties:
  *               date:
  *                 type: string
- *                 format: date-time
- *               duration:
- *                 type: integer
- *                 minimum: 15
- *                 maximum: 240
- *               type:
+ *                 format: date
+ *               time:
  *                 type: string
- *                 enum: [CONSULTATION, FOLLOW_UP, EMERGENCY, ROUTINE_CHECK]
+ *                 format: time
  *               notes:
  *                 type: string
- *               status:
- *                 type: string
- *                 enum: [SCHEDULED, CANCELLED, COMPLETED]
  *     responses:
  *       200:
  *         description: Appointment updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     date:
- *                       type: string
- *                       format: date-time
- *                     duration:
- *                       type: integer
- *                     type:
- *                       type: string
- *                     status:
- *                       type: string
+ *       404:
+ *         description: Appointment not found
  */
-router.put('/appointments/:appointmentId', ...updateAppointment);
+router.put('/appointments/:appointmentId', updateAppointment);
 
 /**
  * @swagger
@@ -924,24 +249,21 @@ router.put('/appointments/:appointmentId', ...updateAppointment);
  *   delete:
  *     summary: Delete an appointment
  *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: appointmentId
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *         description: ID of the appointment
  *     responses:
  *       200:
  *         description: Appointment deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *       404:
+ *         description: Appointment not found
  */
-router.delete('/appointments/:appointmentId', ...deleteAppointment);
+router.delete('/appointments/:appointmentId', deleteAppointment);
 
 export default router;

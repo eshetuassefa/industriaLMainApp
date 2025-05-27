@@ -1,4 +1,3 @@
-
 import express from 'express';
 import {
   addPatient,
@@ -12,7 +11,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Reception
- *   description: Reception management
+ *   description: Patient registration and management
  */
 
 /**
@@ -66,7 +65,7 @@ const router = express.Router();
  *       201:
  *         description: Patient added successfully
  */
-router.post('/add-patient', ...addPatient);
+router.post('/add-patient', addPatient);
 
 /**
  * @swagger

@@ -17,7 +17,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Superadmin
- *   description: Superadmin management endpoints
+ *   description: System administration and hospital management
  */
 
 /**
@@ -139,7 +139,7 @@ router.delete("/system-admins/:id", deleteSystemAdmin);
  * /api/superadmin/hospitals:
  *   post:
  *     summary: Create a new hospital
- *     tags: [Superadmin]
+ *     tags: [2. Superadmin]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -178,7 +178,7 @@ router.post("/hospitals", createHospital);
  * /api/superadmin/hospitals:
  *   get:
  *     summary: Get all hospitals
- *     tags: [Superadmin]
+ *     tags: [2. Superadmin]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -192,7 +192,7 @@ router.get("/hospitals", getAllHospitals);
  * /api/superadmin/hospitals/{id}:
  *   put:
  *     summary: Update a hospital
- *     tags: [Superadmin]
+ *     tags: [2. Superadmin]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -231,7 +231,7 @@ router.put("/hospitals/:id", updateHospital);
  * /api/superadmin/hospitals/{id}:
  *   delete:
  *     summary: Delete a hospital
- *     tags: [Superadmin]
+ *     tags: [2. Superadmin]
  *     security:
  *       - bearerAuth: []
  *     parameters:

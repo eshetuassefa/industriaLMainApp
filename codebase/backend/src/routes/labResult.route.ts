@@ -10,6 +10,13 @@ const router = Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Lab Results
+ *   description: Laboratory test management and results
+ */
+
+/**
+ * @swagger
  * /api/lab-results/create-request:
  *   post:
  *     summary: Healthcare provider creates a new lab test request

@@ -3,8 +3,6 @@ import { Request, Response } from 'express';
 import {
   fetchPatientSchema,
   addMedicalRecordSchema,
-  requestTestSchema,
-  prescribeSchema,
   createAppointmentSchema,
   updateAppointmentSchema,
   appointmentIdSchema,
@@ -12,8 +10,6 @@ import {
 import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
 
 const prisma = new PrismaClient();
-
-
 
 // View all medical records for a patient
 export const getPatientRecords = [
@@ -113,11 +109,11 @@ export const getPatientRecords = [
     }
   }
 ];
-// Add a medical record (with optional labResults, prescriptions, and radiologyReports)
 
+// Add a medical record (with optional labResults, prescriptions, and radiologyReports)
 export const addMedicalRecord = [
   authenticateToken,
-  authorizeRoles("HEALTHCARE_PROVIDER"),
+  authorizeRoles("SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = addMedicalRecordSchema.parse(req.body);
@@ -129,16 +125,16 @@ export const addMedicalRecord = [
           visitDate: validatedData.visitDate 
             ? new Date(validatedData.visitDate) 
             : new Date(),
-          // New vital fields
+         
           chiefComplaint: validatedData.chiefComplaint,
           bloodPressure: validatedData.bloodPressure,
           heartRate: validatedData.heartRate,
           temperature: validatedData.temperature,
           physicalExamination: validatedData.physicalExamination,
-          // Existing medical fields
+          
           diagnosis: validatedData.diagnosis,
           notes: validatedData.notes,
-          // Relationships
+        
           doctorId: req.user!.id,
           labResults: validatedData.labResults
             ? {
@@ -153,13 +149,13 @@ export const addMedicalRecord = [
             : undefined,
           prescriptions: validatedData.prescriptions
             ? {
-                create: validatedData.prescriptions.map(p => ({
-                  medicineName: p.medicineName,
+                create: validatedData.prescriptions.map((p) => ({
+                  drugName: p.drug,
                   dosage: p.dosage,
                   frequency: p.frequency,
                   duration: p.duration,
                   instructions: p.instructions,
-                  prescribedById: req.user!.id,
+                  prescribedById: req.user!.id
                 }))
               }
             : undefined,
@@ -206,159 +202,6 @@ export const addMedicalRecord = [
       }
       console.error(error);
       res.status(500).json({ message: 'Error adding medical record' });
-    }
-  }
-];
-
-// Request a lab or radiology test
-export const requestTest = [
-  authenticateToken,
-  authorizeRoles('SUPERADMIN'),
-  async (req: Request, res: Response) => {
-    try {
-      const validatedData = requestTestSchema.parse(req.body);
-      const testRequest = await prisma.testRequest.create({
-        data: {
-          patientId: validatedData.patientId,
-          testTypeId: validatedData.testTypeId,
-          hospitalId: validatedData.hospitalId,
-          doctorId: req.user!.id,
-          notes: validatedData.notes,
-          status: 'REQUESTED'
-        },
-        include: {
-          testType: true,
-          hospital: true
-        }
-      });
-
-      res.status(201).json({
-        message: 'Test request created successfully',
-        data: testRequest
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        console.error(error);
-        res.status(500).json({ message: 'Error creating test request' });
-      }
-    }
-  }
-];
-
-// Prescribe medicine
-export const prescribeMedicine = [
-  authenticateToken,
-  authorizeRoles('SUPERADMIN'),
-  async (req: Request, res: Response) => {
-    try {
-      const validatedData = prescribeSchema.parse(req.body);
-      const activeRecord = await prisma.medicalRecord.findFirst({
-        where: { patientId: validatedData.patientId },
-        orderBy: { visitDate: 'desc' }
-      });
-
-      if (!activeRecord) {
-        return res.status(400).json({ message: 'No active medical record found' });
-      }
-
-      const prescription = await prisma.prescription.create({
-        data: {
-          medicalRecordId: activeRecord.id,
-          medicineName: validatedData.medicineName,
-          dosage: validatedData.dosage,
-          frequency: validatedData.frequency,
-          duration: validatedData.duration,
-          instructions: validatedData.instructions,
-          prescribedById: req.user!.id
-        },
-        include: {
-          medicalRecord: {
-            include: {
-              patient: true
-            }
-          }
-        }
-      });
-
-      res.status(201).json({
-        message: 'Prescription created successfully',
-        data: prescription
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        console.error(error);
-        res.status(500).json({ message: 'Error creating prescription' });
-      }
-    }
-  }
-];
-export const getPrescriptionById = [
-  authenticateToken,
-  authorizeRoles('SUPERADMIN'),
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const prescription = await prisma.prescription.findUnique({
-        where: { id },
-        include: {
-          medicalRecord: {
-            include: {
-              patient: true
-            }
-          }
-        }
-      });
-
-      if (!prescription) {
-        return res.status(404).json({ message: 'Prescription not found' });
-      }
-
-      res.status(200).json({
-        message: 'Prescription retrieved successfully',
-        data: prescription
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        console.error(error);
-        res.status(500).json({ message: 'Error retrieving prescription' });
-      }
-    }
-  }
-];
-
-export const getAllPrescriptions = [
-  authenticateToken,
-  authorizeRoles('SUPERADMIN'),
-  async (req: Request, res: Response) => {
-    try {
-      const prescriptions = await prisma.prescription.findMany({
-        include: {
-          medicalRecord: {
-            include: {
-              patient: true
-            }
-          }
-        },
-        orderBy: { id: 'desc' }
-      });
-
-      res.status(200).json({
-        message: 'Prescriptions retrieved successfully',
-        data: prescriptions
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        console.error(error);
-        res.status(500).json({ message: 'Error retrieving prescriptions' });
-      }
     }
   }
 ];
@@ -442,6 +285,7 @@ export const getDoctorAppointments = [
     }
   }
 ];
+
 // Get single appointments for a doctor
 export const getAppointments = [
   authenticateToken,

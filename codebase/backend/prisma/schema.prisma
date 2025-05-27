@@ -83,7 +83,7 @@ model MedicalRecord {
 
   doctor   User?   @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
   doctorId String?
-  notes    String? // General notes (retained for other purposes)
+  notes    String? // General 
 
   labResults       LabResult[]
   prescriptions    Prescription[]
@@ -96,47 +96,62 @@ model LabResult {
   id              String        @id @default(uuid())
   medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  testName        String
-  resultValue     String?
-  unit            String?
-  referenceRange  String?
-  testDate        DateTime
-  technician      User?         @relation(fields: [technicianId], references: [id])
-  technicianId    String?
-  notes           String?
+  testName       String
+  resultValue    String?
+  unit           String?
+  referenceRange String?
+  testDate       DateTime
+  technician     User?          @relation(fields: [technicianId], references: [id])
+  technicianId   String?
+  notes          String?
+}
+model Drug {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  genericName  String?
+  dosageForm   DosageForm
+  strength     String
+  manufacturer String?
+  status       DrugStatus     @default(ACTIVE)
+  reorderLevel Int?           @default(10)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  inventory    DrugInventory[]
+}
+
+model DrugInventory {
+  id              String     @id @default(uuid())
+  drug            Drug       @relation(fields: [drugId], references: [id])
+  drugId          String
+  batchNumber     String
+  expirationDate  DateTime
+  quantity        Int        @default(0)
+  supplier        String?
+  purchaseDate    DateTime?
+  purchasePrice   Float?
+  sellingPrice    Float?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 model Prescription {
   id              String        @id @default(uuid())
   medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id])
   medicalRecordId String
-  medicineName    String
-  dosage          String?
-  frequency       String?
-  duration        String?
-  instructions    String?
-
-  prescribedBy    User?         @relation("PrescribedBy", fields: [prescribedById], references: [id])
-  prescribedById  String?
-
-  // NEW FIELDS
-  deliveredBy     User?         @relation("DeliveredByPharmacist", fields: [deliveredById], references: [id])
-  deliveredById   String?
-  deliveredAt     DateTime?
-  deliveryStatus  DeliveryStatus @default(PENDING)
+  drugName        String
+  dosage         String?
+  frequency      String?
+  duration       String?
+  instructions   String?
+  quantity       Int?           @default(1)
+  dispensed      Boolean        @default(false)
+  prescribedBy   User?          @relation("PrescribedBy", fields: [prescribedById], references: [id])
+  prescribedById String?
+  deliveredBy    User?          @relation("DeliveredByPharmacist", fields: [deliveredById], references: [id])
+  deliveredById  String?
+  deliveredAt    DateTime?
+  deliveryStatus DeliveryStatus @default(PENDING)
 }
-enum PrescriptionStatus {
-  PRESCRIBED
-  DELIVERED
-  CANCELLED
-}
-
-enum DeliveryStatus {
-  PENDING
-  DELIVERED
-  FAILED
-}
-
-
 
 model RadiologyRequest {
   id              String        @id @default(uuid())
@@ -281,7 +296,7 @@ enum RoleType {
   HEALTHCARE_PROVIDER
   LAB_TECHNICIAN
   RADIOLOGIST
-  PHARMACIST
+  PHARMACIST  
 }
 
 enum TestStatus {
@@ -310,4 +325,26 @@ enum AppointmentStatus {
   SCHEDULED
   CANCELLED
   COMPLETED
+}
+enum DosageForm {
+  TABLET
+  CAPSULE
+  LIQUID
+  INJECTION
+  TOPICAL
+  SUPPOSITORY
+  POWDER
+  OTHER
+}
+
+enum DrugStatus {
+  ACTIVE
+  DISCONTINUED
+  OUT_OF_STOCK
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
 }

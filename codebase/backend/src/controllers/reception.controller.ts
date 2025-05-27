@@ -55,7 +55,7 @@ const prisma = new PrismaClient();
 // ];
 export const addPatient = [
     authenticateToken,
-    authorizeRoles("RECEPTIONIST"), // 👈 Only RECEPTIONIST can access
+    authorizeRoles("SUPERADMIN"), // 👈 Only RECEPTIONIST can access
     async (req: Request, res: Response) => {
       try {
         const validatedData = patientSchema.parse(req.body);
@@ -159,7 +159,7 @@ export const updatePatient = [
 // Fetch all or searched patients
 export const fetchPatients = [
   authenticateToken,
-  authorizeRoles("RECEPTIONIST"),
+  authorizeRoles("SUPERADMIN"), // 👈 Only RECEPTIONIST can access
   async (req: Request, res: Response) => {
     try {
       const validatedData = searchPatientSchema.parse(req.query);

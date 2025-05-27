@@ -6,7 +6,7 @@ import {
     passwordResetSchema, 
     newPasswordSchema 
 } from '../validators/auth.validator';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, RoleType } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -54,6 +54,34 @@ export const login: RequestHandler = async (req: Request, res: Response, next: N
       { expiresIn: '7d' }
     );
 
+    // Determine redirect URL based on role
+    let redirectUrl = '/';
+    switch (user.role) {
+      case RoleType.SUPERADMIN:
+        redirectUrl = '/superadmin/dashboard';
+        break;
+      case RoleType.ADMIN:
+        redirectUrl = '/admin/dashboard';
+        break;
+      case RoleType.HEALTHCARE_PROVIDER:
+        redirectUrl = '/doctor/dashboard';
+        break;
+      case RoleType.PHARMACIST:
+        redirectUrl = '/pharmacy/dashboard';
+        break;
+      case RoleType.LAB_TECHNICIAN:
+        redirectUrl = '/lab/dashboard';
+        break;
+      case RoleType.RADIOLOGIST:
+        redirectUrl = '/radiology/dashboard';
+        break;
+      case RoleType.RECEPTIONIST:
+        redirectUrl = '/reception/dashboard';
+        break;
+      default:
+        redirectUrl = '/';
+    }
+
     res.status(200).json({ 
       message: 'Login successful',
       accessToken,
@@ -62,7 +90,8 @@ export const login: RequestHandler = async (req: Request, res: Response, next: N
         id: user.id,
         email: user.email,
         role: user.role,
-        person: user.person
+        person: user.person,
+        redirectUrl
       }
     });
   } catch (error) {

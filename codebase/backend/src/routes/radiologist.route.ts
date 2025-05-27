@@ -10,6 +10,13 @@ const router = Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Radiology
+ *   description: Radiology imaging and report management
+ */
+
+/**
+ * @swagger
  * /api/radiology/create-request:
  *   post:
  *     summary: Healthcare provider creates a new radiology request
