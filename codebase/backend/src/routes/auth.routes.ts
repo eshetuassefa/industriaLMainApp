@@ -5,10 +5,17 @@ const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Authentication
+ *   description: User authentication endpoints
+ */
+
+/**
+ * @swagger
  * /api/auth/login:
  *   post:
  *     summary: User login
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       content:
  *         application/json:

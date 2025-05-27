@@ -24,7 +24,7 @@ export const addMedicalRecordSchema = z.object({
   ).optional(),
   prescriptions: z.array(
     z.object({
-      medicineName: z.string(),
+       drug: z.string(),
       dosage: z.string().optional(),
       frequency: z.string().optional(),
       duration: z.string().optional(),
@@ -39,24 +39,6 @@ export const addMedicalRecordSchema = z.object({
       reportDate: z.string().datetime(),
     })
   ).optional(),
-});
-
-// Request Test schema (lab or radiology)
-export const requestTestSchema = z.object({
-  patientId: z.string().uuid("Invalid Patient ID"),
-  testTypeId: z.string().uuid("Invalid TestType ID"),
-  hospitalId: z.string().uuid("Invalid Hospital ID"),
-  notes: z.string().optional(),
-});
-
-// Prescribe Medicine schema
-export const prescribeSchema = z.object({
-  patientId: z.string().uuid("Invalid Patient ID"),
-  medicineName: z.string().min(1, 'Medicine name required'),
-  dosage: z.string().optional(),
-  frequency: z.string().optional(),
-  duration: z.string().optional(),
-  instructions: z.string().optional(),
 });
 
 export const fetchPatientSchema = z.object({

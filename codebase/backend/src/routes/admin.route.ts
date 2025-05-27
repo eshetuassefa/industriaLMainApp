@@ -15,7 +15,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Admin - Staff
- *   description: Endpoints for managing staff members by Admin
+ *   description: Staff management by hospital administrators
  */
 
 /**
@@ -88,7 +88,7 @@ router.post("/staffs/register", registerStaffController);
  *   get:
  *     summary: Get all staff members
  *     description: Fetch a list of all staff members (admin only).
- *     tags: [Admin - Staff]
+ *     tags: [3. Admin - Staff]
  *     responses:
  *       200:
  *         description: List of all staff members.
@@ -109,7 +109,7 @@ router.get("/staffs/getall", getAllStaffsController);
  *   get:
  *     summary: Get a staff member by ID
  *     description: Fetch a specific staff member's details by ID (admin only).
- *     tags: [Admin - Staff]
+ *     tags: [3. Admin - Staff]
  *     parameters:
  *       - in: path
  *         name: id
