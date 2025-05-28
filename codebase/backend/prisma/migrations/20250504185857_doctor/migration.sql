@@ -1,11 +1,17 @@
 -- CreateEnum
-CREATE TYPE "RoleType" AS ENUM ('ADMIN', 'SUPERADMIN', 'RECEPTIONIST', 'LAB_TECHNICIAN', 'RADIOLOGIST', 'PHARMACIST');
+CREATE TYPE "RoleType" AS ENUM ('ADMIN', 'SUPERADMIN', 'RECEPTIONIST', 'HEALTHCARE_PROVIDER', 'LAB_TECHNICIAN', 'RADIOLOGIST', 'PHARMACIST');
 
 -- CreateEnum
 CREATE TYPE "TestStatus" AS ENUM ('REQUESTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "ResultStatus" AS ENUM ('PENDING', 'COMPLETED', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
+CREATE TYPE "AppointmentType" AS ENUM ('CONSULTATION', 'FOLLOW_UP', 'EMERGENCY', 'ROUTINE_CHECK');
+
+-- CreateEnum
+CREATE TYPE "AppointmentStatus" AS ENUM ('SCHEDULED', 'CANCELLED', 'COMPLETED');
 
 -- CreateTable
 CREATE TABLE "Person" (
@@ -26,10 +32,19 @@ CREATE TABLE "Patient" (
     "id" TEXT NOT NULL,
     "nationalId" TEXT,
     "birthCertificate" TEXT,
-    "emergencyContact" TEXT,
+    "emergencyContactId" TEXT,
     "personId" TEXT NOT NULL,
 
     CONSTRAINT "Patient_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmergencyContact" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+
+    CONSTRAINT "EmergencyContact_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -118,7 +133,7 @@ CREATE TABLE "Hospital" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
-    "regionId" TEXT NOT NULL,
+    "regionId" INTEGER NOT NULL,
     "city" TEXT NOT NULL,
     "zone" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -128,7 +143,7 @@ CREATE TABLE "Hospital" (
 
 -- CreateTable
 CREATE TABLE "Region" (
-    "id" TEXT NOT NULL,
+    "id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
 
     CONSTRAINT "Region_pkey" PRIMARY KEY ("id")
@@ -183,8 +198,24 @@ CREATE TABLE "TestResult" (
     CONSTRAINT "TestResult_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Appointment" (
+    "id" TEXT NOT NULL,
+    "patientId" TEXT NOT NULL,
+    "doctorId" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "duration" INTEGER NOT NULL,
+    "type" "AppointmentType" NOT NULL,
+    "status" "AppointmentStatus" NOT NULL DEFAULT 'SCHEDULED',
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Appointment_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
-CREATE UNIQUE INDEX "Patient_nationalId_key" ON "Patient"("nationalId");
+CREATE UNIQUE INDEX "Patient_emergencyContactId_key" ON "Patient"("emergencyContactId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Patient_personId_key" ON "Patient"("personId");
@@ -206,6 +237,18 @@ CREATE UNIQUE INDEX "Region_name_key" ON "Region"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TestType_code_key" ON "TestType"("code");
+
+-- CreateIndex
+CREATE INDEX "Appointment_patientId_idx" ON "Appointment"("patientId");
+
+-- CreateIndex
+CREATE INDEX "Appointment_doctorId_idx" ON "Appointment"("doctorId");
+
+-- CreateIndex
+CREATE INDEX "Appointment_date_idx" ON "Appointment"("date");
+
+-- AddForeignKey
+ALTER TABLE "Patient" ADD CONSTRAINT "Patient_emergencyContactId_fkey" FOREIGN KEY ("emergencyContactId") REFERENCES "EmergencyContact"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Patient" ADD CONSTRAINT "Patient_personId_fkey" FOREIGN KEY ("personId") REFERENCES "Person"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -272,3 +315,9 @@ ALTER TABLE "TestResult" ADD CONSTRAINT "TestResult_technicianId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "TestResult" ADD CONSTRAINT "TestResult_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_doctorId_fkey" FOREIGN KEY ("doctorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
