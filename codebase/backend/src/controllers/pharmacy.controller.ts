@@ -188,7 +188,7 @@ export const createPrescription = [
               instructions: drug.instructions || null,
               quantity: drug.quantity || 1,
               deliveryStatus: DeliveryStatus.PENDING,
-              prescribedById: req.user!.id
+              prescribedById: req.user!.id,
             },
           })
         )
@@ -210,7 +210,7 @@ export const confirmDrugDelivery = [
   authorizeRoles("PHARMACIST"),
   async (req: Request, res: Response) => {
     try {
-      const { prescriptionId } = req.params;
+      const { id:prescriptionId } = req.params;
 
       const prescription = await prisma.prescription.findUnique({
         where: { id: prescriptionId },

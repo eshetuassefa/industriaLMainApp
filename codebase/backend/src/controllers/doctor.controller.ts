@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 // View all medical records for a patient
 export const getPatientRecords = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles("HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
       const { patientId } = fetchPatientSchema.parse(req.params);
@@ -33,14 +33,14 @@ export const getPatientRecords = [
               dob: true,
               sex: true,
               phoneNumber: true,
-              address: true
-            }
-          }
-        }
+              address: true,
+            },
+          },
+        },
       });
 
       if (!patient) {
-        return res.status(404).json({ message: 'Patient not found' });
+        return res.status(404).json({ message: "Patient not found" });
       }
 
       // Fetch medical records with secure relationships
@@ -59,21 +59,20 @@ export const getPatientRecords = [
                   id: true,
                   firstName: true,
                   lastName: true,
-                
-                }
-              }
-            }
-          }
+                },
+              },
+            },
+          },
         },
-        orderBy: { visitDate: 'desc' }
+        orderBy: { visitDate: "desc" },
       });
 
       // Format response with safe data structure
       res.status(200).json({
-        message: 'Medical records retrieved successfully',
+        message: "Medical records retrieved successfully",
         data: {
           patient,
-          records: records.map(record => ({
+          records: records.map((record) => ({
             id: record.id,
             visitDate: record.visitDate,
             createdAt: record.createdAt,
@@ -88,32 +87,34 @@ export const getPatientRecords = [
             doctor: {
               id: record.doctor?.id,
               role: record.doctor?.role,
-              name: record.doctor?.person ? {
-                firstName: record.doctor.person.firstName,
-                lastName: record.doctor.person.lastName
-              } : null
+              name: record.doctor?.person
+                ? {
+                    firstName: record.doctor.person.firstName,
+                    lastName: record.doctor.person.lastName,
+                  }
+                : null,
             },
             labResults: record.labResults,
             prescriptions: record.prescriptions,
-            radiologyReports: record.radiologyReports
-          }))
-        }
+            radiologyReports: record.radiologyReports,
+          })),
+        },
       });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
         console.error(error);
-        res.status(500).json({ message: 'Error fetching medical records' });
+        res.status(500).json({ message: "Error fetching medical records" });
       }
     }
-  }
+  },
 ];
 
 // Add a medical record (with optional labResults, prescriptions, and radiologyReports)
 export const addMedicalRecord = [
   authenticateToken,
-  authorizeRoles("SUPERADMIN"),
+  authorizeRoles("HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = addMedicalRecordSchema.parse(req.body);
@@ -122,29 +123,29 @@ export const addMedicalRecord = [
       const medicalRecord = await prisma.medicalRecord.create({
         data: {
           patientId: validatedData.patientId,
-          visitDate: validatedData.visitDate 
-            ? new Date(validatedData.visitDate) 
+          visitDate: validatedData.visitDate
+            ? new Date(validatedData.visitDate)
             : new Date(),
-         
+
           chiefComplaint: validatedData.chiefComplaint,
           bloodPressure: validatedData.bloodPressure,
           heartRate: validatedData.heartRate,
           temperature: validatedData.temperature,
           physicalExamination: validatedData.physicalExamination,
-          
+
           diagnosis: validatedData.diagnosis,
           notes: validatedData.notes,
-        
+
           doctorId: req.user!.id,
           labResults: validatedData.labResults
             ? {
-                create: validatedData.labResults.map(lr => ({
+                create: validatedData.labResults.map((lr) => ({
                   testName: lr.testName,
                   testDate: new Date(lr.testDate),
                   resultValue: lr.resultValue,
                   unit: lr.unit,
                   referenceRange: lr.referenceRange,
-                }))
+                })),
               }
             : undefined,
           prescriptions: validatedData.prescriptions
@@ -155,18 +156,18 @@ export const addMedicalRecord = [
                   frequency: p.frequency,
                   duration: p.duration,
                   instructions: p.instructions,
-                  prescribedById: req.user!.id
-                }))
+                  prescribedById: req.user!.id,
+                })),
               }
             : undefined,
           radiologyReports: validatedData.radiologyReports
             ? {
-                create: validatedData.radiologyReports.map(report => ({
+                create: validatedData.radiologyReports.map((report) => ({
                   imagingType: report.imagingType,
                   reportText: report.reportText,
                   bodyPart: report.bodyPart,
                   reportDate: new Date(report.reportDate),
-                }))
+                })),
               }
             : undefined,
         },
@@ -177,15 +178,15 @@ export const addMedicalRecord = [
           radiologyReports: true,
           doctor: {
             include: {
-              person: true
-            }
-          }
-        }
+              person: true,
+            },
+          },
+        },
       });
 
       // Return complete response with all fields
       res.status(201).json({
-        message: 'Medical record added successfully',
+        message: "Medical record added successfully",
         data: {
           ...medicalRecord,
           // Explicitly list critical fields for clarity
@@ -193,17 +194,17 @@ export const addMedicalRecord = [
           bloodPressure: medicalRecord.bloodPressure,
           heartRate: medicalRecord.heartRate,
           temperature: medicalRecord.temperature,
-          physicalExamination: medicalRecord.physicalExamination
-        }
+          physicalExamination: medicalRecord.physicalExamination,
+        },
       });
     } catch (error) {
       if (error instanceof Error) {
         return res.status(400).json({ message: error.message });
       }
       console.error(error);
-      res.status(500).json({ message: 'Error adding medical record' });
+      res.status(500).json({ message: "Error adding medical record" });
     }
-  }
+  },
 ];
 
 // Create a new appointment

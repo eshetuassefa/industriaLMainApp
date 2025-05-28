@@ -184,39 +184,9 @@ router.get(
 
 /**
  * @swagger
- * /api/pharmacy/drugs/{id}:
- *   delete:
- *     summary: Delete a drug
- *     tags: [Pharmacy]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: Drug ID
- *     responses:
- *       200:
- *         description: Drug deleted successfully
- *       404:
- *         description: Drug not found
- *       500:
- *         description: Server error
- */
-router.delete(
-  "/drugs/:id",
-  authenticateToken,
-  authorizeRoles("PHARMACIST", "ADMIN"),
-  deleteDrug
-);
-
-/**
- * @swagger
  * /api/pharmacy/prescriptions:
  *   post:
- *     summary: Create a new prescription
+ *     summary: Create new prescriptions for a patient
  *     tags: [Pharmacy]
  *     security:
  *       - bearerAuth: []
@@ -227,38 +197,49 @@ router.delete(
  *           schema:
  *             type: object
  *             properties:
- *               medicalRecordId:
+ *               patientId:
  *                 type: string
- *               drugName:
+ *               hospitalId:
  *                 type: string
- *               dosage:
+ *               notes:
  *                 type: string
- *               frequency:
- *                 type: string
- *               duration:
- *                 type: string
- *               instructions:
- *                 type: string
- *               quantity:
- *                 type: number
+ *               drugs:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     dosage:
+ *                       type: string
+ *                     frequency:
+ *                       type: string
+ *                     duration:
+ *                       type: string
+ *                     instructions:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
  *             required:
- *               - medicalRecordId
- *               - drugName
- *               - dosage
- *               - frequency
- *               - duration
+ *               - patientId
+ *               - hospitalId
+ *               - drugs
  *     responses:
  *       201:
- *         description: Prescription created successfully
+ *         description: Prescriptions created successfully
  *       400:
  *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  *       500:
  *         description: Server error
  */
 router.post(
   "/prescriptions",
   authenticateToken,
-  authorizeRoles("DOCTOR"),
+  authorizeRoles("HEALTHCARE_PROVIDER"),
   createPrescription
 );
 

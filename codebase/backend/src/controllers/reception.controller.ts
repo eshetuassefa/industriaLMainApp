@@ -54,54 +54,54 @@ const prisma = new PrismaClient();
 //   },
 // ];
 export const addPatient = [
-    authenticateToken,
-    authorizeRoles("SUPERADMIN"), // 👈 Only RECEPTIONIST can access
-    async (req: Request, res: Response) => {
-      try {
-        const validatedData = patientSchema.parse(req.body);
-  
-        const newPatient = await prisma.patient.create({
-          data: {
-            nationalId: validatedData.nationalId,
-            birthCertificate: validatedData.birthCertificate,
-            person: {
-              create: {
-                firstName: validatedData.firstName,
-                middleName: validatedData.middleName,
-                lastName: validatedData.lastName,
-                sex: validatedData.sex,
-                dob: new Date(validatedData.dob),
-                phoneNumber: validatedData.phoneNumber,
-                address: validatedData.address,
-              },
-            },
-            emergencyContact: {
-              create: {
-                name: validatedData.emergencyContact.name,
-                phone: validatedData.emergencyContact.phone,
-              },
+  authenticateToken,
+  authorizeRoles("RECEPTIONIST"), // 👈 Only RECEPTIONIST can access
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = patientSchema.parse(req.body);
+
+      const newPatient = await prisma.patient.create({
+        data: {
+          nationalId: validatedData.nationalId,
+          birthCertificate: validatedData.birthCertificate,
+          person: {
+            create: {
+              firstName: validatedData.firstName,
+              middleName: validatedData.middleName,
+              lastName: validatedData.lastName,
+              sex: validatedData.sex,
+              dob: new Date(validatedData.dob),
+              phoneNumber: validatedData.phoneNumber,
+              address: validatedData.address,
             },
           },
-          include: {
-            person: true,
-            emergencyContact: true,
+          emergencyContact: {
+            create: {
+              name: validatedData.emergencyContact.name,
+              phone: validatedData.emergencyContact.phone,
+            },
           },
-        });
-  
-        res.status(201).json({
-          message: "Patient added successfully",
-          patient: newPatient,
-        });
-      } catch (error) {
-        if (error instanceof Error) {
-          res.status(400).json({ message: error.message });
-        } else {
-          console.error(error);
-          res.status(500).json({ message: "Failed to add patient", error });
-        }
+        },
+        include: {
+          person: true,
+          emergencyContact: true,
+        },
+      });
+
+      res.status(201).json({
+        message: "Patient added successfully",
+        patient: newPatient,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: "Failed to add patient", error });
       }
-    },
-  ];
+    }
+  },
+];
 // Update patient details
 export const updatePatient = [
     authenticateToken,
