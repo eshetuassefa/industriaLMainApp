@@ -1,19 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import DoctorDashboard from './pages/provider/Dashboard';
-import Patients from './pages/provider/Patients';
-import MedicalRecord from './pages/provider/MedicalRecord';
+import { RouterProvider } from 'react-router-dom';
+import router from './router';
 
 const App = () => {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/provider/dashboard" element={<DoctorDashboard />} />
-        <Route path="/provider/patients" element={<Patients />} />
-        <Route path="/provider/medical-record/:patientId" element={<MedicalRecord />} />
-      </Routes>
-    </Router>
-  );
+  return <RouterProvider router={router} />;
 };
 
 export default App;

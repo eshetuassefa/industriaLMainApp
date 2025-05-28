@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   ChartBarIcon,
   BuildingOffice2Icon,
@@ -65,7 +65,7 @@ const SuperAdminLayout = ({ children }) => {
         </header>
 
         {/* Page Content */}
-        <main>{children}</main>
+        <main><Outlet /></main>
       </div>
     </div>
   );
