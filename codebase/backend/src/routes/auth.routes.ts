@@ -1,5 +1,5 @@
 import express from 'express';
-import { login } from '../controllers/auth.controller';
+import { login, refreshToken } from '../controllers/auth.controller';
 
 const router = express.Router();
 
@@ -33,5 +33,28 @@ const router = express.Router();
  *         description: JWT token
  */
 router.post('/login', login);
+
+/**
+ * @swagger
+ * /api/auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: New access token
+ *       401:
+ *         description: Invalid refresh token
+ */
+router.post('/refresh-token', refreshToken);
 
 export default router;

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import authService from "../../services/auth.service";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -10,32 +11,31 @@ const LoginForm = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Setup axios interceptors when component mounts
+    authService.setupAxiosInterceptors();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await fakeApiLogin(email, password);
+      const response = await authService.login(email, password);
       console.log("Login successful:", response);
-      navigate("/admin");
+      
+      // Redirect based on user role
+      if (response.user && response.user.redirectUrl) {
+        navigate(response.user.redirectUrl);
+      } else {
+        navigate('/'); // Fallback to home if no redirect URL
+      }
     } catch (err) {
-      setError("Login failed. Please check your credentials.");
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const fakeApiLogin = (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (email === "test@example.com" && password === "password") {
-          resolve({ message: "Login successful!" });
-        } else {
-          reject(new Error("Invalid credentials"));
-        }
-      }, 1000);
-    });
   };
 
   return (
