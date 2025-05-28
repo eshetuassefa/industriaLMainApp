@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   CalendarDaysIcon,
   UserGroupIcon,
@@ -54,9 +54,10 @@ const ProviderLayout = ({ children }) => {
   const isMedicalRecordPage = location.pathname.startsWith('/provider/medical-record/') && location.pathname.split('/').length === 4;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gray-100">
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 w-64 bg-gray-800 shadow-lg text-white">
+        {/* Add explicit background and z-index for debugging */}
         {/* Logo */}
         <div className="flex items-center h-16 px-4 border-b border-gray-700">
           <h1 className="text-xl font-bold text-white">Ethiopia e-Health</h1>
@@ -65,7 +66,7 @@ const ProviderLayout = ({ children }) => {
         {/* Navigation */}
         <nav className="px-4 mt-6">
           <ul>
-            {isMedicalRecordPage ? (
+            {isMedicalRecordPage && (
               // "Go back" link for medical record entry page
               <li className="mb-4">
                 <a
@@ -79,8 +80,9 @@ const ProviderLayout = ({ children }) => {
                   Go back
                 </a>
               </li>
-            ) : (
-              // Standard Navigation Links for other provider pages
+            )}
+            {/* Standard Navigation Links for other provider pages */}
+            {!isMedicalRecordPage && (
               navigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
@@ -105,7 +107,7 @@ const ProviderLayout = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
+      <div className="pl-64 flex-1" style={{ overflowX: 'hidden' }}>
         {/* Header */}
         <header className="h-16 bg-white shadow-sm">
           <div className="flex items-center justify-end h-full px-6">
@@ -162,7 +164,7 @@ const ProviderLayout = ({ children }) => {
         </header>
 
         {/* Page Content */}
-        <main>{children}</main>
+        <main style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflowY: 'auto' }}><Outlet /></main>
       </div>
     </div>
   );
