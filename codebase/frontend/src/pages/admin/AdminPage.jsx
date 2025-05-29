@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import adminService from "@/services/admin.service";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -48,86 +47,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-// Sample data for demonstration
-const initialStaff = {
-  healthProviders: [
-    {
-      id: 1,
-      firstName: "Sarah",
-      middleName: "Elizabeth",
-      lastName: "Wilson",
-      email: "sarah.wilson@hospital.com",
-      phone: "+1 (555) 123-4567",
-      role: "Cardiologist",
-      department: "Health Providers",
-      password: "hashedPassword123",
-      sex: "Female",
-      dateOfBirth: "1985-05-15",
-    },
-  ],
-  pharmacy: [
-    {
-      id: 1,
-      firstName: "John",
-      middleName: "Robert",
-      lastName: "Smith",
-      email: "john.smith@hospital.com",
-      phone: "+1 (555) 345-6789",
-      role: "Pharmacist",
-      department: "Pharmacy",
-      password: "hashedPassword123",
-      sex: "Male",
-      dateOfBirth: "1990-08-22",
-    },
-  ],
-  lab: [
-    {
-      id: 1,
-      firstName: "Robert",
-      middleName: "William",
-      lastName: "Johnson",
-      email: "robert.johnson@hospital.com",
-      phone: "+1 (555) 567-8901",
-      role: "Lab Technician",
-      department: "Lab",
-      password: "hashedPassword123",
-      sex: "Male",
-      dateOfBirth: "1988-03-30",
-    },
-  ],
-  radiology: [
-    {
-      id: 1,
-      firstName: "James",
-      middleName: "Edward",
-      lastName: "Wilson",
-      email: "james.wilson@hospital.com",
-      phone: "+1 (555) 789-0123",
-      role: "Radiologist",
-      department: "Radiology",
-      password: "hashedPassword123",
-      sex: "Male",
-      dateOfBirth: "1982-11-12",
-    },
-  ],
-  receptionists: [
-    {
-      id: 1,
-      firstName: "David",
-      middleName: "Thomas",
-      lastName: "Wilson",
-      email: "david.wilson@hospital.com",
-      phone: "+1 (555) 901-2345",
-      role: "Receptionist",
-      department: "Receptionists",
-      password: "hashedPassword123",
-      sex: "Male",
-      dateOfBirth: "1995-07-25",
-    },
-  ],
-};
-
-// Add this mapping at the top of your component, after initialStaff
 const staffTabMap = {
   "health-providers": "healthProviders",
   pharmacy: "pharmacy",
@@ -136,86 +55,67 @@ const staffTabMap = {
   receptionists: "receptionists",
 };
 
-// Add this after the initialStaff constant
-const initialActivities = [
-  {
-    id: 1,
-    type: "registration",
-    message: "New health provider registration request",
-    time: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
-    status: "pending",
-    department: "Health Providers",
-  },
-  {
-    id: 2,
-    type: "inventory",
-    message: "Pharmacy inventory needs attention",
-    time: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-    status: "warning",
-    department: "Pharmacy",
-  },
-  {
-    id: 3,
-    type: "schedule",
-    message: "Lab technician schedule update required",
-    time: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-    status: "info",
-    department: "Lab",
-  },
+const roleMap = {
+  Cardiologist: "HEALTHCARE_PROVIDER",
+  Pharmacist: "PHARMACIST",
+  "Lab Technician": "LAB_TECHNICIAN",
+  Radiologist: "RADIOLOGIST",
+  Receptionist: "RECEPTIONIST",
+  "Super Admin": "SUPERADMIN",
+  HEALTHCARE_PROVIDER: "Cardiologist",
+  PHARMACIST: "Pharmacist",
+  LAB_TECHNICIAN: "Lab Technician",
+  RADIOLOGIST: "Radiologist",
+  RECEPTIONIST: "Receptionist",
+  SUPERADMIN: "Super Admin",
+};
+
+const getStaffColumns = () => [
+  { key: "firstName", label: "First Name" },
+  { key: "middleName", label: "Middle Name" },
+  { key: "lastName", label: "Last Name" },
+  { key: "email", label: "Email" },
+  { key: "phoneNumber", label: "Phone" },
+  { key: "role", label: "Role" },
+  { key: "sex", label: "Sex" },
+  { key: "dob", label: "Date of Birth" },
+  { key: "address", label: "Address" },
+  { key: "password", label: "Password" },
+  { key: "actions", label: "Actions" },
 ];
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
-  const [staff, setStaff] = useState(initialStaff);
+  const [staff, setStaff] = useState({
+    healthProviders: [],
+    pharmacy: [],
+    lab: [],
+    radiology: [],
+    receptionists: [],
+  });
   const [showAddStaffDialog, setShowAddStaffDialog] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editStaff, setEditStaff] = useState(null);
   const [editStaffForm, setEditStaffForm] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteStaffId, setDeleteStaffId] = useState(null);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      message: "New health provider registration request",
-      time: "10 minutes ago",
-      type: "info",
-    },
-    {
-      id: 2,
-      message: "Pharmacy inventory needs attention",
-      time: "30 minutes ago",
-      type: "warning",
-    },
-    {
-      id: 3,
-      message: "Lab technician schedule update required",
-      time: "1 hour ago",
-      type: "info",
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationIdCounter, setNotificationIdCounter] = useState(0);
   const [addStaffForm, setAddStaffForm] = useState({
     firstName: "",
     middleName: "",
     lastName: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     role: "",
-    department: "",
     password: "",
     sex: "",
-    dateOfBirth: "",
+    dob: "",
+    address: "",
   });
-  const [adminUsers, setAdminUsers] = useState([
-    {
-      id: 1,
-      username: "admin",
-      email: "admin@hospital.com",
-      role: "Super Admin",
-      status: "Active",
-    },
-  ]);
+  const [adminUsers, setAdminUsers] = useState([]);
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const [addAdminForm, setAddAdminForm] = useState({
     username: "",
@@ -224,168 +124,269 @@ export default function AdminPage() {
     role: "Admin",
     status: "Active",
   });
-  const [activities, setActivities] = useState(initialActivities);
+  const [activities, setActivities] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const staffResponse = await adminService.getAllStaff();
+        if (staffResponse.success) {
+          // Log response to debug structure
+          console.log("staffResponse.data:", staffResponse.data);
+
+          // Ensure backendData is an array
+          let backendData = Array.isArray(staffResponse.data)
+            ? staffResponse.data
+            : staffResponse.data?.data || [];
+
+          // Additional check if backendData is still not an array
+          if (!Array.isArray(backendData)) {
+            console.warn("backendData is not an array:", backendData);
+            backendData = [];
+          }
+
+          const transformedData = {
+            healthProviders: backendData
+              .filter((s) => s.role === "HEALTHCARE_PROVIDER")
+              .map(transformStaffToFrontend),
+            pharmacy: backendData
+              .filter((s) => s.role === "PHARMACIST")
+              .map(transformStaffToFrontend),
+            lab: backendData
+              .filter((s) => s.role === "LAB_TECHNICIAN")
+              .map(transformStaffToFrontend),
+            radiology: backendData
+              .filter((s) => s.role === "RADIOLOGIST")
+              .map(transformStaffToFrontend),
+            receptionists: backendData
+              .filter((s) => s.role === "RECEPTIONIST")
+              .map(transformStaffToFrontend),
+          };
+          setStaff(transformedData);
+          setAdminUsers(
+            backendData
+              .filter((u) => u.role === "SUPERADMIN")
+              .map(transformStaffToFrontend)
+          );
+        } else {
+          throw new Error(
+            staffResponse.error.message || "Failed to fetch staff data"
+          );
+        }
+        setActivities([]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError(error.message || "Failed to load data");
+        addNotification(error.message || "Failed to load data", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const transformStaffToFrontend = (staff) => ({
+    id: staff.id,
+    firstName: staff.person?.firstName || "",
+    middleName: staff.person?.middleName || "",
+    lastName: staff.person?.lastName || "",
+    email: staff.email || staff.person?.email || "",
+    phoneNumber: staff.person?.phoneNumber || "",
+    role: roleMap[staff.role] || staff.role,
+    sex: staff.person?.sex || "",
+    dob: staff.person?.dob
+      ? new Date(staff.person.dob).toISOString().split("T")[0]
+      : "",
+    address: staff.person?.address || "",
+    password: "hashedPassword123",
+  });
+
+  const transformStaffToBackend = (staff) => ({
+    firstName: staff.firstName,
+    middleName: staff.middleName,
+    lastName: staff.lastName,
+    email: staff.email,
+    phoneNumber: staff.phoneNumber,
+    role: roleMap[staff.role] || staff.role.toUpperCase(),
+    password: staff.password,
+    sex: staff.sex.toUpperCase(),
+    dob: staff.dob,
+    address: staff.address || "",
+  });
+
+  const addNotification = (message, type) => {
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => n.message !== message);
+      return [
+        {
+          id: notificationIdCounter,
+          message,
+          type,
+        },
+        ...filtered,
+      ];
+    });
+    setNotificationIdCounter((prev) => prev + 1);
+  };
 
   const handleAddStaff = async () => {
+    setIsLoading(true);
     try {
-      // Validate required fields
       if (
         !addStaffForm.firstName ||
         !addStaffForm.lastName ||
         !addStaffForm.email ||
         !addStaffForm.password ||
-        !addStaffForm.department ||
-        !addStaffForm.role
+        !addStaffForm.role ||
+        !addStaffForm.sex ||
+        !addStaffForm.dob
       ) {
-        alert("Please fill in all required fields marked with *");
-        return;
+        throw new Error("Please fill in all required fields marked with *");
       }
 
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(addStaffForm.email)) {
-        alert("Please enter a valid email address");
-        return;
+      const staffData = transformStaffToBackend(addStaffForm);
+      const response = await adminService.registerStaff(staffData);
+      if (!response.success) {
+        throw new Error(response.error.message || "Failed to add staff");
       }
 
-      // Create new staff member
-      const newStaff = {
-        ...addStaffForm,
-        id: Date.now(),
-        department: addStaffForm.department,
-      };
-
-      // Update staff state
-      await setStaff((prev) => {
-        const deptKey = Object.keys(prev).find(
-          (key) => key.toLowerCase() === addStaffForm.department.toLowerCase()
+      const newStaff = transformStaffToFrontend(response.data);
+      setStaff((prev) => {
+        const deptKey = Object.keys(staffTabMap).find(
+          (key) => roleMap[newStaff.role] === roleMap[addStaffForm.role]
         );
-
-        if (!deptKey) {
-          console.error("Department not found:", addStaffForm.department);
-          return prev;
-        }
-
-        // Check if email already exists
-        const emailExists = Object.values(prev).some((dept) =>
-          dept.some(
-            (staff) =>
-              staff.email.toLowerCase() === addStaffForm.email.toLowerCase()
-          )
-        );
-
-        if (emailExists) {
-          alert("This email address is already registered");
-          return prev;
-        }
-
+        const mappedKey = staffTabMap[deptKey] || "healthProviders";
         return {
           ...prev,
-          [deptKey]: [...(prev[deptKey] || []), newStaff],
+          [mappedKey]: [...(prev[mappedKey] || []), newStaff],
         };
       });
 
-      // Reset form and close dialog
       setShowAddStaffDialog(false);
       setAddStaffForm({
         firstName: "",
         middleName: "",
         lastName: "",
         email: "",
-        phone: "",
+        phoneNumber: "",
         role: "",
-        department: "",
         password: "",
         sex: "",
-        dateOfBirth: "",
+        dob: "",
+        address: "",
       });
 
-      // Show success message
-      alert("Staff member added successfully!");
-
-      // Add activity
-      await addActivity(
+      addNotification("Staff member added successfully!", "success");
+      addActivity(
         "registration",
-        `New ${addStaffForm.department} staff member added`,
-        addStaffForm.department
+        `New ${addStaffForm.role} staff member added`,
+        addStaffForm.role
       );
     } catch (error) {
       console.error("Error adding staff:", error);
-      alert("An error occurred while adding the staff member");
+      addNotification(error.message || "Failed to add staff", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEditStaff = async (staff) => {
-    try {
-      if (!staff) return;
-
-      await setEditStaff(staff);
-      await setEditStaffForm({
-        ...staff,
-        department: staff.department || "",
-      });
-      setShowEditDialog(true);
-    } catch (error) {
-      console.error("Error editing staff:", error);
-      alert("An error occurred while preparing to edit the staff member");
-    }
+  const handleEditStaff = (staff) => {
+    setEditStaff(staff);
+    setEditStaffForm({
+      ...staff,
+      dob: staff.dob || "",
+      phoneNumber: staff.phoneNumber || "",
+      address: staff.address || "",
+    });
+    setShowEditDialog(true);
   };
 
   const handleEditStaffSave = async () => {
+    setIsLoading(true);
     try {
-      if (!editStaffForm) return;
+      if (!editStaffForm) throw new Error("No staff data to save");
 
+      const updateData = transformStaffToBackend(editStaffForm);
       if (
-        !editStaffForm.firstName ||
-        !editStaffForm.lastName ||
-        !editStaffForm.email
+        editStaffForm.password &&
+        editStaffForm.password !== "hashedPassword123"
       ) {
-        alert("Please fill in all required fields");
-        return;
+        updateData.password = editStaffForm.password;
+      } else {
+        delete updateData.password;
       }
 
-      await setStaff((prev) => {
+      const response = await adminService.updateStaff(
+        editStaffForm.id,
+        updateData
+      );
+      if (!response.success) {
+        throw new Error(response.error.message || "Failed to update staff");
+      }
+
+      setStaff((prev) => {
         const updated = { ...prev };
         Object.keys(updated).forEach((dept) => {
           updated[dept] = updated[dept].map((s) =>
-            s.id === editStaffForm.id ? { ...editStaffForm } : s
+            s.id === editStaffForm.id
+              ? {
+                  id: editStaffForm.id,
+                  firstName: editStaffForm.firstName,
+                  middleName: editStaffForm.middleName,
+                  lastName: editStaffForm.lastName,
+                  email: editStaffForm.email,
+                  phoneNumber: editStaffForm.phoneNumber,
+                  role: editStaffForm.role,
+                  sex: editStaffForm.sex,
+                  dob: editStaffForm.dob,
+                  address: editStaffForm.address,
+                  password: "hashedPassword123"
+                }
+              : s
           );
         });
         return updated;
       });
 
-      await addActivity(
+      addActivity(
         "update",
-        `${editStaffForm.department} staff member updated`,
-        editStaffForm.department
+        `${editStaffForm.role} staff member updated`,
+        editStaffForm.role
       );
 
       setShowEditDialog(false);
       setEditStaffForm(null);
       setEditStaff(null);
+      addNotification("Staff member updated successfully!", "success");
     } catch (error) {
       console.error("Error saving staff edits:", error);
-      alert("An error occurred while saving the changes");
+      addNotification(error.message || "Failed to update staff", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteStaff = async (staffId) => {
-    try {
-      await setDeleteStaffId(staffId);
-      setShowDeleteDialog(true);
-    } catch (error) {
-      console.error("Error preparing to delete staff:", error);
-      alert("An error occurred while preparing to delete the staff member");
-    }
+  const handleDeleteStaff = (staffId) => {
+    setDeleteStaffId(staffId);
+    setShowDeleteDialog(true);
   };
 
   const confirmDeleteStaff = async () => {
+    setIsLoading(true);
     try {
       const staffToDelete = Object.values(staff)
         .flat()
         .find((s) => s.id === deleteStaffId);
 
-      await setStaff((prev) => {
+      const response = await adminService.deleteStaff(deleteStaffId);
+      if (!response.success) {
+        throw new Error(response.error.message || "Failed to delete staff");
+      }
+
+      setStaff((prev) => {
         const updated = { ...prev };
         Object.keys(updated).forEach((dept) => {
           updated[dept] = updated[dept].filter((s) => s.id !== deleteStaffId);
@@ -394,68 +395,35 @@ export default function AdminPage() {
       });
 
       if (staffToDelete) {
-        await addActivity(
+        addActivity(
           "deletion",
-          `${staffToDelete.department} staff member removed`,
-          staffToDelete.department
+          `${staffToDelete.role} staff member removed`,
+          staffToDelete.role
         );
       }
 
       setShowDeleteDialog(false);
       setDeleteStaffId(null);
+      addNotification("Staff member deleted successfully!", "success");
     } catch (error) {
       console.error("Error deleting staff:", error);
-      alert("An error occurred while deleting the staff member");
+      addNotification(error.message || "Failed to delete staff", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEditAdmin = async (admin) => {
-    try {
-      await setEditStaffForm({ ...admin });
-      setShowEditDialog(true);
-    } catch (error) {
-      console.error("Error editing admin:", error);
-      alert("An error occurred while preparing to edit the admin");
-    }
-  };
-
-  const handleDeleteAdmin = async (adminId) => {
-    try {
-      await setDeleteStaffId(adminId);
-      setShowDeleteDialog(true);
-    } catch (error) {
-      console.error("Error preparing to delete admin:", error);
-      alert("An error occurred while preparing to delete the admin");
-    }
-  };
-
-  const handleUpdateAdmin = async () => {
-    try {
-      if (!editStaffForm) return;
-      await setAdminUsers((prev) =>
-        prev.map((admin) =>
-          admin.id === editStaffForm.id ? { ...editStaffForm } : admin
-        )
-      );
-      setShowEditDialog(false);
-      setEditStaffForm(null);
-    } catch (error) {
-      console.error("Error updating admin:", error);
-      alert("An error occurred while updating the admin");
-    }
-  };
-
-  const handleDeleteAdminConfirm = async () => {
-    try {
-      await setAdminUsers((prev) =>
-        prev.filter((admin) => admin.id !== deleteStaffId)
-      );
-      setShowDeleteDialog(false);
-      setDeleteStaffId(null);
-    } catch (error) {
-      console.error("Error deleting admin:", error);
-      alert("An error occurred while deleting the admin");
-    }
+  const addActivity = (type, message, role) => {
+    const newActivity = {
+      id: notificationIdCounter,
+      type,
+      message,
+      time: new Date(),
+      status: type === "warning" ? "warning" : "info",
+      role,
+    };
+    setActivities((prev) => [newActivity, ...prev].slice(0, 10));
+    setNotificationIdCounter((prev) => prev + 1);
   };
 
   const getStaffList = () => {
@@ -469,74 +437,104 @@ export default function AdminPage() {
           staff.firstName?.toLowerCase().includes(query) ||
           staff.lastName?.toLowerCase().includes(query) ||
           staff.email?.toLowerCase().includes(query) ||
-          staff.role?.toLowerCase().includes(query) ||
-          staff.department?.toLowerCase().includes(query)
+          staff.role?.toLowerCase().includes(query)
       );
     }
     return [];
   };
 
-  const getStaffColumns = () => {
-    return [
-      { key: "firstName", label: "F_Name" },
-      { key: "middleName", label: "M_Name" },
-      { key: "lastName", label: "L_Name" },
-      { key: "email", label: "Email" },
-      { key: "phone", label: "Phone" },
-      { key: "role", label: "Role" },
-      { key: "department", label: "Department" },
-      { key: "sex", label: "Sex" },
-      { key: "dateOfBirth", label: "Date of Birth" },
-      { key: "password", label: "Password" },
-      { key: "actions", label: "Actions" },
-    ];
-  };
-
   const formatTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - date) / 1000);
-
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     let interval = Math.floor(seconds / 31536000);
     if (interval > 1) return `${interval} years ago`;
     if (interval === 1) return "1 year ago";
-
     interval = Math.floor(seconds / 2592000);
     if (interval > 1) return `${interval} months ago`;
     if (interval === 1) return "1 month ago";
-
     interval = Math.floor(seconds / 86400);
     if (interval > 1) return `${interval} days ago`;
     if (interval === 1) return "1 day ago";
-
     interval = Math.floor(seconds / 3600);
     if (interval > 1) return `${interval} hours ago`;
     if (interval === 1) return "1 hour ago";
-
     interval = Math.floor(seconds / 60);
     if (interval > 1) return `${interval} minutes ago`;
     if (interval === 1) return "1 minute ago";
-
     return "just now";
   };
 
-  const addActivity = async (type, message, department) => {
+  const handleAddAdmin = async () => {
+    setIsLoading(true);
     try {
-      const newActivity = {
-        id: Date.now(),
-        type,
-        message,
-        time: new Date(),
-        status: type === "warning" ? "warning" : "info",
-        department,
+      if (
+        !addAdminForm.username ||
+        !addAdminForm.email ||
+        !addAdminForm.password
+      ) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      const adminData = {
+        firstName: addAdminForm.username.split(" ")[0] || "Admin",
+        lastName: addAdminForm.username.split(" ")[1] || "User",
+        email: addAdminForm.email,
+        password: addAdminForm.password,
+        role: roleMap[addAdminForm.role] || "SUPERADMIN",
+        sex: "MALE",
+        dob: new Date().toISOString().split("T")[0],
+        phoneNumber: "",
+        address: "",
       };
 
-      await setActivities((prev) => [newActivity, ...prev].slice(0, 10)); // Keep only last 10 activities
+      const response = await adminService.registerStaff(adminData);
+      if (!response.success) {
+        throw new Error(response.error.message || "Failed to add admin");
+      }
+
+      const newAdmin = transformStaffToFrontend(response.data);
+      setAdminUsers((prev) => [...prev, newAdmin]);
+      setShowAddAdminDialog(false);
+      setAddAdminForm({
+        username: "",
+        email: "",
+        password: "",
+        role: "Admin",
+        status: "Active",
+      });
+      addNotification("Admin user added successfully!", "success");
+      addActivity(
+        "registration",
+        `New ${addAdminForm.role} admin added`,
+        addAdminForm.role
+      );
     } catch (error) {
-      console.error("Error adding activity:", error);
+      console.error("Error adding admin:", error);
+      addNotification(error.message || "Failed to add admin", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fdf9f5]">
+      {error && (
+        <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+      {notifications.map((notif) => (
+        <div
+          key={notif.id}
+          className={`fixed top-4 right-4 border px-4 py-3 rounded z-50 ${
+            notif.type === "success"
+              ? "bg-green-100 border-green-400 text-green-700"
+              : "bg-red-100 border-red-400 text-red-700"
+          }`}
+        >
+          <strong>{notif.type === "success" ? "Success" : "Error"}:</strong>{" "}
+          {notif.message}
+        </div>
+      ))}
       <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">
         <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center space-x-4">
@@ -544,7 +542,6 @@ export default function AdminPage() {
               Admin Page
             </h1>
           </div>
-
           <div className="flex items-center space-x-4">
             <Dialog>
               <DialogTrigger asChild>
@@ -568,6 +565,7 @@ export default function AdminPage() {
                     <Button
                       className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => setShowAddAdminDialog(true)}
+                      disabled={isLoading}
                     >
                       <UserPlus className="h-4 w-4" />
                       Add Admin
@@ -589,16 +587,13 @@ export default function AdminPage() {
                           <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
                             Status
                           </th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
-                            Actions
-                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {adminUsers.map((admin) => (
                           <tr key={admin.id}>
                             <td className="px-2 py-2 text-sm text-gray-900">
-                              {admin.username}
+                              {admin.username || admin.firstName}
                             </td>
                             <td className="px-2 py-2 text-sm text-gray-500">
                               {admin.email}
@@ -616,26 +611,6 @@ export default function AdminPage() {
                               >
                                 {admin.status}
                               </Badge>
-                            </td>
-                            <td className="px-4 py-2 text-sm text-gray-500">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="w-8 h-8"
-                                  onClick={() => handleEditAdmin(admin)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  className="w-8 h-8"
-                                  onClick={() => handleDeleteAdmin(admin.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
                             </td>
                           </tr>
                         ))}
@@ -689,7 +664,6 @@ export default function AdminPage() {
                     Admin Dashboard
                   </h2>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(staffTabMap).map(([tabValue, staffKey]) => (
                     <Card
@@ -720,6 +694,7 @@ export default function AdminPage() {
                               setActiveTab(tabValue);
                               setShowAddStaffDialog(true);
                             }}
+                            disabled={isLoading}
                           >
                             <UserPlus className="h-4 w-4" />
                             <span className="hidden sm:inline">Add Staff</span>
@@ -729,7 +704,6 @@ export default function AdminPage() {
                     </Card>
                   ))}
                 </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -759,7 +733,7 @@ export default function AdminPage() {
                             <div className="flex-1">
                               <p className="font-medium">{activity.message}</p>
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm text-gray-500 gap-2">
-                                <span>{activity.department}</span>
+                                <span>{activity.role}</span>
                                 <span>{formatTimeAgo(activity.time)}</span>
                               </div>
                             </div>
@@ -768,7 +742,6 @@ export default function AdminPage() {
                       </div>
                     </CardContent>
                   </Card>
-
                   <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle>Quick Actions</CardTitle>
@@ -802,7 +775,7 @@ export default function AdminPage() {
                                 <Users className="h-6 w-6" />
                               )}
                               <span className="text-sm">
-                                Manage {tabValue.split(/(?=[A-Z])/).join(" ")}
+                                {tabValue.split(/(?=[A-Z])/).join(" ")}
                               </span>
                             </Button>
                           )
@@ -826,12 +799,12 @@ export default function AdminPage() {
                   <Button
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                     onClick={() => setShowAddStaffDialog(true)}
+                    disabled={isLoading}
                   >
                     <UserPlus className="h-4 w-4" />
                     <span>Add New</span>
                   </Button>
                 </div>
-
                 <div className="flex items-center space-x-2 mb-4">
                   <Search className="h-5 w-5 text-gray-400" />
                   <Input
@@ -841,7 +814,6 @@ export default function AdminPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle>Staff List</CardTitle>
@@ -849,81 +821,83 @@ export default function AdminPage() {
                       Manage {activeTab.split("-").join(" ")} staff members
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="rounded-2xl shadow bg-white overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              {getStaffColumns().map((column) => (
-                                <th
-                                  key={column.key}
-                                  className="py-1.5 px-1.5 text-xs font-medium text-gray-500 text-left whitespace-nowrap"
-                                >
-                                  {column.label}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200 bg-white">
-                            {getStaffList().map((staff) => (
-                              <tr key={staff.id} className="hover:bg-gray-50">
-                                <td className="py-1 px-1.5 text-xs text-gray-900 whitespace-nowrap">
-                                  {staff.firstName}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.middleName}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.lastName}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.email}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.phone}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.role}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.department}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.sex}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.dateOfBirth}
-                                </td>
-                                <td className="py-1 px-1.5 text-xs text-gray-500 whitespace-nowrap">
-                                  {staff.password ? "••••••••" : ""}
-                                </td>
-                                <td className="py-1 px-1.5 whitespace-nowrap">
-                                  <div className="flex items-center gap-0.5">
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="w-6 h-6 flex items-center justify-center"
-                                      onClick={() => handleEditStaff(staff)}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      size="icon"
-                                      className="w-6 h-6 flex items-center justify-center"
-                                      onClick={() =>
-                                        handleDeleteStaff(staff.id)
-                                      }
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </td>
+                  <CardContent className="p-0">
+                    <div className="relative w-full overflow-x-auto">
+                      <div className="min-w-full inline-block align-middle">
+                        <div className="overflow-hidden">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {getStaffColumns().map((column) => (
+                                  <th
+                                    key={column.key}
+                                    className="py-2 px-3 text-xs font-medium text-gray-500 text-left whitespace-nowrap"
+                                  >
+                                    {column.label}
+                                  </th>
+                                ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                              {getStaffList().map((staff) => (
+                                <tr key={staff.id} className="hover:bg-gray-50">
+                                  <td className="py-2 px-3 text-xs text-gray-900 max-w-[100px] truncate">
+                                    {staff.firstName}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
+                                    {staff.middleName}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
+                                    {staff.lastName}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[150px] truncate">
+                                    {staff.email}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
+                                    {staff.phoneNumber}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
+                                    {staff.role}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[80px] truncate">
+                                    {staff.sex}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
+                                    {staff.dob}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[150px] truncate">
+                                    {staff.address}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[80px] truncate">
+                                    {staff.password ? "••••••••" : ""}
+                                  </td>
+                                  <td className="py-2 px-3 whitespace-nowrap">
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="w-6 h-6 flex items-center justify-center"
+                                        onClick={() => handleEditStaff(staff)}
+                                        disabled={isLoading}
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="w-6 h-6 flex items-center justify-center"
+                                        onClick={() => handleDeleteStaff(staff.id)}
+                                        disabled={isLoading}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -957,13 +931,14 @@ export default function AdminPage() {
                     id="firstName"
                     value={addStaffForm.firstName}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
+                      setAddStaffForm((prev) => ({
+                        ...prev,
                         firstName: e.target.value.trim(),
                       }))
                     }
                     placeholder="Enter first name"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -972,12 +947,13 @@ export default function AdminPage() {
                     id="middleName"
                     value={addStaffForm.middleName}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
+                      setAddStaffForm((prev) => ({
+                        ...prev,
                         middleName: e.target.value.trim(),
                       }))
                     }
                     placeholder="Enter middle name"
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -986,13 +962,14 @@ export default function AdminPage() {
                     id="lastName"
                     value={addStaffForm.lastName}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
+                      setAddStaffForm((prev) => ({
+                        ...prev,
                         lastName: e.target.value.trim(),
                       }))
                     }
                     placeholder="Enter last name"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -1004,27 +981,29 @@ export default function AdminPage() {
                     type="email"
                     value={addStaffForm.email}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
+                      setAddStaffForm((prev) => ({
+                        ...prev,
                         email: e.target.value.trim(),
                       }))
                     }
                     placeholder="Enter email address"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
-                    id="phone"
-                    value={addStaffForm.phone}
+                    id="phoneNumber"
+                    value={addStaffForm.phoneNumber}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
-                        phone: e.target.value.trim(),
+                      setAddStaffForm((prev) => ({
+                        ...prev,
+                        phoneNumber: e.target.value.trim(),
                       }))
                     }
                     placeholder="Enter phone number"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -1034,76 +1013,79 @@ export default function AdminPage() {
                   <Select
                     value={addStaffForm.sex}
                     onValueChange={(value) =>
-                      setAddStaffForm((f) => ({ ...f, sex: value }))
+                      setAddStaffForm((prev) => ({ ...prev, sex: value }))
                     }
                     required
+                    disabled={isLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select sex" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="MALE">Male</SelectItem>
+                      <SelectItem value="FEMALE">Female</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                  <Label htmlFor="dob">Date of Birth *</Label>
                   <Input
-                    id="dateOfBirth"
+                    id="dob"
                     type="date"
-                    value={addStaffForm.dateOfBirth}
+                    value={addStaffForm.dob}
                     onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
-                        dateOfBirth: e.target.value,
+                      setAddStaffForm((prev) => ({
+                        ...prev,
+                        dob: e.target.value,
                       }))
                     }
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role *</Label>
-                  <Input
-                    id="role"
-                    value={addStaffForm.role}
-                    onChange={(e) =>
-                      setAddStaffForm((f) => ({
-                        ...f,
-                        role: e.target.value.trim(),
-                      }))
-                    }
-                    placeholder="Enter role"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Department *</Label>
-                  <Select
-                    value={addStaffForm.department}
-                    onValueChange={(value) =>
-                      setAddStaffForm((f) => ({ ...f, department: value }))
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="healthProviders">
-                        Health Providers
-                      </SelectItem>
-                      <SelectItem value="pharmacy">Pharmacy</SelectItem>
-                      <SelectItem value="lab">Lab</SelectItem>
-                      <SelectItem value="radiology">Radiology</SelectItem>
-                      <SelectItem value="receptionists">
-                        Receptionists
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role *</Label>
+                <Select
+                  value={addStaffForm.role}
+                  onValueChange={(value) =>
+                    setAddStaffForm((prev) => ({
+                      ...prev,
+                      role: value,
+                    }))
+                  }
+                  required
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cardiologist">Cardiologist</SelectItem>
+                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
+                    <SelectItem value="Lab Technician">
+                      Lab Technician
+                    </SelectItem>
+                    <SelectItem value="Radiologist">Radiologist</SelectItem>
+                    <SelectItem value="Receptionist">Receptionist</SelectItem>
+                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={addStaffForm.address}
+                  onChange={(e) =>
+                    setAddStaffForm((prev) => ({
+                      ...prev,
+                      address: e.target.value.trim(),
+                    }))
+                  }
+                  placeholder="Enter address"
+                  disabled={isLoading}
+                />
               </div>
               <div className="space-y-2 w-full">
                 <Label htmlFor="password">Password *</Label>
@@ -1112,12 +1094,16 @@ export default function AdminPage() {
                   type="password"
                   value={addStaffForm.password}
                   onChange={(e) =>
-                    setAddStaffForm((f) => ({ ...f, password: e.target.value }))
+                    setAddStaffForm((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
                   }
                   placeholder="Enter password"
                   className="w-full"
                   required
                   minLength={6}
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -1132,22 +1118,24 @@ export default function AdminPage() {
                     middleName: "",
                     lastName: "",
                     email: "",
-                    phone: "",
+                    phoneNumber: "",
                     role: "",
-                    department: "",
                     password: "",
                     sex: "",
-                    dateOfBirth: "",
+                    dob: "",
+                    address: "",
                   });
                 }}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isLoading}
               >
-                Add Staff
+                {isLoading ? "Adding..." : "Add Staff"}
               </Button>
             </DialogFooter>
           </form>
@@ -1155,12 +1143,12 @@ export default function AdminPage() {
       </Dialog>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Staff Member</DialogTitle>
           </DialogHeader>
           {editStaffForm && (
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-6">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editFirstName">First Name *</Label>
@@ -1168,12 +1156,13 @@ export default function AdminPage() {
                     id="editFirstName"
                     value={editStaffForm.firstName}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({
-                        ...f,
+                      setEditStaffForm((prev) => ({
+                        ...prev,
                         firstName: e.target.value,
                       }))
                     }
-                    placeholder="Enter first name"
+                    placeholder="Edit first name"
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1182,12 +1171,13 @@ export default function AdminPage() {
                     id="editMiddleName"
                     value={editStaffForm.middleName || ""}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({
-                        ...f,
+                      setEditStaffForm((prev) => ({
+                        ...prev,
                         middleName: e.target.value,
                       }))
                     }
-                    placeholder="Enter middle name"
+                    placeholder="Edit middle name"
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1196,12 +1186,13 @@ export default function AdminPage() {
                     id="editLastName"
                     value={editStaffForm.lastName}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({
-                        ...f,
+                      setEditStaffForm((prev) => ({
+                        ...prev,
                         lastName: e.target.value,
                       }))
                     }
-                    placeholder="Enter last name"
+                    placeholder="Edit last name"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -1213,20 +1204,28 @@ export default function AdminPage() {
                     type="email"
                     value={editStaffForm.email}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({ ...f, email: e.target.value }))
+                      setEditStaffForm((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
                     }
-                    placeholder="Enter email address"
+                    placeholder="Edit email address"
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editPhone">Phone</Label>
+                  <Label htmlFor="editPhoneNumber">Phone Number</Label>
                   <Input
-                    id="editPhone"
-                    value={editStaffForm.phone || ""}
+                    id="editPhoneNumber"
+                    value={editStaffForm.phoneNumber || ""}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({ ...f, phone: e.target.value }))
+                      setEditStaffForm((prev) => ({
+                        ...prev,
+                        phoneNumber: e.target.value,
+                      }))
                     }
-                    placeholder="Enter phone number"
+                    placeholder="Edit phone number"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -1236,69 +1235,81 @@ export default function AdminPage() {
                   <Select
                     value={editStaffForm.sex}
                     onValueChange={(value) =>
-                      setEditStaffForm((f) => ({ ...f, sex: value }))
+                      setEditStaffForm((prev) => ({
+                        ...prev,
+                        sex: value,
+                      }))
                     }
+                    disabled={isLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select sex" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="MALE">Male</SelectItem>
+                      <SelectItem value="FEMALE">Female</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editDateOfBirth">Date of Birth *</Label>
+                  <Label htmlFor="editDob">Date of Birth *</Label>
                   <Input
-                    id="editDateOfBirth"
+                    id="editDob"
                     type="date"
-                    value={editStaffForm.dateOfBirth}
+                    value={editStaffForm.dob}
                     onChange={(e) =>
-                      setEditStaffForm((f) => ({
-                        ...f,
-                        dateOfBirth: e.target.value,
+                      setEditStaffForm((prev) => ({
+                        ...prev,
+                        dob: e.target.value,
                       }))
                     }
+                    required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="editRole">Role *</Label>
-                  <Input
-                    id="editRole"
-                    value={editStaffForm.role}
-                    onChange={(e) =>
-                      setEditStaffForm((f) => ({ ...f, role: e.target.value }))
-                    }
-                    placeholder="Enter role"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDepartment">Department *</Label>
-                  <Select
-                    value={editStaffForm.department}
-                    onValueChange={(value) =>
-                      setEditStaffForm((f) => ({ ...f, department: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="healthProviders">
-                        Health Providers
-                      </SelectItem>
-                      <SelectItem value="pharmacy">Pharmacy</SelectItem>
-                      <SelectItem value="lab">Lab</SelectItem>
-                      <SelectItem value="radiology">Radiology</SelectItem>
-                      <SelectItem value="receptionists">
-                        Receptionists
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="editRole">Role *</Label>
+                <Select
+                  value={editStaffForm.role}
+                  onValueChange={(value) =>
+                    setEditStaffForm((prev) => ({
+                      ...prev,
+                      role: value,
+                    }))
+                  }
+                  required
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cardiologist">Cardiologist</SelectItem>
+                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
+                    <SelectItem value="Lab Technician">
+                      Lab Technician
+                    </SelectItem>
+                    <SelectItem value="Radiologist">Radiologist</SelectItem>
+                    <SelectItem value="Receptionist">Receptionist</SelectItem>
+                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAddress">Address</Label>
+                <Input
+                  id="editAddress"
+                  value={editStaffForm.address || ""}
+                  onChange={(e) =>
+                    setEditStaffForm((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                    }))
+                  }
+                  placeholder="Edit address"
+                  disabled={isLoading}
+                />
               </div>
               <div className="space-y-2 w-full">
                 <Label htmlFor="editPassword">Password</Label>
@@ -1307,13 +1318,14 @@ export default function AdminPage() {
                   type="password"
                   value={editStaffForm.password || ""}
                   onChange={(e) =>
-                    setEditStaffForm((f) => ({
-                      ...f,
+                    setEditStaffForm((prev) => ({
+                      ...prev,
                       password: e.target.value,
                     }))
                   }
                   placeholder="Enter new password (leave blank to keep current)"
                   className="w-full"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -1326,10 +1338,13 @@ export default function AdminPage() {
                 setEditStaffForm(null);
                 setEditStaff(null);
               }}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button onClick={handleEditStaffSave}>Save Changes</Button>
+            <Button onClick={handleEditStaffSave} disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1347,106 +1362,122 @@ export default function AdminPage() {
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDeleteStaff}>
-              Delete
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteStaff}
+              disabled={isLoading}
+            >
+              {isLoading ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAddAdminDialog} onOpenChange={setShowAddAdminDialog}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Admin User</DialogTitle>
+            <DialogTitle>Add Staff</DialogTitle>
             <DialogDescription>
-              Create a new administrator account with appropriate access levels
+              Create a new admin account with appropriate access levels
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Username */}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Username *</Label>
               <Input
                 id="username"
                 value={addAdminForm.username}
                 onChange={(e) =>
-                  setAddAdminForm((f) => ({ ...f, username: e.target.value }))
+                  setAddAdminForm((prev) => ({
+                    ...prev,
+                    username: e.target.value,
+                  }))
                 }
                 placeholder="Enter username"
+                required
               />
             </div>
+
+            {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
                 value={addAdminForm.email}
                 onChange={(e) =>
-                  setAddAdminForm((f) => ({ ...f, email: e.target.value }))
+                  setAddAdminForm((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
                 }
-                placeholder="Enter email address"
+                placeholder="Enter email"
+                required
               />
             </div>
+
+            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 type="password"
                 value={addAdminForm.password}
                 onChange={(e) =>
-                  setAddAdminForm((f) => ({ ...f, password: e.target.value }))
+                  setAddAdminForm((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }))
                 }
                 placeholder="Enter password"
+                required
               />
             </div>
+
+            {/* Role */}
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Role *</Label>
               <Select
                 value={addAdminForm.role}
                 onValueChange={(value) =>
-                  setAddAdminForm((f) => ({ ...f, role: value }))
+                  setAddAdminForm((prev) => ({
+                    ...prev,
+                    role: value,
+                  }))
                 }
+                required
+                disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Super Admin">Super Admin</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Department Admin">
-                    Department Admin
-                  </SelectItem>
+                  <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowAddAdminDialog(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => {
-                setAdminUsers((prev) => [
-                  ...prev,
-                  { ...addAdminForm, id: Date.now() },
-                ]);
-                setShowAddAdminDialog(false);
-                setAddAdminForm({
-                  username: "",
-                  email: "",
-                  password: "",
-                  role: "Admin",
-                  status: "Active",
-                });
-              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleAddAdmin}
+              disabled={isLoading}
             >
-              Add Admin
+              {isLoading ? "Adding..." : "Add Admin"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,3 @@
-// routes/staff.routes.ts
-
 import express from "express";
 import {
   registerStaffController,
@@ -25,28 +23,100 @@ const router = express.Router();
  *     Person:
  *       type: object
  *       properties:
- *         _id:
+ *         id:
  *           type: string
+ *           description: Unique identifier for the person
  *         firstName:
  *           type: string
+ *           description: First name of the person
  *         middleName:
  *           type: string
+ *           description: Middle name of the person (optional)
  *         lastName:
  *           type: string
+ *           description: Last name of the person
  *         sex:
  *           type: string
+ *           enum: [Male, Female]
+ *           description: Biological sex of the person
  *         dob:
  *           type: string
  *           format: date
+ *           description: Date of birth
  *         phoneNumber:
  *           type: string
+ *           description: Contact phone number
  *         address:
  *           type: string
+ *           description: Residential address
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Unique identifier for the user
  *         email:
  *           type: string
+ *           description: Email address of the user
+ *         username:
+ *           type: string
+ *           description: Generated username (e.g., role-emailPrefix)
  *         role:
  *           type: string
- *           enum: [ADMIN, SUPERADMIN, RECEPTIONIST, LAB_TECHNICIAN, RADIOLOGIST, PHARMACIST, HEALTHCARE_PROVIDER]
+ *           enum: [RECEPTIONIST, SUPERADMIN, PHARMACIST, LAB_TECHNICIAN, RADIOLOGIST, HEALTHCARE_PROVIDER]
+ *           description: Role of the staff member
+ *         person:
+ *           $ref: '#/components/schemas/Person'
+ *           description: Associated person details
+ *       required:
+ *         - id
+ *         - email
+ *         - username
+ *         - role
+ *     StaffInput:
+ *       type: object
+ *       properties:
+ *         firstName:
+ *           type: string
+ *           description: First name of the staff
+ *         middleName:
+ *           type: string
+ *           description: Middle name of the staff (optional)
+ *         lastName:
+ *           type: string
+ *           description: Last name of the staff
+ *         sex:
+ *           type: string
+ *           enum: [Male, Female]
+ *           description: Biological sex
+ *         dob:
+ *           type: string
+ *           format: date
+ *           description: Date of birth
+ *         phoneNumber:
+ *           type: string
+ *           description: Contact phone number
+ *         address:
+ *           type: string
+ *           description: Residential address
+ *         email:
+ *           type: string
+ *           description: Email address
+ *         password:
+ *           type: string
+ *           description: Password for the staff account
+ *         role:
+ *           type: string
+ *           enum: [RECEPTIONIST, SUPERADMIN, PHARMACIST, LAB_TECHNICIAN, RADIOLOGIST, HEALTHCARE_PROVIDER]
+ *           description: Role of the staff member
+ *       required:
+ *         - firstName
+ *         - lastName
+ *         - sex
+ *         - dob
+ *         - email
+ *         - password
+ *         - role
  */
 
 /**
@@ -61,10 +131,10 @@ const router = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Person'
+ *             $ref: '#/components/schemas/StaffInput'
  *     responses:
  *       201:
- *         description: Staff registered successfully.
+ *         description: Staff registered successfully
  *         content:
  *           application/json:
  *             schema:
@@ -72,13 +142,21 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Staff registered successfully.
+ *                   example: Staff registered successfully
  *                 data:
- *                   $ref: '#/components/schemas/Person'
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Invalid input or role.
+ *         description: Invalid input, role, or email already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid role provided for staff registration
  *       500:
- *         description: Internal Server Error.
+ *         description: Internal Server Error
  */
 router.post("/staffs/register", registerStaffController);
 
@@ -88,18 +166,21 @@ router.post("/staffs/register", registerStaffController);
  *   get:
  *     summary: Get all staff members
  *     description: Fetch a list of all staff members (admin only).
- *     tags: [3. Admin - Staff]
+ *     tags: [Admin - Staff]
  *     responses:
  *       200:
- *         description: List of all staff members.
+ *         description: List of all staff members
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Person'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
  *       500:
- *         description: Internal Server Error.
+ *         description: Internal Server Error
  */
 router.get("/staffs/getall", getAllStaffsController);
 
@@ -109,7 +190,7 @@ router.get("/staffs/getall", getAllStaffsController);
  *   get:
  *     summary: Get a staff member by ID
  *     description: Fetch a specific staff member's details by ID (admin only).
- *     tags: [3. Admin - Staff]
+ *     tags: [Admin - Staff]
  *     parameters:
  *       - in: path
  *         name: id
@@ -119,7 +200,7 @@ router.get("/staffs/getall", getAllStaffsController);
  *           type: string
  *     responses:
  *       200:
- *         description: Staff member found successfully.
+ *         description: Staff member found successfully
  *         content:
  *           application/json:
  *             schema:
@@ -127,13 +208,21 @@ router.get("/staffs/getall", getAllStaffsController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Staff retrieved successfully.
+ *                   example: Staff retrieved successfully
  *                 data:
- *                   $ref: '#/components/schemas/Person'
+ *                   $ref: '#/components/schemas/User'
  *       404:
- *         description: Staff member not found.
+ *         description: Staff member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Staff not found
  *       500:
- *         description: Internal Server Error.
+ *         description: Internal Server Error
  */
 router.get("/staff/getsingle/:id", getStaffByIdController);
 
@@ -156,10 +245,10 @@ router.get("/staff/getsingle/:id", getStaffByIdController);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Person'
+ *             $ref: '#/components/schemas/StaffInput'
  *     responses:
  *       200:
- *         description: Staff member updated successfully.
+ *         description: Staff member updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -167,13 +256,31 @@ router.get("/staff/getsingle/:id", getStaffByIdController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Staff updated successfully.
+ *                   example: Staff updated successfully
  *                 data:
- *                   $ref: '#/components/schemas/Person'
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input or role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid role for update
  *       404:
- *         description: Staff member not found.
+ *         description: Staff member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User not found
  *       500:
- *         description: Internal Server Error.
+ *         description: Internal Server Error
  */
 router.put("/staff/update/:id", updateStaffController);
 
@@ -193,7 +300,7 @@ router.put("/staff/update/:id", updateStaffController);
  *           type: string
  *     responses:
  *       200:
- *         description: Staff member deleted successfully.
+ *         description: Staff member deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -201,11 +308,19 @@ router.put("/staff/update/:id", updateStaffController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Staff deleted successfully.
+ *                   example: Staff deleted successfully
  *       404:
- *         description: Staff member not found.
+ *         description: Staff member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Staff not found
  *       500:
- *         description: Internal Server Error.
+ *         description: Internal Server Error
  */
 router.delete("/staff/delete/:id", deleteStaffController);
 

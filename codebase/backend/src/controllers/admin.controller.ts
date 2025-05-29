@@ -38,18 +38,18 @@ export const registerStaffController: RequestHandler = async (
       role,
     } = req.body;
 
-    // Validate role
-    if (!allowedRoles.includes(role)) {
+    // Normalize values
+    const normalizedSex = sex?.toUpperCase(); // "male" → "MALE"
+    const normalizedRole = role?.toUpperCase(); // "superadmin" → "SUPERADMIN"
+
+    if (!allowedRoles.includes(normalizedRole)) {
       res.status(400).json({
         message: "Invalid role provided for staff registration",
       });
       return;
     }
 
-    // Check if the email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({
         message: "User with this email already exists",
@@ -58,21 +58,20 @@ export const registerStaffController: RequestHandler = async (
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const username = `${role.toLowerCase()}-${email.split("@")[0]}`;
+    const username = `${normalizedRole.toLowerCase()}-${email.split("@")[0]}`;
 
-    // Create user and person
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role,
+        role: normalizedRole,
         username,
         person: {
           create: {
             firstName,
             middleName,
             lastName,
-            sex,
+            sex: normalizedSex,
             dob: new Date(dob),
             phoneNumber,
             address,
@@ -220,7 +219,6 @@ export const updateStaffController: RequestHandler = async (
     next(error);
   }
 };
-
 
 // Delete staff
 export const deleteStaffController: RequestHandler = async (
