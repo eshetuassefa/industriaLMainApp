@@ -1,34 +1,34 @@
 // router.js
-import React from 'react';
+import React from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import NotFound from './pages/notefound/NotFound';
-import SuperAdminLayout from './layouts/SuperAdminLayout';
-import SuperAdminDashboard from './pages/superadmin/Dashboard';
-import SuperAdminAdmins from './pages/superadmin/Admins';
-import SuperAdminHospitals from './pages/superadmin/Hospitals';
-import DoctorDashboard from './pages/provider/Dashboard';
-import ProviderLayout from './layouts/ProviderLayout';
-import Patients from './pages/provider/Patients';
-import Appointments from './pages/provider/Appointments';
-import MedicalRecord from './pages/provider/MedicalRecord';
-import MedicalRecords from './pages/provider/MedicalRecords';
-import LabResults from './pages/provider/LabResults';
-import LabResultDetails from './pages/provider/LabResultDetails';
-import RadiologyResults from './pages/radiology/RadiologyResults';
-import LabDashboard from './pages/lab/LabDashboard';
-import LabResultForm from './pages/lab/LabResultForm';
-import LabLayout from './layouts/LabLayout';
-import PendingPatientsList from './pages/lab/PendingPatientsList';
-import InProgressPatientsList from './pages/lab/InProgressPatientsList';
-import CompletedPatientsList from './pages/lab/CompletedPatientsList';
-import UrgentPatientsList from './pages/lab/UrgentPatientsList';
-import RadiologistLayout from './layouts/RadiologistLayout';
-import RadiologistDashboard from './pages/radiologist/RadiologistDashboard';
-import PendingScansList from './pages/radiologist/PendingScansList';
-import InProgressScansList from './pages/radiologist/InProgressScansList';
-import CompletedScansList from './pages/radiologist/CompletedScansList';
-import UrgentScansList from './pages/radiologist/UrgentScansList';
-import RadiologyResultEntry from './pages/radiologist/RadiologyResultEntry';
+import NotFound from "./pages/notefound/NotFound";
+import SuperAdminLayout from "./layouts/SuperAdminLayout";
+import SuperAdminDashboard from "./pages/superadmin/Dashboard";
+import SuperAdminAdmins from "./pages/superadmin/Admins";
+import SuperAdminHospitals from "./pages/superadmin/Hospitals";
+import DoctorDashboard from "./pages/provider/Dashboard";
+import ProviderLayout from "./layouts/ProviderLayout";
+import Patients from "./pages/provider/Patients";
+import Appointments from "./pages/provider/Appointments";
+import MedicalRecord from "./pages/provider/MedicalRecord";
+import MedicalRecords from "./pages/provider/MedicalRecords";
+import LabResults from "./pages/provider/LabResults";
+import LabResultDetails from "./pages/provider/LabResultDetails";
+import RadiologyResults from "./pages/radiology/RadiologyResults";
+import LabDashboard from "./pages/lab/LabDashboard";
+import LabResultForm from "./pages/lab/LabResultForm";
+import LabLayout from "./layouts/LabLayout";
+import PendingPatientsList from "./pages/lab/PendingPatientsList";
+import InProgressPatientsList from "./pages/lab/InProgressPatientsList";
+import CompletedPatientsList from "./pages/lab/CompletedPatientsList";
+import UrgentPatientsList from "./pages/lab/UrgentPatientsList";
+import RadiologistLayout from "./layouts/RadiologistLayout";
+import RadiologistDashboard from "./pages/radiologist/RadiologistDashboard";
+import PendingScansList from "./pages/radiologist/PendingScansList";
+import InProgressScansList from "./pages/radiologist/InProgressScansList";
+import CompletedScansList from "./pages/radiologist/CompletedScansList";
+import UrgentScansList from "./pages/radiologist/UrgentScansList";
+import RadiologyResultEntry from "./pages/radiologist/RadiologyResultEntry";
 import Header from "./Component/Header/Header";
 import Footer from "./Component/Footer/Footer";
 import LoginForm from "./Component/LoginForm/LoginForm";
@@ -47,30 +47,49 @@ const Layout = ({ children }) => (
 );
 
 const router = createBrowserRouter([
-  
   {
     path: "/",
-    element: <Layout><Home /></Layout>,
+    element: (
+      <Layout>
+        <Home />
+      </Layout>
+    ),
   },
   {
     path: "/login",
-    element: <Layout><LoginForm /></Layout>,
+    element: (
+      <Layout>
+        <LoginForm />
+      </Layout>
+    ),
   },
   {
     path: "/about",
-    element: <Layout><About /></Layout>,
+    element: (
+      <Layout>
+        <About />
+      </Layout>
+    ),
   },
   {
-    path: "/receptionist/dashboard",
-    element: <Layout><ReceptionistPage /></Layout>,
+    path: "reception/dashboard",
+    element: (
+      <Layout>
+        <ReceptionistPage />
+      </Layout>
+    ),
   },
   {
-    path: "/pharmacist/dashboard",
+    path: "pharmacy/dashboard",
     element: <PharmacyPage />,
   },
   {
     path: "/admin/dashboard",
-    element: <Layout><AdminPage /></Layout>,
+    element: (
+      <Layout>
+        <AdminPage />
+      </Layout>
+    ),
   },
   {
     path: "/superadmin",
@@ -83,7 +102,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/provider",
+    path: "/doctor/dashboard",
     element: <ProviderLayout />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
@@ -111,7 +130,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/radiologist",
+    path: "/radiology/dashboard",
     element: <RadiologistLayout />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
