@@ -1,89 +1,96 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { 
-    loginSchema, 
-    tokenSchema, 
-    refreshTokenSchema, 
-    passwordResetSchema, 
-    newPasswordSchema 
-} from '../validators/auth.validator';
-import { PrismaClient, RoleType } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import { Request, Response, NextFunction, RequestHandler } from "express";
+import {
+  loginSchema,
+  tokenSchema,
+  refreshTokenSchema,
+  passwordResetSchema,
+  newPasswordSchema,
+} from "../validators/auth.validator";
+import { PrismaClient, RoleType } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-export const login: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const login: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const validatedData = loginSchema.parse(req.body);
-    
+
     // Find user in database
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email },
       include: {
-        person: true
-      }
+        person: true,
+      },
     });
 
     if (!user) {
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ message: "Invalid email or password" });
       return;
     }
 
     // Verify password
-    const validPassword = await bcrypt.compare(validatedData.password, user.password);
+    const validPassword = await bcrypt.compare(
+      validatedData.password,
+      user.password
+    );
     if (!validPassword) {
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ message: "Invalid email or password" });
       return;
     }
 
     // Generate tokens
     const accessToken = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
+      {
+        id: user.id,
+        email: user.email,
         role: user.role,
-        personId: user.personId
+        personId: user.personId,
       },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '15m' }
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
       { id: user.id },
-      process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key',
-      { expiresIn: '7d' }
+      process.env.REFRESH_TOKEN_SECRET || "your-refresh-secret-key",
+      { expiresIn: "7d" }
     );
 
     // Determine redirect URL based on role
-    let redirectUrl = '/';
+    let redirectUrl = "/";
     switch (user.role) {
       case RoleType.SUPERADMIN:
-        redirectUrl = '/superadmin/dashboard';
+        redirectUrl = "/superadmin/dashboard";
         break;
       case RoleType.ADMIN:
-        redirectUrl = '/admin/dashboard';
+        redirectUrl = "/admin/dashboard";
         break;
       case RoleType.HEALTHCARE_PROVIDER:
-        redirectUrl = '/doctor/dashboard';
+        redirectUrl = "/doctor/dashboard";
         break;
       case RoleType.PHARMACIST:
-        redirectUrl = '/pharmacy/dashboard';
+        redirectUrl = "/pharmacy/dashboard";
         break;
       case RoleType.LAB_TECHNICIAN:
-        redirectUrl = '/lab/dashboard';
+        redirectUrl = "/lab/dashboard";
         break;
       case RoleType.RADIOLOGIST:
-        redirectUrl = '/radiology/dashboard';
+        redirectUrl = "/radiology/dashboard";
         break;
       case RoleType.RECEPTIONIST:
-        redirectUrl = '/reception/dashboard';
+        redirectUrl = "/reception/dashboard";
         break;
       default:
-        redirectUrl = '/';
+        redirectUrl = "/";
     }
 
-    res.status(200).json({ 
-      message: 'Login successful',
+    res.status(200).json({
+      message: "Login successful",
       accessToken,
       refreshToken,
       user: {
@@ -91,8 +98,8 @@ export const login: RequestHandler = async (req: Request, res: Response, next: N
         email: user.email,
         role: user.role,
         person: user.person,
-        redirectUrl
-      }
+        redirectUrl,
+      },
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -103,41 +110,48 @@ export const login: RequestHandler = async (req: Request, res: Response, next: N
   }
 };
 
-export const refreshToken: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const refreshToken: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const validatedData = refreshTokenSchema.parse(req.body);
-    
+
     // Verify refresh token
-    const decoded = jwt.verify(validatedData.refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key');
-    
+    const decoded = jwt.verify(
+      validatedData.refreshToken,
+      process.env.REFRESH_TOKEN_SECRET || "your-refresh-secret-key"
+    );
+
     // Find user
     const user = await prisma.user.findUnique({
       where: { id: (decoded as any).id },
       include: {
-        person: true
-      }
+        person: true,
+      },
     });
 
     if (!user) {
-      res.status(401).json({ message: 'Invalid refresh token' });
+      res.status(401).json({ message: "Invalid refresh token" });
       return;
     }
 
     // Generate new access token
     const accessToken = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
+      {
+        id: user.id,
+        email: user.email,
         role: user.role,
-        personId: user.personId
+        personId: user.personId,
       },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '15m' }
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "15m" }
     );
 
-    res.status(200).json({ 
-      message: 'Token refreshed successfully',
-      accessToken
+    res.status(200).json({
+      message: "Token refreshed successfully",
+      accessToken,
     });
   } catch (error) {
     if (error instanceof Error) {

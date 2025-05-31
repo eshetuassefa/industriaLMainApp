@@ -1,7 +1,10 @@
-import { PrismaClient, DeliveryStatus } from '@prisma/client';
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
+import { PrismaClient, DeliveryStatus } from "@prisma/client";
+import { Request, Response } from "express";
+import { z } from "zod";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/auth.middleware";
 
 const prisma = new PrismaClient();
 
@@ -9,7 +12,16 @@ const prisma = new PrismaClient();
 const drugSchema = z.object({
   name: z.string().min(3),
   genericName: z.string().optional(),
-  dosageForm: z.enum(['TABLET', 'CAPSULE', 'LIQUID', 'INJECTION', 'TOPICAL', 'SUPPOSITORY', 'POWDER', 'OTHER']),
+  dosageForm: z.enum([
+    "TABLET",
+    "CAPSULE",
+    "LIQUID",
+    "INJECTION",
+    "TOPICAL",
+    "SUPPOSITORY",
+    "POWDER",
+    "OTHER",
+  ]),
   strength: z.string(),
   manufacturer: z.string().optional(),
   reorderLevel: z.number().int().positive().optional(),
@@ -28,7 +40,7 @@ const inventorySchema = z.object({
 
 const updateDrugSchema = drugSchema.partial().extend({
   id: z.string().uuid(),
-  status: z.enum(['ACTIVE', 'DISCONTINUED', 'OUT_OF_STOCK']).optional(),
+  status: z.enum(["ACTIVE", "DISCONTINUED", "OUT_OF_STOCK"]).optional(),
 });
 
 const searchDrugSchema = z.object({
@@ -36,29 +48,35 @@ const searchDrugSchema = z.object({
   status: z.string().optional(),
 });
 
+const prescriptionIdSchema = z.object({
+  id: z.string().uuid()
+});
+
 // Drug Management Controllers
 export const addDrug = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles("PHARMACIST", "SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = drugSchema.parse(req.body);
       const newDrug = await prisma.drug.create({
         data: {
           ...validatedData,
-          status: 'ACTIVE', // Default status
+          status: "ACTIVE",
         },
       });
-      res.status(201).json({ message: 'Drug added successfully', drug: newDrug });
+      res
+        .status(201)
+        .json({ message: "Drug added successfully", drug: newDrug });
     } catch (error) {
-      handleError(res, error, 'Failed to add drug');
+      handleError(res, error, "Failed to add drug");
     }
-  }
+  },
 ];
 
 export const updateDrug = [
   authenticateToken,
-  authorizeRoles('PHARMACIST', 'ADMIN'),
+  authorizeRoles("PHARMACIST", "SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = updateDrugSchema.parse(req.body);
@@ -66,16 +84,18 @@ export const updateDrug = [
         where: { id: validatedData.id },
         data: validatedData,
       });
-      res.status(200).json({ message: 'Drug updated successfully', drug: updatedDrug });
+      res
+        .status(200)
+        .json({ message: "Drug updated successfully", drug: updatedDrug });
     } catch (error) {
-      handleError(res, error, 'Failed to update drug');
+      handleError(res, error, "Failed to update drug");
     }
-  }
+  },
 ];
 
 export const addInventory = [
   authenticateToken,
-  authorizeRoles('PHARMACIST', 'ADMIN'),
+  authorizeRoles("PHARMACIST", "SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = inventorySchema.parse(req.body);
@@ -83,19 +103,24 @@ export const addInventory = [
         data: {
           ...validatedData,
           expirationDate: new Date(validatedData.expirationDate),
-          purchaseDate: validatedData.purchaseDate ? new Date(validatedData.purchaseDate) : undefined,
+          purchaseDate: validatedData.purchaseDate
+            ? new Date(validatedData.purchaseDate)
+            : undefined,
         },
       });
-      res.status(201).json({ message: 'Inventory added successfully', inventory: newInventory });
+      res.status(201).json({
+        message: "Inventory added successfully",
+        inventory: newInventory,
+      });
     } catch (error) {
-      handleError(res, error, 'Failed to add inventory');
+      handleError(res, error, "Failed to add inventory");
     }
-  }
+  },
 ];
 
 export const fetchDrugs = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles("PHARMACIST", "SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = searchDrugSchema.parse(req.query);
@@ -105,7 +130,10 @@ export const fetchDrugs = [
       };
 
       if (validatedData.name) {
-        query.where.name = { contains: validatedData.name, mode: 'insensitive' };
+        query.where.name = {
+          contains: validatedData.name,
+          mode: "insensitive",
+        };
       }
 
       if (validatedData.status) {
@@ -115,33 +143,34 @@ export const fetchDrugs = [
       const drugs = await prisma.drug.findMany(query);
       res.status(200).json(drugs);
     } catch (error) {
-      handleError(res, error, 'Failed to fetch drugs');
+      handleError(res, error, "Failed to fetch drugs");
     }
-  }
+  },
 ];
 
 export const deleteDrug = [
   authenticateToken,
-  authorizeRoles('PHARMACIST', 'ADMIN'),
+  authorizeRoles("PHARMACIST", "SUPERADMIN"),
   async (req: Request, res: Response) => {
     try {
       const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
-      
-      // Check for existing inventory
+
       const inventory = await prisma.drugInventory.findFirst({
         where: { drugId: id, quantity: { gt: 0 } },
       });
 
       if (inventory) {
-        return res.status(400).json({ message: 'Cannot delete drug with existing inventory' });
+        return res
+          .status(400)
+          .json({ message: "Cannot delete drug with existing inventory" });
       }
 
       await prisma.drug.delete({ where: { id } });
-      res.status(200).json({ message: 'Drug deleted successfully' });
+      res.status(200).json({ message: "Drug deleted successfully" });
     } catch (error) {
-      handleError(res, error, 'Failed to delete drug');
+      handleError(res, error, "Failed to delete drug");
     }
-  }
+  },
 ];
 
 // Prescription Management Controllers
@@ -152,19 +181,15 @@ export const createPrescription = [
     try {
       const { patientId, hospitalId, notes, drugs } = req.body;
 
-      if (!patientId) {
+      if (!patientId)
         return res.status(400).json({ message: "patientId is required" });
-      }
-      if (!hospitalId) {
+      if (!hospitalId)
         return res.status(400).json({ message: "hospitalId is required" });
-      }
-      if (!Array.isArray(drugs) || drugs.length === 0) {
+      if (!Array.isArray(drugs) || drugs.length === 0)
         return res
           .status(400)
           .json({ message: "At least one drug is required" });
-      }
 
-      // Find medical record for patient
       const medicalRecord = await prisma.medicalRecord.findFirst({
         where: { patientId },
       });
@@ -175,7 +200,6 @@ export const createPrescription = [
           .json({ message: "Medical record not found for patient" });
       }
 
-      // Create prescriptions for each drug
       const createdPrescriptions = await Promise.all(
         drugs.map((drug: any) =>
           prisma.prescription.create({
@@ -199,18 +223,17 @@ export const createPrescription = [
         data: createdPrescriptions,
       });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Failed to create prescription" });
+      handleError(res, error, "Failed to create prescription");
     }
   },
 ];
 
 export const confirmDrugDelivery = [
   authenticateToken,
-  authorizeRoles("PHARMACIST"),
+  authorizeRoles("PHARMACIST", "HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
-      const { id:prescriptionId } = req.params;
+      const { id: prescriptionId } = req.params;
 
       const prescription = await prisma.prescription.findUnique({
         where: { id: prescriptionId },
@@ -231,17 +254,52 @@ export const confirmDrugDelivery = [
           deliveredAt: new Date(),
           deliveredById: req.user!.id,
         },
+        include: {
+          deliveredBy: { include: { person: true } },
+          prescribedBy: { include: { person: true } },
+          medicalRecord: {
+            include: { patient: { include: { person: true } } },
+          },
+        },
       });
 
       return res.status(200).json({
         message: "Prescription marked as delivered",
-        data: updated,
+        data: {
+          id: updated.id,
+          drugName: updated.drugName,
+          dosage: updated.dosage,
+          frequency: updated.frequency,
+          duration: updated.duration,
+          instructions: updated.instructions,
+          deliveryStatus: updated.deliveryStatus,
+          deliveredAt: updated.deliveredAt,
+          prescribedBy: updated.prescribedBy?.person
+            ? {
+                firstName: updated.prescribedBy.person.firstName,
+                lastName: updated.prescribedBy.person.lastName,
+              }
+            : null,
+          deliveredBy: updated.deliveredBy?.person
+            ? {
+                firstName: updated.deliveredBy.person.firstName,
+                lastName: updated.deliveredBy.person.lastName,
+              }
+            : null,
+          patient: updated.medicalRecord?.patient?.person
+            ? {
+                id: updated.medicalRecord.patient.id,
+                name: `${updated.medicalRecord.patient.person.firstName} ${
+                  updated.medicalRecord.patient.person.middleName
+                    ? updated.medicalRecord.patient.person.middleName + " "
+                    : ""
+                }${updated.medicalRecord.patient.person.lastName}`,
+              }
+            : null,
+        },
       });
     } catch (error) {
-      console.error(error);
-      return res
-        .status(500)
-        .json({ message: "Failed to confirm drug delivery" });
+      handleError(res, error, "Failed to confirm drug delivery");
     }
   },
 ];
@@ -251,21 +309,46 @@ export const getPrescription = [
   authorizeRoles("PHARMACIST"),
   async (req: Request, res: Response) => {
     try {
-      const { prescriptionId } = req.params;
+      // Validate the prescription ID
+      const { id } = prescriptionIdSchema.parse(req.params);
+      console.log("Fetching prescription with ID:", id); // Debug log
 
       const prescription = await prisma.prescription.findUnique({
-        where: { id: prescriptionId },
+        where: { 
+          id: id 
+        },
         include: {
-          prescribedBy: { include: { person: true } },
-          deliveredBy: { include: { person: true } },
+          prescribedBy: { 
+            include: { 
+              person: true 
+            } 
+          },
+          deliveredBy: { 
+            include: { 
+              person: true 
+            } 
+          },
+          medicalRecord: {
+            include: { 
+              patient: { 
+                include: { 
+                  person: true 
+                } 
+              } 
+            },
+          },
         },
       });
 
       if (!prescription) {
-        return res.status(404).json({ message: "Prescription not found" });
+        return res.status(404).json({ 
+          success: false,
+          message: "Prescription not found" 
+        });
       }
 
       return res.status(200).json({
+        success: true,
         message: "Prescription retrieved successfully",
         data: {
           id: prescription.id,
@@ -288,13 +371,105 @@ export const getPrescription = [
                 lastName: prescription.deliveredBy.person.lastName,
               }
             : null,
+          patient: prescription.medicalRecord?.patient?.person
+            ? {
+                id: prescription.medicalRecord.patient.id,
+                name: `${prescription.medicalRecord.patient.person.firstName} ${
+                  prescription.medicalRecord.patient.person.middleName
+                    ? prescription.medicalRecord.patient.person.middleName + " "
+                    : ""
+                }${prescription.medicalRecord.patient.person.lastName}`,
+              }
+            : null,
         },
       });
+    } catch (error: any) {
+      console.error("Error fetching prescription:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid prescription ID format",
+          error: error.errors
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve prescription",
+        error: error.message || "Unknown error occurred"
+      });
+    }
+  },
+];
+
+export const getPrescriptions = [
+  authenticateToken,
+  authorizeRoles("PHARMACIST"),
+  async (req: Request, res: Response) => {
+    try {
+      const prescriptions = await prisma.prescription.findMany({
+        include: {
+          prescribedBy: { include: { person: true } },
+          medicalRecord: {
+            include: { patient: { include: { person: true } } },
+          },
+        },
+      });
+
+      return res.status(200).json({
+        message: "Prescriptions retrieved successfully",
+        data: prescriptions.map((p) => ({
+          id: p.id,
+          drugName: p.drugName,
+          dosage: p.dosage,
+          frequency: p.frequency,
+          duration: p.duration,
+          instructions: p.instructions,
+          deliveryStatus: p.deliveryStatus,
+          deliveredAt: p.deliveredAt,
+          prescribedBy: p.prescribedBy?.person
+            ? {
+                firstName: p.prescribedBy.person.firstName,
+                lastName: p.prescribedBy.person.lastName,
+              }
+            : null,
+          patient: p.medicalRecord?.patient?.person
+            ? {
+                id: p.medicalRecord.patient.id,
+                name: `${p.medicalRecord.patient.person.firstName} ${
+                  p.medicalRecord.patient.person.middleName
+                    ? p.medicalRecord.patient.person.middleName + " "
+                    : ""
+                }${p.medicalRecord.patient.person.lastName}`,
+              }
+            : null,
+        })),
+      });
     } catch (error) {
-      console.error(error);
-      return res
-        .status(500)
-        .json({ message: "Failed to retrieve prescription" });
+      handleError(res, error, "Failed to retrieve prescriptions");
+    }
+  },
+];
+
+export const getPatients = [
+  authenticateToken,
+  authorizeRoles("PHARMACIST"),
+  async (req: Request, res: Response) => {
+    try {
+      const patients = await prisma.patient.findMany({
+        include: { person: true },
+      });
+
+      return res.status(200).json({
+        message: "Patients retrieved successfully",
+        data: patients.map((p) => ({
+          id: p.id,
+          name: `${p.person.firstName} ${
+            p.person.middleName ? p.person.middleName + " " : ""
+          }${p.person.lastName}`,
+        })),
+      });
+    } catch (error) {
+      handleError(res, error, "Failed to retrieve patients");
     }
   },
 ];
@@ -302,13 +477,27 @@ export const getPrescription = [
 // Utility function for error handling
 function handleError(res: Response, error: unknown, defaultMessage: string) {
   if (error instanceof z.ZodError) {
-    return res.status(400).json({ message: 'Validation error', errors: error.errors });
+    return res
+      .status(400)
+      .json({ message: "Validation error", errors: error.errors });
   }
-  
+
   if (error instanceof Error) {
     return res.status(400).json({ message: error.message });
   }
 
   console.error(error);
   res.status(500).json({ message: defaultMessage });
-} 
+}
+export default {
+  addDrug,
+  updateDrug,
+  addInventory,
+  fetchDrugs,
+  deleteDrug,
+  createPrescription,
+  confirmDrugDelivery,
+  getPrescription,
+  getPrescriptions,
+  getPatients,
+};

@@ -36,19 +36,51 @@ export const registerStaffController: RequestHandler = async (
       email,
       password,
       role,
+      departmentName, // Use departmentName only
     } = req.body;
 
     // Normalize values
-    const normalizedSex = sex?.toUpperCase(); // "male" → "MALE"
-    const normalizedRole = role?.toUpperCase(); // "superadmin" → "SUPERADMIN"
+    const normalizedSex = sex?.toUpperCase();
+    const normalizedRole = role?.toUpperCase();
 
-    if (!allowedRoles.includes(normalizedRole)) {
+    // Validate role
+    if (!allowedRoles.includes(normalizedRole as RoleType)) {
       res.status(400).json({
         message: "Invalid role provided for staff registration",
       });
       return;
     }
 
+    // Validate department for HEALTHCARE_PROVIDER
+    let departmentId: string | null = null;
+    if (normalizedRole === "HEALTHCARE_PROVIDER") {
+      if (!departmentName) {
+        res.status(400).json({
+          message: "Department name is required for healthcare providers",
+        });
+        return;
+      }
+
+      // Check if department exists
+      const department = await prisma.department.findFirst({
+        where: { name: departmentName },
+      });
+      if (!department) {
+        res.status(400).json({
+          message: `Department "${departmentName}" not found`,
+        });
+        return;
+      }
+      departmentId = department.id;
+    } else if (departmentName) {
+      // Non-healthcare providers should not have a department
+      res.status(400).json({
+        message: "Department name is only allowed for healthcare providers",
+      });
+      return;
+    }
+
+    // Check for existing user
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({
@@ -60,12 +92,16 @@ export const registerStaffController: RequestHandler = async (
     const hashedPassword = await bcrypt.hash(password, 10);
     const username = `${normalizedRole.toLowerCase()}-${email.split("@")[0]}`;
 
+    // Create user with conditional department assignment
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role: normalizedRole,
+        role: normalizedRole as RoleType,
         username,
+        department: departmentId
+          ? { connect: { id: departmentId } }
+          : undefined,
         person: {
           create: {
             firstName,
@@ -78,7 +114,7 @@ export const registerStaffController: RequestHandler = async (
           },
         },
       },
-      include: { person: true },
+      include: { person: true, department: true },
     });
 
     res.status(201).json({
@@ -103,7 +139,7 @@ export const getAllStaffsController: RequestHandler = async (
           in: allowedRoles,
         },
       },
-      include: { person: true },
+      include: { person: true, department: true },
     });
 
     res.status(200).json({ data: staffs });
@@ -122,7 +158,7 @@ export const getStaffByIdController: RequestHandler = async (
     const { id } = req.params;
     const staff = await prisma.user.findUnique({
       where: { id },
-      include: { person: true },
+      include: { person: true, department: true },
     });
 
     if (!staff || !allowedRoles.includes(staff.role)) {
@@ -158,9 +194,10 @@ export const updateStaffController: RequestHandler = async (
       sex,
       phoneNumber,
       address,
+      departmentName, // Use departmentName only
     } = req.body;
 
-    // Check if user exists and has a person
+    // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id },
       include: { person: true },
@@ -174,15 +211,51 @@ export const updateStaffController: RequestHandler = async (
     const userUpdateData: any = {};
     const personUpdateData: any = {};
 
+    // Validate department for role changes or updates
+    const normalizedRole = role ? role.toUpperCase() : existingUser.role;
+    if (normalizedRole === "HEALTHCARE_PROVIDER") {
+      if (departmentName) {
+        // Check if department exists
+        const department = await prisma.department.findFirst({
+          where: { name: departmentName },
+        });
+        if (!department) {
+          res.status(400).json({
+            message: `Department "${departmentName}" not found`,
+          });
+          return;
+        }
+        userUpdateData.department = { connect: { id: department.id } };
+      } else if (role && !existingUser.departmentId && !departmentName) {
+        // If role is changed to HEALTHCARE_PROVIDER, departmentName is required
+        res.status(400).json({
+          message: "Department name is required for healthcare providers",
+        });
+        return;
+      }
+    } else if (departmentName) {
+      // Non-healthcare providers should not have a department
+      res.status(400).json({
+        message: "Department name is only allowed for healthcare providers",
+      });
+      return;
+    } else if (
+      normalizedRole !== "HEALTHCARE_PROVIDER" &&
+      existingUser.departmentId
+    ) {
+      // If role changes from HEALTHCARE_PROVIDER to another, remove department
+      userUpdateData.department = { disconnect: true };
+    }
+
     // Update user-related fields
     if (email) userUpdateData.email = email;
     if (password) userUpdateData.password = await bcrypt.hash(password, 10);
     if (role) {
-      if (!allowedRoles.includes(role)) {
+      if (!allowedRoles.includes(normalizedRole as RoleType)) {
         res.status(400).json({ message: "Invalid role for update" });
         return;
       }
-      userUpdateData.role = role;
+      userUpdateData.role = normalizedRole;
     }
 
     // Update person-related fields
@@ -190,13 +263,12 @@ export const updateStaffController: RequestHandler = async (
     if (firstName) personUpdateData.firstName = firstName;
     if (middleName) personUpdateData.middleName = middleName;
     if (lastName) personUpdateData.lastName = lastName;
-    if (sex) personUpdateData.sex = sex;
+    if (sex) personUpdateData.sex = sex.toUpperCase();
     if (phoneNumber) personUpdateData.phoneNumber = phoneNumber;
     if (address) personUpdateData.address = address;
 
     // If person data exists, update it
     if (existingUser.person) {
-      // Perform updates separately for user and person
       const updatedStaff = await prisma.user.update({
         where: { id },
         data: {
@@ -205,7 +277,7 @@ export const updateStaffController: RequestHandler = async (
             update: personUpdateData,
           },
         },
-        include: { person: true },
+        include: { person: true, department: true },
       });
 
       res.status(200).json({

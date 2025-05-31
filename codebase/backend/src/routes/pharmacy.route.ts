@@ -8,8 +8,13 @@ import {
   createPrescription,
   confirmDrugDelivery,
   getPrescription,
+  getPrescriptions,
+  getPatients,
 } from "../controllers/pharmacy.controller";
-import { authenticateToken, authorizeRoles } from "../middleware/auth.middleware";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -61,12 +66,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post(
-  "/add-drug",
-  authenticateToken,
-  authorizeRoles("PHARMACIST", "ADMIN"),
-  addDrug
-);
+router.post("/add-drug", authenticateToken, authorizeRoles("PHARMACIST", "SUPERADMIN"), addDrug);
 
 /**
  * @swagger
@@ -110,12 +110,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.put(
-  "/update-drug/:id",
-  authenticateToken,
-  authorizeRoles("PHARMACIST", "ADMIN"),
-  updateDrug
-);
+router.put("/drugs/:id", authenticateToken, authorizeRoles("PHARMACIST", "SUPERADMIN"), updateDrug);
 
 /**
  * @swagger
@@ -154,12 +149,7 @@ router.put(
  *       500:
  *         description: Server error
  */
-router.post(
-  "/add-inventory",
-  authenticateToken,
-  authorizeRoles("PHARMACIST", "ADMIN"),
-  addInventory
-);
+router.post("/inventory", authenticateToken, authorizeRoles("PHARMACIST", "SUPERADMIN"), addInventory);
 
 /**
  * @swagger
@@ -175,12 +165,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get(
-  "/drugs",
-  authenticateToken,
-  authorizeRoles("PHARMACIST", "ADMIN", "DOCTOR"),
-  fetchDrugs
-);
+router.get("/drugs", authenticateToken, authorizeRoles("PHARMACIST", "SUPERADMIN"), fetchDrugs);
 
 /**
  * @swagger
@@ -236,42 +221,23 @@ router.get(
  *       500:
  *         description: Server error
  */
-router.post(
-  "/prescriptions",
-  authenticateToken,
-  authorizeRoles("HEALTHCARE_PROVIDER"),
-  createPrescription
-);
+router.post("/prescriptions", authenticateToken, authorizeRoles("HEALTHCARE_PROVIDER"), createPrescription);
 
 /**
  * @swagger
- * /api/pharmacy/prescriptions/{id}/deliver:
- *   post:
- *     summary: Confirm drug delivery for a prescription
+ * /api/pharmacy/prescriptions:
+ *   get:
+ *     summary: Get all prescriptions
  *     tags: [Pharmacy]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: Prescription ID
  *     responses:
  *       200:
- *         description: Drug delivery confirmed successfully
- *       404:
- *         description: Prescription not found
+ *         description: List of prescriptions retrieved successfully
  *       500:
  *         description: Server error
  */
-router.post(
-  "/prescriptions/:id/deliver",
-  authenticateToken,
-  authorizeRoles("PHARMACIST"),
-  confirmDrugDelivery
-);
+router.get("/prescriptions", authenticateToken, authorizeRoles("PHARMACIST"), getPrescriptions);
 
 /**
  * @swagger
@@ -296,11 +262,47 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get(
-  "/prescriptions/:id",
-  authenticateToken,
-  authorizeRoles("DOCTOR", "PHARMACIST"),
-  getPrescription
-);
+router.get("/prescriptions/:id", authenticateToken, authorizeRoles("PHARMACIST"), getPrescription);
 
-export default router; 
+/**
+ * @swagger
+ * /api/pharmacy/prescriptions/{id}/deliver:
+ *   post:
+ *     summary: Confirm drug delivery for a prescription
+ *     tags: [Pharmacy]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Prescription ID
+ *     responses:
+ *       200:
+ *         description: Drug delivery confirmed successfully
+ *       404:
+ *         description: Prescription not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/prescriptions/:id/deliver", authenticateToken, authorizeRoles("PHARMACIST", "HEALTHCARE_PROVIDER"), confirmDrugDelivery);
+
+/**
+ * @swagger
+ * /api/pharmacy/patients:
+ *   get:
+ *     summary: Get all patients
+ *     tags: [Pharmacy]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of patients retrieved successfully
+ *       500:
+ *         description: Server error
+ */
+router.get("/patients", authenticateToken, authorizeRoles("PHARMACIST"), getPatients);
+
+export default router;

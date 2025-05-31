@@ -1,7 +1,14 @@
-import { PrismaClient } from '@prisma/client';
-import { Request, Response } from 'express';
-import { patientSchema, updatePatientSchema, searchPatientSchema } from '../validators/reception.validator';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
+import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";
+import {
+  patientSchema,
+  updatePatientSchema,
+  searchPatientSchema,
+} from "../validators/reception.validator";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/auth.middleware";
 
 const prisma = new PrismaClient();
 
@@ -104,62 +111,65 @@ export const addPatient = [
 ];
 // Update patient details
 export const updatePatient = [
-    authenticateToken,
-    authorizeRoles('ADMIN', 'RECEPTIONIST'),
-    async (req: Request, res: Response) => {
-        try {
-            const validatedData = updatePatientSchema.parse(req.body);
-            const updatedPatient = await prisma.patient.update({
-                where: { id: validatedData.id },
-                data: {
-                    nationalId: validatedData.nationalId,
-                    birthCertificate: validatedData.birthCertificate,
-                    person: {
-                        update: {
-                            firstName: validatedData.firstName,
-                            middleName: validatedData.middleName,
-                            lastName: validatedData.lastName,
-                            sex: validatedData.sex,
-                            dob: new Date(validatedData.dob),
-                            phoneNumber: validatedData.phoneNumber,
-                            address: validatedData.address,
-                        },
-                    },
-                    emergencyContact: {
-                        upsert: {
-                            update: {
-                                name: validatedData.emergencyContact.name,
-                                phone: validatedData.emergencyContact.phone,
-                            },
-                            create: {
-                                name: validatedData.emergencyContact.name,
-                                phone: validatedData.emergencyContact.phone,
-                            },
-                        },
-                    },
-                },
-                include: {
-                    person: true,
-                    emergencyContact: true,
-                },
-            });
+  authenticateToken,
+  authorizeRoles("ADMIN", "RECEPTIONIST"),
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = updatePatientSchema.parse(req.body);
+      const updatedPatient = await prisma.patient.update({
+        where: { id: validatedData.id },
+        data: {
+          nationalId: validatedData.nationalId,
+          birthCertificate: validatedData.birthCertificate,
+          person: {
+            update: {
+              firstName: validatedData.firstName,
+              middleName: validatedData.middleName,
+              lastName: validatedData.lastName,
+              sex: validatedData.sex,
+              dob: new Date(validatedData.dob),
+              phoneNumber: validatedData.phoneNumber,
+              address: validatedData.address,
+            },
+          },
+          emergencyContact: {
+            upsert: {
+              update: {
+                name: validatedData.emergencyContact.name,
+                phone: validatedData.emergencyContact.phone,
+              },
+              create: {
+                name: validatedData.emergencyContact.name,
+                phone: validatedData.emergencyContact.phone,
+              },
+            },
+          },
+        },
+        include: {
+          person: true,
+          emergencyContact: true,
+        },
+      });
 
-            res.status(200).json({ message: 'Patient updated successfully', patient: updatedPatient });
-        } catch (error) {
-            if (error instanceof Error) {
-                res.status(400).json({ message: error.message });
-            } else {
-                console.error(error);
-                res.status(500).json({ message: 'Failed to update patient', error });
-            }
-        }
+      res.status(200).json({
+        message: "Patient updated successfully",
+        patient: updatedPatient,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: "Failed to update patient", error });
+      }
     }
+  },
 ];
 
 // Fetch all or searched patients
 export const fetchPatients = [
   authenticateToken,
-  authorizeRoles("SUPERADMIN"), // 👈 Only RECEPTIONIST can access
+  authorizeRoles("SUPERADMIN", "RECEPTIONIST", "HEALTHCARE_PROVIDER"), // 👈 Only RECEPTIONIST can access
   async (req: Request, res: Response) => {
     try {
       const validatedData = searchPatientSchema.parse(req.query);
@@ -212,4 +222,3 @@ export const fetchPatients = [
     }
   },
 ];
-

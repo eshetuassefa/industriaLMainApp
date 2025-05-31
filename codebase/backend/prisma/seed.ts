@@ -1,58 +1,8 @@
-// import { PrismaClient } from "@prisma/client";
-
-// const prisma = new PrismaClient();
-// const regions = [
-//   { id: 1, name: "Tigray Region" },
-//   { id: 2, name: "Afar Region" },
-//   { id: 3, name: "Amhara Region" },
-//   { id: 4, name: "Oromia Region" },
-//   { id: 5, name: "Somali Region" },
-//   { id: 6, name: "Benishangul-Gumuz Region" },
-//   {
-//     id: 7,
-//     name: "Southern Nations, Nationalities and Peoples Region (SNNPR)",
-//   },
-//   { id: 8, name: "Gambela Region" },
-//   { id: 9, name: "Harari Region" },
-//   { id: 10, name: "Addis Ababa City Administration" },
-//   { id: 11, name: "Dire Dawa City Administration" },
-//   { id: 12, name: "Sidama Region" },
-//   { id: 13, name: "South West Ethiopia Peoples' Region" },
-//   { id: 14, name: "South Ethiopia Region" },
-// ];
-
-
-// async function main() {
-//   for (const region of regions) {
-//     await prisma.region.create({
-//       data: region,
-//     });
-//   }
-
-//   console.log("Ethiopian regions seeded successfully!");
-// }
-
-// main()
-//   .catch((e) => {
-//     console.error(e);
-//     process.exit(1);
-//   })
-//   .finally(async () => {
-//     await prisma.$disconnect();
-//   });
-
-
-
-
-
-
-
 import { PrismaClient } from "@prisma/client";
-import { config } from 'dotenv';
+import { config } from "dotenv";
+
 config();
 console.log("Using DATABASE_URL:", process.env.DATABASE_URL);
-
-
 
 const prisma = new PrismaClient();
 
@@ -74,6 +24,29 @@ const regions = [
   { id: 12, name: "Sidama Region" },
   { id: 13, name: "South West Ethiopia Peoples' Region" },
   { id: 14, name: "South Ethiopia Region" },
+];
+
+const departments = [
+  { name: "General Practitioner (GP)", code: "GP" },
+  { name: "Pediatrics", code: "PED" },
+  { name: "Obstetrics & Gynecology (OB-GYN)", code: "OBGYN" },
+  { name: "General Surgery", code: "GS" },
+  { name: "Orthopedics", code: "ORTHO" },
+  { name: "Cardiology", code: "CARD" },
+  { name: "Dermatology", code: "DERM" },
+  { name: "ENT", code: "ENT" },
+  { name: "Ophthalmology", code: "OPHTH" },
+  { name: "Neurology", code: "NEURO" },
+  { name: "Psychiatry", code: "PSYCH" },
+  { name: "Pulmonology", code: "PULM" },
+  { name: "Gastroenterology", code: "GASTRO" },
+  { name: "Urology", code: "URO" },
+  { name: "Endocrinology", code: "ENDO" },
+  { name: "Nephrology", code: "NEPH" },
+  { name: "Oncology", code: "ONCO" },
+  { name: "Emergency (ER)", code: "ER" },
+  { name: "Radiology/Lab", code: "RADLAB" },
+  { name: "Physiotherapy", code: "PHYSIO" },
 ];
 
 const testTypes = [
@@ -180,6 +153,20 @@ async function main() {
   }
   console.log("Ethiopian regions seeded successfully!");
 
+  // Seed departments ONLY with unique on 'name'
+  for (const dept of departments) {
+    await prisma.department.upsert({
+      where: { name: dept.name },
+      update: {},
+      create: {
+        name: dept.name,
+        code: dept.code,
+      },
+    });
+    console.log(`Seeded department: ${dept.name}`);
+  }
+  console.log("Departments seeded successfully!");
+
   // Seed test types
   for (const testType of testTypes) {
     await prisma.testType.upsert({
@@ -193,7 +180,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Error during seeding:", e);
     process.exit(1);
   })
   .finally(async () => {

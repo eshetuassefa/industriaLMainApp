@@ -56,13 +56,13 @@ const staffTabMap = {
 };
 
 const roleMap = {
-  Cardiologist: "HEALTHCARE_PROVIDER",
+  "Healthcare Provider": "HEALTHCARE_PROVIDER",
   Pharmacist: "PHARMACIST",
   "Lab Technician": "LAB_TECHNICIAN",
   Radiologist: "RADIOLOGIST",
   Receptionist: "RECEPTIONIST",
   "Super Admin": "SUPERADMIN",
-  HEALTHCARE_PROVIDER: "Cardiologist",
+  HEALTHCARE_PROVIDER: "Healthcare Provider",
   PHARMACIST: "Pharmacist",
   LAB_TECHNICIAN: "Lab Technician",
   RADIOLOGIST: "Radiologist",
@@ -70,18 +70,27 @@ const roleMap = {
   SUPERADMIN: "Super Admin",
 };
 
-const getStaffColumns = () => [
-  { key: "firstName", label: "First Name" },
-  { key: "middleName", label: "Middle Name" },
-  { key: "lastName", label: "Last Name" },
-  { key: "email", label: "Email" },
-  { key: "phoneNumber", label: "Phone" },
-  { key: "role", label: "Role" },
-  { key: "sex", label: "Sex" },
-  { key: "dob", label: "Date of Birth" },
-  { key: "address", label: "Address" },
-  { key: "password", label: "Password" },
-  { key: "actions", label: "Actions" },
+const healthcareDepartments = [
+  "General Practitioner (GP)",
+  "Pediatrics",
+  "Obstetrics & Gynecology (OB-GYN)",
+  "General Surgery",
+  "Orthopedics",
+  "Cardiology",
+  "Dermatology",
+  "ENT",
+  "Ophthalmology",
+  "Neurology",
+  "Psychiatry",
+  "Pulmonology",
+  "Gastroenterology",
+  "Urology",
+  "Endocrinology",
+  "Nephrology",
+  "Oncology",
+  "Emergency (ER)",
+  "Radiology/Lab",
+  "Physiotherapy",
 ];
 
 export default function AdminPage() {
@@ -110,6 +119,7 @@ export default function AdminPage() {
     email: "",
     phoneNumber: "",
     role: "",
+    department: "",
     password: "",
     sex: "",
     dob: "",
@@ -196,6 +206,7 @@ export default function AdminPage() {
     email: staff.email || staff.person?.email || "",
     phoneNumber: staff.person?.phoneNumber || "",
     role: roleMap[staff.role] || staff.role,
+    department: staff.department?.name || "",
     sex: staff.person?.sex || "",
     dob: staff.person?.dob
       ? new Date(staff.person.dob).toISOString().split("T")[0]
@@ -204,18 +215,24 @@ export default function AdminPage() {
     password: "hashedPassword123",
   });
 
-  const transformStaffToBackend = (staff) => ({
-    firstName: staff.firstName,
-    middleName: staff.middleName,
-    lastName: staff.lastName,
-    email: staff.email,
-    phoneNumber: staff.phoneNumber,
-    role: roleMap[staff.role] || staff.role.toUpperCase(),
-    password: staff.password,
-    sex: staff.sex.toUpperCase(),
-    dob: staff.dob,
-    address: staff.address || "",
-  });
+  const transformStaffToBackend = (staff) => {
+    const transformed = {
+      firstName: staff.firstName,
+      middleName: staff.middleName,
+      lastName: staff.lastName,
+      email: staff.email,
+      phoneNumber: staff.phoneNumber,
+      role: roleMap[staff.role] || staff.role.toUpperCase(),
+      password: staff.password,
+      sex: staff.sex.toUpperCase(),
+      dob: staff.dob,
+      address: staff.address || "",
+      departmentName: staff.department || null,
+    };
+
+    console.log("Transformed staff data:", transformed);
+    return transformed;
+  };
 
   const addNotification = (message, type) => {
     setNotifications((prev) => {
@@ -232,39 +249,79 @@ export default function AdminPage() {
     setNotificationIdCounter((prev) => prev + 1);
   };
 
+  const handleRoleChange = (value) => {
+    console.log("Role changed to:", value);
+    setAddStaffForm((prev) => ({
+      ...prev,
+      role: value,
+      department: value === "Healthcare Provider" ? prev.department : "",
+    }));
+  };
+
+  const handleDepartmentChange = (value) => {
+    console.log("Department changed to:", value);
+    setAddStaffForm((prev) => ({
+      ...prev,
+      department: value,
+    }));
+  };
+
+  const validateForm = () => {
+    const isHealthcareProvider = addStaffForm.role === "Healthcare Provider";
+    const missingDepartment = isHealthcareProvider && !addStaffForm.department;
+
+    console.log("Form validation:", {
+      isHealthcareProvider,
+      department: addStaffForm.department,
+      missingDepartment,
+    });
+
+    if (missingDepartment) {
+      throw new Error("Department name is required for healthcare providers");
+    }
+
+    if (
+      !addStaffForm.firstName ||
+      !addStaffForm.lastName ||
+      !addStaffForm.email ||
+      !addStaffForm.password ||
+      !addStaffForm.role ||
+      !addStaffForm.sex ||
+      !addStaffForm.dob
+    ) {
+      throw new Error("Please fill in all required fields marked with *");
+    }
+  };
+
   const handleAddStaff = async () => {
     setIsLoading(true);
     try {
-      if (
-        !addStaffForm.firstName ||
-        !addStaffForm.lastName ||
-        !addStaffForm.email ||
-        !addStaffForm.password ||
-        !addStaffForm.role ||
-        !addStaffForm.sex ||
-        !addStaffForm.dob
-      ) {
-        throw new Error("Please fill in all required fields marked with *");
-      }
-
       const staffData = transformStaffToBackend(addStaffForm);
       const response = await adminService.registerStaff(staffData);
+
       if (!response.success) {
         throw new Error(response.error.message || "Failed to add staff");
       }
 
+      // Transform the new staff data
       const newStaff = transformStaffToFrontend(response.data);
+
+      // Immediately update the staff state
       setStaff((prev) => {
-        const deptKey = Object.keys(staffTabMap).find(
-          (key) => roleMap[newStaff.role] === roleMap[addStaffForm.role]
-        );
-        const mappedKey = staffTabMap[deptKey] || "healthProviders";
-        return {
-          ...prev,
-          [mappedKey]: [...(prev[mappedKey] || []), newStaff],
-        };
+        const updatedStaff = { ...prev };
+        const staffKey = staffTabMap[activeTab];
+
+        if (staffKey) {
+          updatedStaff[staffKey] = [
+            ...(updatedStaff[staffKey] || []),
+            newStaff,
+          ];
+        }
+
+        return updatedStaff;
       });
 
+      // Close dialog and reset form
       setShowAddStaffDialog(false);
       setAddStaffForm({
         firstName: "",
@@ -273,6 +330,7 @@ export default function AdminPage() {
         email: "",
         phoneNumber: "",
         role: "",
+        department: "",
         password: "",
         sex: "",
         dob: "",
@@ -292,7 +350,6 @@ export default function AdminPage() {
       setIsLoading(false);
     }
   };
-
   const handleEditStaff = (staff) => {
     setEditStaff(staff);
     setEditStaffForm({
@@ -343,7 +400,7 @@ export default function AdminPage() {
                   sex: editStaffForm.sex,
                   dob: editStaffForm.dob,
                   address: editStaffForm.address,
-                  password: "hashedPassword123"
+                  password: "hashedPassword123",
                 }
               : s
           );
@@ -515,6 +572,28 @@ export default function AdminPage() {
     }
   };
 
+  const getStaffColumns = () => {
+    const baseColumns = [
+      { key: "firstName", label: "F_Name" },
+      { key: "middleName", label: "M_Name" },
+      { key: "lastName", label: "L_Name" },
+      { key: "email", label: "Email" },
+      { key: "phoneNumber", label: "Phone" },
+      { key: "role", label: "Role" },
+      { key: "sex", label: "Sex" },
+      { key: "dob", label: "Date of Birth" },
+      { key: "address", label: "Address" },
+      { key: "password", label: "Password" },
+      { key: "actions", label: "Actions" },
+    ];
+
+    if (activeTab === "health-providers") {
+      baseColumns.splice(6, 0, { key: "department", label: "Department" });
+    }
+
+    return baseColumns;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#fdf9f5]">
       {error && (
@@ -563,7 +642,7 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div className="flex justify-end">
                     <Button
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                       onClick={() => setShowAddAdminDialog(true)}
                       disabled={isLoading}
                     >
@@ -689,7 +768,7 @@ export default function AdminPage() {
                             </p>
                           </div>
                           <Button
-                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => {
                               setActiveTab(tabValue);
                               setShowAddStaffDialog(true);
@@ -797,7 +876,7 @@ export default function AdminPage() {
                       .join(" ")}
                   </h2>
                   <Button
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
                     onClick={() => setShowAddStaffDialog(true)}
                     disabled={isLoading}
                   >
@@ -831,7 +910,7 @@ export default function AdminPage() {
                                 {getStaffColumns().map((column) => (
                                   <th
                                     key={column.key}
-                                    className="py-2 px-3 text-xs font-medium text-gray-500 text-left whitespace-nowrap"
+                                    className="py-2 px-2 text-xs font-medium text-gray-500 text-left whitespace-nowrap"
                                   >
                                     {column.label}
                                   </th>
@@ -859,6 +938,11 @@ export default function AdminPage() {
                                   <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
                                     {staff.role}
                                   </td>
+                                  {activeTab === "health-providers" && (
+                                    <td className="py-2 px-3 text-xs text-gray-500 max-w-[150px] truncate">
+                                      {staff.department}
+                                    </td>
+                                  )}
                                   <td className="py-2 px-3 text-xs text-gray-500 max-w-[80px] truncate">
                                     {staff.sex}
                                   </td>
@@ -886,7 +970,9 @@ export default function AdminPage() {
                                         variant="destructive"
                                         size="icon"
                                         className="w-6 h-6 flex items-center justify-center"
-                                        onClick={() => handleDeleteStaff(staff.id)}
+                                        onClick={() =>
+                                          handleDeleteStaff(staff.id)
+                                        }
                                         disabled={isLoading}
                                       >
                                         <Trash2 className="h-3 w-3" />
@@ -1048,12 +1134,7 @@ export default function AdminPage() {
                 <Label htmlFor="role">Role *</Label>
                 <Select
                   value={addStaffForm.role}
-                  onValueChange={(value) =>
-                    setAddStaffForm((prev) => ({
-                      ...prev,
-                      role: value,
-                    }))
-                  }
+                  onValueChange={handleRoleChange}
                   required
                   disabled={isLoading}
                 >
@@ -1061,17 +1142,50 @@ export default function AdminPage() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cardiologist">Cardiologist</SelectItem>
-                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
-                    <SelectItem value="Lab Technician">
-                      Lab Technician
-                    </SelectItem>
-                    <SelectItem value="Radiologist">Radiologist</SelectItem>
-                    <SelectItem value="Receptionist">Receptionist</SelectItem>
-                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                    {activeTab === "health-providers" && (
+                      <SelectItem value="Healthcare Provider">
+                        Healthcare Provider
+                      </SelectItem>
+                    )}
+                    {activeTab === "pharmacy" && (
+                      <SelectItem value="Pharmacist">Pharmacist</SelectItem>
+                    )}
+                    {activeTab === "lab" && (
+                      <SelectItem value="Lab Technician">
+                        Lab Technician
+                      </SelectItem>
+                    )}
+                    {activeTab === "radiology" && (
+                      <SelectItem value="Radiologist">Radiologist</SelectItem>
+                    )}
+                    {activeTab === "receptionists" && (
+                      <SelectItem value="Receptionist">Receptionist</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
+              {addStaffForm.role === "Healthcare Provider" && (
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Select
+                    value={addStaffForm.department}
+                    onValueChange={handleDepartmentChange}
+                    required
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {healthcareDepartments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
                 <Input
@@ -1120,6 +1234,7 @@ export default function AdminPage() {
                     email: "",
                     phoneNumber: "",
                     role: "",
+                    department: "",
                     password: "",
                     sex: "",
                     dob: "",
@@ -1132,7 +1247,7 @@ export default function AdminPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? "Adding..." : "Add Staff"}
@@ -1276,6 +1391,9 @@ export default function AdminPage() {
                     setEditStaffForm((prev) => ({
                       ...prev,
                       role: value,
+                      // Reset department if role changes from healthcare provider
+                      department:
+                        value === "Healthcare Provider" ? prev.department : "",
                     }))
                   }
                   required
@@ -1285,7 +1403,9 @@ export default function AdminPage() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cardiologist">Cardiologist</SelectItem>
+                    <SelectItem value="Healthcare Provider">
+                      Healthcare Provider
+                    </SelectItem>
                     <SelectItem value="Pharmacist">Pharmacist</SelectItem>
                     <SelectItem value="Lab Technician">
                       Lab Technician
@@ -1296,6 +1416,36 @@ export default function AdminPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Department Field - Only shown for Healthcare Providers */}
+              {editStaffForm.role === "Healthcare Provider" && (
+                <div className="space-y-2">
+                  <Label htmlFor="editDepartment">Department *</Label>
+                  <Select
+                    value={editStaffForm.department || ""}
+                    onValueChange={(value) =>
+                      setEditStaffForm((prev) => ({
+                        ...prev,
+                        department: value,
+                      }))
+                    }
+                    required
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {healthcareDepartments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="editAddress">Address</Label>
                 <Input

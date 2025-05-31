@@ -15,7 +15,6 @@ import superadminRoutes from "./routes/superadmin.route";
 import radiologistRoutes from "./routes/radiologist.route";
 import pharmacyRoutes from "./routes/pharmacy.route";
 
-
 const app = express();
 
 // Security and middleware
@@ -28,7 +27,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/refresh-token", authRoutes); 
+app.use("/refresh-token", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/lab", labResultRouter);
 app.use("/api/reception", receptionRoutes);
