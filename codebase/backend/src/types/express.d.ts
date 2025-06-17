@@ -1,4 +1,5 @@
-import { User } from "@prisma/client"; // If using Prisma User model
+import { Multer } from "multer";
+import { User } from "@prisma/client";
 
 declare global {
   namespace Express {
@@ -6,8 +7,10 @@ declare global {
       user?: {
         id: string;
         role: string;
-        // Add other user properties as needed
-      };
+        // Add more properties if needed
+      } & Partial<User>; // Merge custom fields with Prisma's User model
+
+      files?: Multer.File[] | { [fieldname: string]: Multer.File[] };
     }
   }
 }

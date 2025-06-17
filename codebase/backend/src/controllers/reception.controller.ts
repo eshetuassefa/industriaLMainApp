@@ -10,7 +10,6 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../middleware/auth.middleware";
-import { z } from "zod";
 
 const prisma = new PrismaClient();
 
@@ -117,65 +116,37 @@ export const updatePatient = [
   authorizeRoles("ADMIN", "RECEPTIONIST"),
   async (req: Request, res: Response) => {
     try {
-      // Extract and validate patientId from params
-      const patientId = req.params.patientId;
-      console.log("Received params:", req.params); // Log all params for debugging
-      console.log("Request body:", req.body); // Log request body for debugging
-
-      if (!patientId || typeof patientId !== "string" || patientId.trim() === "") {
-        return res.status(400).json({ message: "Valid Patient ID is required in the URL path." });
-      }
-
-      // Validate body data using zod schema
-      const validatedData = updatePatientSchema.parse({
-        ...req.body,
-        id: patientId // Add the id from URL params to the validation
-      });
-      console.log("Validated data:", validatedData); // Log validated data
-
-      // Fetch existing patient to confirm ID exists
-      const existingPatient = await prisma.patient.findUnique({
-        where: { id: patientId },
-        include: { emergencyContact: true },
-      });
-
-      if (!existingPatient) {
-        return res.status(404).json({ message: "Patient not found" });
-      }
-
-      // Get emergencyContact id if exists
-      const emergencyContactId = existingPatient.emergencyContact?.id;
-
-      // Perform the update
+      const patientId = req.params.id;
+      const validatedData = updatePatientSchema.parse(req.body);
+      
       const updatedPatient = await prisma.patient.update({
-        where: { id: patientId }, // Use validated patientId
+        where: { id: patientId },
         data: {
           nationalId: validatedData.nationalId,
-          birthCertificate: validatedData.birthCertificate || null,
+          birthCertificate: validatedData.birthCertificate,
           person: {
             update: {
               firstName: validatedData.firstName,
-              middleName: validatedData.middleName || null,
+              middleName: validatedData.middleName,
               lastName: validatedData.lastName,
               sex: validatedData.sex,
-              dob: validatedData.dob ? new Date(validatedData.dob) : undefined,
+              dob: new Date(validatedData.dob),
               phoneNumber: validatedData.phoneNumber,
               address: validatedData.address,
             },
           },
-          emergencyContact: emergencyContactId
-            ? {
-                update: {
-                  name: validatedData.emergencyContact?.name,
-                  phone: validatedData.emergencyContact?.phone,
-                },
-              }
-            : {
-                create: {
-                  name: validatedData.emergencyContact?.name,
-                  phone: validatedData.emergencyContact?.phone,
-                },
+          emergencyContact: {
+            upsert: {
+              update: {
+                name: validatedData.emergencyContact.name,
+                phone: validatedData.emergencyContact.phone,
               },
+              create: {
+                name: validatedData.emergencyContact.name,
+                phone: validatedData.emergencyContact.phone,
+              },
+            },
+          },
         },
         include: {
           person: true,
@@ -183,21 +154,17 @@ export const updatePatient = [
         },
       });
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Patient updated successfully",
         patient: updatedPatient,
       });
-    } catch (error: unknown) {
-      console.error("Update patient error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: error.errors });
-      } else if (error && typeof error === 'object' && 'code' in error && error.code === "P2025") {
-        // Record not found
-        return res.status(404).json({ message: "Patient not found" });
-      } else if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: "Failed to update patient", error });
       }
-      return res.status(500).json({ message: "Internal server error", error });
     }
   },
 ];
@@ -286,9 +253,7 @@ export const forwardPatient = [
       });
 
       if (!doctor) {
-        return res
-          .status(404)
-          .json({ message: "Doctor not found or not a healthcare provider" });
+        return res.status(404).json({ message: "Doctor not found or not a healthcare provider" });
       }
 
       // Create or update assignment

@@ -24,6 +24,8 @@ import CompletedPatientsList from "./pages/lab/CompletedPatientsList";
 import UrgentPatientsList from "./pages/lab/UrgentPatientsList";
 import RadiologistLayout from "./layouts/RadiologistLayout";
 import RadiologistDashboard from "./pages/radiologist/RadiologistDashboard";
+import RadiologyResultPage from "./pages/radiologist/RadiologyResultPage";
+
 import PendingScansList from "./pages/radiologist/PendingScansList";
 import InProgressScansList from "./pages/radiologist/InProgressScansList";
 import CompletedScansList from "./pages/radiologist/CompletedScansList";
@@ -141,6 +143,14 @@ const router = createBrowserRouter([
       { path: "urgent-scans", element: <UrgentScansList /> },
       { path: "results/:scanId", element: <RadiologyResultEntry /> },
     ],
+  },
+  {
+    path: "/radiology/result/:requestId",
+    element: (
+      <Layout>
+        <RadiologyResultPage />
+      </Layout>
+    ),
   },
   {
     path: "*",

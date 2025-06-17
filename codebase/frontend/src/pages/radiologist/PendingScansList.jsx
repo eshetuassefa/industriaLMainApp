@@ -1,76 +1,399 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-
-// Mock data - replace with API call later
-const mockPendingScans = [
-  {
-    id: 'R001',
-    patient: 'Abebe Kebede',
-    scanType: 'Chest X-Ray',
-    requestedBy: 'Dr. Yohannes Alemu',
-    urgency: 'Routine',
-  },
-  // Add more mock pending scan data as needed
-];
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Eye, Play, Clock, FileText } from "lucide-react";
+import radiologyService from "../../services/radiologist.service";
+import { useToast } from "../../components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../../components/ui/dialog";
+import { Textarea } from "../../components/ui/textarea";
 
 const PendingScansList = () => {
+  const [requests, setRequests] = useState([]);
+  const [error, setError] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [reportText, setReportText] = useState("");
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleScanClick = (scanId) => {
-    navigate(`/radiologist/results/${scanId}`); // Navigate to the result entry page
+  const fetchRequests = useCallback(async () => {
+    try {
+      const response = await radiologyService.getAllRadiologyRequests();
+      if (response.success) {
+        const pendingRequests = (response.data || [])
+          .filter((req) => req.status === "PENDING")
+          .map((req) => ({
+            ...req,
+            requestedDate: new Date(req.createdAt).toLocaleDateString(),
+          }));
+        setRequests(pendingRequests);
+      } else {
+        throw new Error(response.error?.message || "Failed to fetch pending scans");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to fetch pending scans");
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch pending scans",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const loadData = async () => {
+      try {
+        await fetchRequests();
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [fetchRequests]);
+
+  const handleStartScan = async (requestId) => {
+    try {
+      const result = await radiologyService.startRequest(requestId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Scan started successfully",
+        });
+        fetchRequests();
+      } else {
+        throw new Error(result.error?.message || "Failed to start scan");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to start scan",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleViewDetails = async (requestId) => {
+    try {
+      const response = await radiologyService.getReport(requestId);
+      if (response.success) {
+        setSelectedReport(response.data);
+        setIsDetailsModalOpen(true);
+      } else {
+        throw new Error(response.error?.message || "Failed to load report");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to load report details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(files);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
+  const handleSubmitReport = async (requestId) => {
+    setSelectedReport(requests.find((r) => r.id === requestId));
+    setIsReportModalOpen(true);
+  };
+
+  const handleSubmitReportConfirm = async () => {
+    if (!selectedReport) return;
+    
+    setIsSubmitting(true);
+    try {
+      const result = await radiologyService.submitReport(
+        selectedReport.id,
+        { reportText },
+        images
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Report submitted successfully",
+        });
+        setIsReportModalOpen(false);
+        setReportText("");
+        setImages([]);
+        setImagePreviews([]);
+        setSelectedReport(null);
+        fetchRequests();
+      } else {
+        throw new Error(result.error?.message || "Failed to submit report");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to submit report",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="p-4 text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Pending Scans</h1>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scan Type</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested By</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urgency</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {mockPendingScans.map((scan) => (
-              <tr
-                key={scan.id}
-                className="hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleScanClick(scan.id)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{scan.patient}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{scan.scanType}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{scan.requestedBy}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    scan.urgency === 'Urgent' ? 'bg-yellow-100 text-yellow-800' :
-                    scan.urgency === 'Emergency' ? 'bg-red-100 text-red-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {scan.urgency}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    className="text-blue-600 hover:text-blue-900"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent row click from triggering
-                      handleScanClick(scan.id);
-                    }}
-                  >
-                    Perform Scan
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Pending Scans</h1>
+        <Button
+          onClick={() => navigate("/radiology/dashboard")}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Clock className="w-4 h-4" />
+          Back to Dashboard
+        </Button>
       </div>
+
+      {requests.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <FileText className="w-16 h-16 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900">No Pending Scans</h3>
+            <p className="text-sm text-gray-500">
+              There are currently no pending scans to review.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Imaging Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Body Part
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Requested Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {requests.map((req) => (
+                  <tr key={req.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {req.id}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {req.imagingType}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {req.bodyPart}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {req.requestedDate}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-900"
+                        onClick={() => handleStartScan(req.id)}
+                      >
+                        <Play className="w-4 h-4 mr-1" />
+                        Start Scan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-indigo-600 hover:text-indigo-900"
+                        onClick={() => handleViewDetails(req.id)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Request Details</DialogTitle>
+            <DialogDescription>
+              View the complete details of this pending radiology request
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Request ID</h3>
+                  <p className="text-sm">{selectedReport.id}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Status</h3>
+                  <Badge
+                    variant="secondary"
+                    className="bg-yellow-100 text-yellow-800"
+                  >
+                    {selectedReport.status}
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Imaging Type</h3>
+                  <p className="text-sm">{selectedReport.imagingType}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Body Part</h3>
+                  <p className="text-sm">{selectedReport.bodyPart}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Requested Date</h3>
+                  <p className="text-sm">{new Date(selectedReport.createdAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Urgency</h3>
+                  <Badge
+                    variant="secondary"
+                    className={selectedReport.urgency === "URGENT" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}
+                  >
+                    {selectedReport.urgency}
+                  </Badge>
+                </div>
+              </div>
+              {selectedReport.reportText && (
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500 mb-2">Report</h3>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{selectedReport.reportText}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDetailsModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Submission Modal */}
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Submit Report</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Report Text
+              </label>
+              <Textarea
+                placeholder="Enter your report details..."
+                value={reportText}
+                onChange={(e) => setReportText(e.target.value)}
+                className="min-h-[200px]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Upload Images
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="w-full p-2 border border-gray-300 rounded-lg file:bg-blue-50 file:text-blue-700 file:font-medium file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-100"
+              />
+              {imagePreviews.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <img
+                      key={index}
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsReportModalOpen(false);
+                setReportText("");
+                setImages([]);
+                setImagePreviews([]);
+                setSelectedReport(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitReportConfirm}
+              disabled={isSubmitting || !reportText.trim()}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default PendingScansList; 
+export default PendingScansList;

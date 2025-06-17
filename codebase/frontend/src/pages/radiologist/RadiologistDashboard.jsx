@@ -1,253 +1,452 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ClockIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  CalendarDaysIcon, // Used for Dashboard icon in layout, maybe keep for consistency or remove?
-  UserGroupIcon,
-  ChartBarIcon,
-  CogIcon,
-  MagnifyingGlassIcon, // Assuming a search icon might be needed
-  PlusIcon, // Assuming a plus icon might be needed for actions like 'Schedule Scan'
-  // Icons for Scan Types Distribution (using placeholders for now)
-  BeakerIcon, // Placeholder for X-Ray?
-  CubeIcon, // Placeholder for Ultrasound?
-  ComputerDesktopIcon, // Placeholder for CT Scan?
-  AcademicCapIcon, // Placeholder for MRI?
-} from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
-
-const mockDashboardData = {
-  summary: {
-    pendingScans: 3,
-    inProgress: 2,
-    completedToday: 4,
-    emergencyScans: 1,
-  },
-  scanTypes: [
-    { type: 'X-Rays', count: 8, icon: BeakerIcon, color: 'blue' }, // Using placeholder icons and colors
-    { type: 'Ultrasounds', count: 5, icon: CubeIcon, color: 'green' },
-    { type: 'CT Scans', count: 3, icon: ComputerDesktopIcon, color: 'orange' },
-    { type: 'MRIs', count: 2, icon: AcademicCapIcon, color: 'purple' },
-  ],
-  equipmentStatus: [
-    { name: 'X-Ray Machine 1', status: 'Operational', color: 'green' },
-    { name: 'X-Ray Machine 2', status: 'Operational', color: 'green' },
-    { name: 'Ultrasound Machine', status: 'Operational', color: 'green' },
-    { name: 'CT Scanner', status: 'Maintenance at 6PM', color: 'orange' },
-    { name: 'MRI Machine', status: 'Operational', color: 'green' },
-  ],
-  radiologyRequests: [
-    { id: 'R001', patient: 'Abebe Kebede', scanType: 'Chest X-Ray', requestedBy: 'Dr. Yohannes Alemu', urgency: 'Routine', status: 'Pending', actions: 'Perform Scan' },
-    // Add other mock data based on the image or typical radiology workflow
-  ],
-};
+  BeakerIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
+import radiologyService from "../../services/radiologist.service";
+import { useToast } from "../../components/ui/use-toast";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Eye, Play, Clock, FileText, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../../components/ui/dialog";
+import { Textarea } from "../../components/ui/textarea";
 
 const RadiologistDashboard = () => {
-  const [activeTab, setActiveTab] = useState('pendingInProgress'); // State for tabs
-  const [searchTerm, setSearchTerm] = useState(''); // State for search input
-  const navigate = useNavigate();
-
-  // Filter requests based on active tab and search term (basic filtering for now)
-  const filteredRequests = mockDashboardData.radiologyRequests.filter(request => {
-    const matchesSearch = request.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.scanType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.requestedBy.toLowerCase().includes(searchTerm.toLowerCase());
-
-    if (activeTab === 'pendingInProgress') {
-      return matchesSearch && (request.status === 'Pending' || request.status === 'In Progress');
-    } else if (activeTab === 'scheduled') {
-      // No scheduled data in mock, implement filtering if added
-      return false; // Or implement filtering logic
-    } else if (activeTab === 'recentlyCompleted') {
-       // No recently completed data in mock, implement filtering if added
-       return false; // Or implement filtering logic
-    }
-    return matchesSearch; // Default or for a combined view
+  const [activeTab, setActiveTab] = useState("pendingInProgress");
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statistics, setStatistics] = useState({
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    urgent: 0,
+    scanTypes: {},
   });
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [reportText, setReportText] = useState("");
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const fetchAllRadiologyRequests = useCallback(async () => {
+    try {
+      const response = await radiologyService.getAllRadiologyRequests();
+      if (response.success) {
+        const allRequests = response.data || [];
+
+        // Calculate statistics
+        const stats = {
+          pending: allRequests.filter((r) => r.status === "PENDING").length,
+          inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS")
+            .length,
+          completed: allRequests.filter((r) => r.status === "COMPLETED").length,
+          urgent: allRequests.filter((r) => r.urgency === "URGENT").length,
+          scanTypes: allRequests.reduce((acc, r) => {
+            acc[r.imagingType] = (acc[r.imagingType] || 0) + 1;
+            return acc;
+          }, {}),
+        };
+
+        // Filter requests based on active tab
+        let filteredRequests = allRequests;
+        if (activeTab === "pendingInProgress") {
+          filteredRequests = allRequests.filter(
+            (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+          );
+        } else if (activeTab === "scheduled") {
+          filteredRequests = allRequests.filter(
+            (r) => r.status === "SCHEDULED"
+          );
+        } else if (activeTab === "recentlyCompleted") {
+          filteredRequests = allRequests.filter(
+            (r) => r.status === "COMPLETED"
+          );
+        }
+
+        // Update state in a single batch
+        setStatistics(stats);
+        setRequests(filteredRequests);
+        setLoading(false);
+      } else {
+        throw new Error(response.error?.message || "Failed to fetch requests");
+      }
+    } catch (err) {
+      setError("Failed to fetch radiology requests");
+      toast({
+        title: "Error",
+        description: "Failed to load radiology requests",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  }, [activeTab, toast]);
+
+  useEffect(() => {
+    fetchAllRadiologyRequests();
+  }, [fetchAllRadiologyRequests]);
+
+  const handleCardClick = useCallback(
+    (status) => {
+      navigate(`/radiology/dashboard/${status}`);
+    },
+    [navigate]
+  );
+
+  const handleStatusUpdate = async (requestId, newStatus) => {
+    try {
+      let result;
+      if (newStatus === "IN_PROGRESS") {
+        result = await radiologyService.startRequest(requestId);
+      } else if (newStatus === "COMPLETED") {
+        if (!selectedRequest || selectedRequest.id !== requestId) {
+          setSelectedRequest(requests.find((r) => r.id === requestId));
+          return;
+        }
+        result = await radiologyService.submitReport(
+          requestId,
+          { reportText },
+          images
+        );
+        setReportText("");
+        setImages([]);
+        setImagePreviews([]);
+        setSelectedRequest(null);
+      }
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Status updated to ${newStatus}`,
+        });
+        fetchAllRadiologyRequests();
+      } else {
+        throw new Error(result.error.message);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(files);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
+  const handleViewDetails = async (requestId) => {
+    try {
+      const response = await radiologyService.getReport(requestId);
+      if (response.success) {
+        setSelectedReport(response.data);
+        setIsDetailsModalOpen(true);
+      } else {
+        throw new Error(response.error?.message || "Failed to load report");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to load report details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubmitReport = async (e) => {
+    e.preventDefault();
+    if (selectedRequest) {
+      setIsSubmitting(true);
+      await handleStatusUpdate(selectedRequest.id, "COMPLETED");
+      setIsCompleteModalOpen(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStartScan = async (requestId) => {
+    try {
+      const result = await radiologyService.startRequest(requestId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Scan started successfully",
+        });
+        fetchAllRadiologyRequests();
+      } else {
+        throw new Error(result.error?.message || "Failed to start scan");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to start scan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleContinueScan = async (requestId) => {
+    try {
+      const result = await radiologyService.continueRequest(requestId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Continuing scan...",
+        });
+        navigate(`/radiology/result/${requestId}`);
+      } else {
+        throw new Error(result.error?.message || "Failed to continue scan");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to continue scan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteClick = async (requestId) => {
+    try {
+      const response = await radiologyService.getReport(requestId);
+      if (response.success) {
+        setSelectedReport(response.data);
+        setSelectedRequest(requests.find((r) => r.id === requestId));
+        setIsCompleteModalOpen(true);
+      } else {
+        throw new Error(response.error?.message || "Failed to load report");
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to load report details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Radiologist Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-8">Radiology Dashboard</h1>
+
+      {error && <div className="text-red-500 py-4">{error}</div>}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {/* Pending Scans Card */}
         <div
-          className="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 cursor-pointer"
-          onClick={() => navigate('/radiologist/pending-scans')}
+          className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick("pending-scans")}
         >
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">Pending Scans</h3>
             <ClockIcon className="h-6 w-6 text-yellow-500" />
           </div>
-          <p className="text-3xl font-bold">{mockDashboardData.summary.pendingScans}</p>
-          <p className="text-sm text-gray-500">+1 from yesterday</p>
+          <p className="text-3xl font-bold">{statistics.pending}</p>
         </div>
-
-        {/* In Progress Card */}
         <div
-          className="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 cursor-pointer"
-          onClick={() => navigate('/radiologist/in-progress-scans')}
+          className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick("in-progress-scans")}
         >
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">In Progress</h3>
             <DocumentTextIcon className="h-6 w-6 text-blue-500" />
           </div>
-          <p className="text-3xl font-bold">{mockDashboardData.summary.inProgress}</p>
-          <p className="text-sm text-gray-500">-1 from yesterday</p>
+          <p className="text-3xl font-bold">{statistics.inProgress}</p>
         </div>
-
-        {/* Completed Today Card */}
         <div
-          className="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 cursor-pointer"
-          onClick={() => navigate('/radiologist/completed-scans')}
+          className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick("completed-scans")}
         >
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">Completed Today</h3>
             <CheckCircleIcon className="h-6 w-6 text-green-500" />
           </div>
-          <p className="text-3xl font-bold">{mockDashboardData.summary.completedToday}</p>
-          <p className="text-sm text-gray-500">+2 from yesterday</p>
+          <p className="text-3xl font-bold">{statistics.completed}</p>
         </div>
-
-        {/* Emergency Scans Card */}
         <div
-          className="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 cursor-pointer"
-          onClick={() => navigate('/radiologist/urgent-scans')}
+          className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleCardClick("urgent-scans")}
         >
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold">Emergency Scans</h3>
+            <h3 className="text-lg font-semibold">Urgent Requests</h3>
             <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
           </div>
-          <p className="text-3xl font-bold">{mockDashboardData.summary.emergencyScans}</p>
-          <p className="text-sm text-gray-500">Requires immediate attention</p>
+          <p className="text-3xl font-bold">{statistics.urgent}</p>
         </div>
       </div>
 
-      {/* Scan Types Distribution and Equipment Status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Scan Types Distribution */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Scan Types Distribution</h2>
-          <p className="text-sm text-gray-500 mb-4">Today's workload by scan type</p>
-          <div className="grid grid-cols-2 gap-4">
-            {mockDashboardData.scanTypes.map((scanType, index) => (
-              <div key={index} className="flex items-center">
-                <div className={`p-3 rounded-full bg-${scanType.color}-100 mr-3`}>
-                  <scanType.icon className={`h-6 w-6 text-${scanType.color}-500`} />
-                </div>
-                <div>
-                  <p className="text-lg font-semibold">{scanType.type}</p>
-                  <p className="text-sm text-gray-600">{scanType.count}</p>
-                </div>
+      {/* Scan Types Distribution */}
+      <div className="bg-white p-6 rounded-lg shadow mb-8">
+        <h2 className="text-xl font-semibold mb-4">Scan Types Distribution</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Object.entries(statistics.scanTypes).map(([type, count]) => (
+            <div key={type} className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 mr-3">
+                <BeakerIcon className="h-6 w-6 text-blue-500" />
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Equipment Status */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Equipment Status</h2>
-          <p className="text-sm text-gray-500 mb-4">Current status of radiology equipment</p>
-          <ul>
-            {mockDashboardData.equipmentStatus.map((equipment, index) => (
-              <li key={index} className="flex items-center mb-2">
-                <span className={`h-2 w-2 rounded-full bg-${equipment.color}-500 mr-2`}></span>
-                <p className="text-gray-700">{equipment.name} - <span className={`font-semibold text-${equipment.color}-700`}>{equipment.status}</span></p>
-              </li>
-            ))}
-          </ul>
+              <div>
+                <p className="text-lg font-semibold">{type}</p>
+                <p className="text-sm text-gray-600">{count}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Radiology Requests Table */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Radiology Requests</h2>
-          <div className="flex items-center">
-            <input
-              type="text"
-              placeholder="Search requests..."
-              className="px-4 py-2 border rounded-l-lg"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-r-lg flex items-center">
-              <PlusIcon className="h-5 w-5 mr-1" />
-              Schedule Scan
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs for requests */}
+        {/* Tabs */}
         <div className="border-b border-gray-200 mb-4">
           <nav className="-mb-px flex space-x-8">
-            <button
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'pendingInProgress' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              onClick={() => setActiveTab('pendingInProgress')}
-            >
-              Pending & In Progress
-            </button>
-            <button
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'scheduled' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              onClick={() => setActiveTab('scheduled')}
-            >
-              Scheduled Scans
-            </button>
-            <button
-              className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'recentlyCompleted' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              onClick={() => setActiveTab('recentlyCompleted')}
-            >
-              Recently Completed
-            </button>
+            {["pendingInProgress", "scheduled", "recentlyCompleted"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  className={`pb-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab === "pendingInProgress"
+                    ? "Pending & In Progress"
+                    : tab === "scheduled"
+                    ? "Scheduled Scans"
+                    : "Recently Completed"}
+                </button>
+              )
+            )}
           </nav>
         </div>
 
-        {/* Radiology Requests Table Content */}
+        {loading && <p className="text-gray-600">Loading requests...</p>}
+        {error && <p className="text-red-500">{error}</p>}
+
+        {/* Requests Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scan Type</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested By</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urgency</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Request ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Imaging Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Body Part
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Notes
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created At
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRequests.map((request) => (
-                <tr key={request.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.patient}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.scanType}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.requestedBy}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      request.urgency === 'Urgent' ? 'bg-yellow-100 text-yellow-800' :
-                      request.urgency === 'Emergency' ? 'bg-red-100 text-red-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {request.urgency}
-                    </span>
+              {requests.map((request) => (
+                <tr key={request.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {request.id}
                   </td>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      request.status === 'Pending' ? 'bg-gray-200 text-gray-800' :
-                      request.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {request.imagingType}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {request.bodyPart}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs truncate">
+                      {request.notes}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        request.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "IN_PROGRESS"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
                       {request.status}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(request.createdAt).toLocaleDateString()}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {request.actions && (
-                      <button className="text-blue-600 hover:text-blue-900">
-                        {request.actions}
-                      </button>
+                    {request.status === "PENDING" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        onClick={() => handleStartScan(request.id)}
+                      >
+                        <Play className="w-4 h-4 mr-1" />
+                        Start
+                      </Button>
                     )}
+                    {request.status === "IN_PROGRESS" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 hover:text-green-900 mr-3"
+                        onClick={() => handleCompleteClick(request.id)}
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        Complete
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={() => handleViewDetails(request.id)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View Details
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -255,8 +454,213 @@ const RadiologistDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Request Details</DialogTitle>
+            <DialogDescription>
+              View the complete details of this radiology request
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Request ID
+                  </h3>
+                  <p className="text-sm">{selectedReport.id}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Status
+                  </h3>
+                  <Badge
+                    variant="secondary"
+                    className={`${
+                      selectedReport.status === "COMPLETED"
+                        ? "bg-green-100 text-green-800"
+                        : selectedReport.status === "IN_PROGRESS"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {selectedReport.status}
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Imaging Type
+                  </h3>
+                  <p className="text-sm">{selectedReport.imagingType}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Body Part
+                  </h3>
+                  <p className="text-sm">{selectedReport.bodyPart}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Requested Date
+                  </h3>
+                  <p className="text-sm">
+                    {new Date(selectedReport.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Urgency
+                  </h3>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      selectedReport.urgency === "URGENT"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }
+                  >
+                    {selectedReport.urgency}
+                  </Badge>
+                </div>
+              </div>
+              {selectedReport.reportText && (
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500 mb-2">
+                    Report
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {selectedReport.reportText}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDetailsModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete Modal */}
+      <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Complete Request</DialogTitle>
+            <DialogDescription>
+              Submit the final report and complete this radiology request
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="py-4 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Request ID
+                  </h3>
+                  <p className="text-sm">{selectedReport.id}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Imaging Type
+                  </h3>
+                  <p className="text-sm">{selectedReport.imagingType}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Body Part
+                  </h3>
+                  <p className="text-sm">{selectedReport.bodyPart}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Urgency
+                  </h3>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      selectedReport.urgency === "URGENT"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }
+                  >
+                    {selectedReport.urgency}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Report Text
+                </label>
+                <Textarea
+                  placeholder="Enter your report details..."
+                  value={reportText}
+                  onChange={(e) => setReportText(e.target.value)}
+                  className="min-h-[200px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Images
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className="w-full p-2 border border-gray-300 rounded-lg file:bg-blue-50 file:text-blue-700 file:font-medium file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-100"
+                />
+                {imagePreviews.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    {imagePreviews.map((preview, index) => (
+                      <img
+                        key={index}
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCompleteModalOpen(false);
+                setReportText("");
+                setImages([]);
+                setImagePreviews([]);
+                setSelectedReport(null);
+                setSelectedRequest(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitReport}
+              disabled={isSubmitting || !reportText.trim()}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default RadiologistDashboard; 
+export default RadiologistDashboard;

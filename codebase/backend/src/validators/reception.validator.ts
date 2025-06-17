@@ -22,9 +22,8 @@ export const patientSchema = z.object({
     emergencyContact: emergencyContactSchema,
 });
 
-// Update patient schema (extends base schema but makes id optional)
 export const updatePatientSchema = patientSchema.extend({
-  id: z.string().optional()
+    id: z.string().uuid('Invalid patient ID'),
 });
 
 export const searchPatientSchema = z.object({

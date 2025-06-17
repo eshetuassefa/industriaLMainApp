@@ -4,6 +4,8 @@ import {
   startRadiologyRequest,
   submitRadiologyReport,
   getRadiologyReport,
+  getAllRadiologyRequests,
+  getRadiologyRequestById,
 } from "../controllers/radiologist.controller";
 
 const router = Router();
@@ -30,7 +32,7 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               medicalRecordId:
+ *               patientId:
  *                 type: string
  *               imagingType:
  *                 type: string
@@ -39,7 +41,7 @@ const router = Router();
  *               notes:
  *                 type: string
  *             required:
- *               - medicalRecordId
+ *               - patientId
  *               - imagingType
  *     responses:
  *       201:
@@ -96,7 +98,7 @@ router.post("/start-request/:requestId", startRadiologyRequest);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -104,6 +106,11 @@ router.post("/start-request/:requestId", startRadiologyRequest);
  *                 type: string
  *               notes:
  *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *     responses:
  *       200:
  *         description: Radiology report submitted successfully
@@ -138,5 +145,46 @@ router.post("/submit-report/:requestId", submitRadiologyReport);
  *         description: Server error
  */
 router.get("/view-report/:requestId", getRadiologyReport);
+
+/**
+ * @swagger
+ * /api/radiology/all-requests:
+ *   get:
+ *     summary: Get all radiology requests
+ *     tags: [Radiology]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All radiology requests retrieved successfully
+ *       500:
+ *         description: Server error
+ */
+router.get("/all-requests", getAllRadiologyRequests);
+
+/**
+ * @swagger
+ * /api/radiology/request/{requestId}:
+ *   get:
+ *     summary: Get a single radiology request by ID
+ *     tags: [Radiology]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: requestId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the radiology request
+ *     responses:
+ *       200:
+ *         description: Radiology request retrieved successfully
+ *       404:
+ *         description: Radiology request not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/request/:requestId", getRadiologyRequestById);
 
 export default router;
