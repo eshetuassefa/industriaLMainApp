@@ -18,6 +18,22 @@ export const getPatientRecords = [
   async (req: Request, res: Response) => {
     try {
       const { patientId } = fetchPatientSchema.parse(req.params);
+      const doctorId = req.user!.id;
+
+      // Check if patient is assigned to this doctor
+      const assignment = await prisma.patientDoctorAssignment.findFirst({
+        where: {
+          patientId,
+          doctorId,
+          status: "ACTIVE",
+        },
+      });
+
+      if (!assignment) {
+        return res.status(403).json({ 
+          message: "You don't have access to this patient's records. Please contact reception to get access." 
+        });
+      }
 
       // Fetch patient details with safe selection
       const patient = await prisma.patient.findUnique({

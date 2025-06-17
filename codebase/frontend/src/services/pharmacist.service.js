@@ -221,6 +221,32 @@ const pharmacyService = {
       return handleApiError(err, "Failed to fetch patients");
     }
   },
+
+  // Get prescriptions by patient ID
+  async getPrescriptionsByPatient(patientId) {
+    try {
+      if (!patientId) {
+        throw new Error("Patient ID is required");
+      }
+
+      const client = createAxiosInstance();
+      const response = await client.get(`/pharmacy/patients/${patientId}/prescriptions`);
+      
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message
+      };
+    } catch (err) {
+      console.error("Error in getPrescriptionsByPatient:", err);
+      return {
+        success: false,
+        error: {
+          message: err.response?.data?.message || err.message || "Failed to retrieve patient prescriptions"
+        }
+      };
+    }
+  },
 };
 
 // Error handler

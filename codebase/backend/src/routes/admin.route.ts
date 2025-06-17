@@ -5,6 +5,7 @@ import {
   getStaffByIdController,
   updateStaffController,
   deleteStaffController,
+  getAllDepartmentsController,
 } from "../controllers/admin.controller";
 
 const router = express.Router();
@@ -323,5 +324,33 @@ router.put("/staff/update/:id", updateStaffController);
  *         description: Internal Server Error
  */
 router.delete("/staff/delete/:id", deleteStaffController);
+
+/**
+ * @swagger
+ * /api/admin/departments/getall:
+ *   get:
+ *     summary: Get all departments
+ *     description: Fetch a list of all departments.
+ *     tags: [Admin - Departments]
+ *     responses:
+ *       200:
+ *         description: List of all departments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   code:
+ *                     type: string
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get("/departments/getall", getAllDepartmentsController);
 
 export default router;

@@ -22,13 +22,20 @@ export const patientSchema = z.object({
     emergencyContact: emergencyContactSchema,
 });
 
+// Update patient schema (extends base schema but makes id optional)
 export const updatePatientSchema = patientSchema.extend({
-    id: z.string().uuid('Invalid patient ID'),
+  id: z.string().optional()
 });
 
 export const searchPatientSchema = z.object({
     nationalId: z.string().optional(),
     name: z.string().optional(),
+});
+
+export const forwardPatientSchema = z.object({
+    patientId: z.string().uuid("Invalid Patient ID"),
+    doctorId: z.string().uuid("Invalid Doctor ID"),
+    notes: z.string().optional(),
 });
 
 // Type exports

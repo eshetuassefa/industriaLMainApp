@@ -40,14 +40,14 @@ const Header = () => {
                       Home
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       to="/about"
                       className="text-gray-700 font-semibold hover:text-blue-500 transition-colors duration-200 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-blue-500 hover:after:w-full after:transition-all after:duration-300"
                     >
                       About Us
                     </Link>
-                  </li>
+                  </li> */}
                 </ul>
               </nav>
 

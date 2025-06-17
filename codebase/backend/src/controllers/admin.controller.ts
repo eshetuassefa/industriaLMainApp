@@ -318,3 +318,22 @@ export const deleteStaffController: RequestHandler = async (
     next(error);
   }
 };
+
+// Get all departments
+export const getAllDepartmentsController: RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  try {
+    const departments = await prisma.department.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    res.status(200).json(departments);
+  } catch (error) {
+    next(error);
+  }
+};

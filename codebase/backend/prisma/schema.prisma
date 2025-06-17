@@ -33,6 +33,7 @@ model Patient {
   medicalRecords     MedicalRecord[]
   testRequests       TestRequest[]
   appointments       Appointment[]
+  doctorAssignments  PatientDoctorAssignment[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime?         // Optional
 }
@@ -68,6 +69,7 @@ model User {
   radiologyReports      RadiologyReport[] @relation("RadiologistReports")
   orders                Order[]           @relation(fields: [], references: [])
   appointments          Appointment[]
+  patientAssignments    PatientDoctorAssignment[]
 }
 
 model MedicalRecord {
@@ -304,6 +306,23 @@ model Appointment {
   @@index([date])
 }
 
+model PatientDoctorAssignment {
+  id        String   @id @default(uuid())
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  patientId String
+  doctor    User     @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  assignedAt DateTime @default(now())
+  status    AssignmentStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([patientId, doctorId])
+  @@index([patientId])
+  @@index([doctorId])
+}
+
 enum RoleType {
   ADMIN
   SUPERADMIN
@@ -363,4 +382,10 @@ enum DeliveryStatus {
   PENDING
   DELIVERED
   CANCELLED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
 }

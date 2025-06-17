@@ -33,7 +33,7 @@ import Header from "./Component/Header/Header";
 import Footer from "./Component/Footer/Footer";
 import LoginForm from "./Component/LoginForm/LoginForm";
 import Home from "./Component/Home/Home";
-import About from "./Component/About/About";
+// import About from "./Component/About/About";
 import ReceptionistPage from "./pages/receptionist/ReceptionistPage";
 import PharmacyPage from "./pages/pharmacist/PharmacistPage";
 import AdminPage from "./pages/admin/AdminPage";
@@ -63,14 +63,14 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
-  {
-    path: "/about",
-    element: (
-      <Layout>
-        <About />
-      </Layout>
-    ),
-  },
+  // {
+  //   path: "/about",
+  //   element: (
+  //     <Layout>
+  //       <About />
+  //     </Layout>
+  //   ),
+  // },
   {
     path: "reception/dashboard",
     element: (

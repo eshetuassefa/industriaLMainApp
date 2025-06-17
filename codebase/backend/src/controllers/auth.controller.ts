@@ -52,7 +52,7 @@ export const login: RequestHandler = async (
         personId: user.personId,
       },
       process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "15m" }
+      { expiresIn: "55m" }
     );
 
     const refreshToken = jwt.sign(
