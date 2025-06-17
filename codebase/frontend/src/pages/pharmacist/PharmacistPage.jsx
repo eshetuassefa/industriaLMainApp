@@ -1,9 +1,9 @@
-// "use client"; // Directive to indicate this is a client-side component
+// "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react"; // Import React hooks for state, effects, callbacks, and refs
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
-import { Tabs, TabsContent } from "../../components/ui/tabs"; // Import Tabs components for UI
-import { format } from "date-fns"; // Import date-fns for date formatting
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent } from "../../components/ui/tabs";
+import { format } from "date-fns";
 import {
   Search,
   Pill,
@@ -23,66 +23,60 @@ import {
   Package,
   Clock,
   Loader2,
-} from "lucide-react"; // Import Lucide icons for UI elements
+} from "lucide-react";
 import {
   ArchiveBoxIcon,
   ClipboardDocumentListIcon,
   UserGroupIcon,
   BellIcon,
-} from "@heroicons/react/24/outline"; // Import Heroicons for additional icons
-import { useToast } from "../../components/ui/use-toast"; // Import toast for notifications
-import pharmacyService from "../../services/pharmacist.service"; // Import pharmacy service for API calls
-import authService from "../../services/auth.service"; // Import auth service for user authentication
+} from "@heroicons/react/24/outline";
+import { useToast } from "../../components/ui/use-toast";
+import pharmacyService from "../../services/pharmacist.service";
+import authService from "../../services/auth.service";
 
-import Sidebar from "@/pages/pharmacist/Sidebar"; // Import Sidebar component
-import Dashboard from "@/pages/pharmacist/Dashboard"; // Import Dashboard component
-import PrescriptionList from "@/pages/pharmacist/PrescriptionList"; // Import PrescriptionList component
-import PrescriptionDetails from "@/pages/pharmacist/PrescriptionDetails"; // Import PrescriptionDetails component
-import Dispensing from "@/pages/pharmacist/Dispensing"; // Import Dispensing component
-import Inventory from "@/pages/pharmacist/Inventory"; // Import Inventory component
-import Reports from "@/pages/pharmacist/Reports"; // Import Reports component
-import Patients from "@/pages/pharmacist/Patients"; // Import Patients component
-import NewPrescriptionDialog from "@/pages/pharmacist/NewPrescriptionDialog"; // Import NewPrescriptionDialog component
-import AddDrugDialog from "@/pages/pharmacist/AddDrugDialog"; // Import AddDrugDialog component
-import AddInventoryDialog from "@/pages/pharmacist/AddInventoryDialog"; // Import AddInventoryDialog component
-import ConfirmDialog from "@/pages/pharmacist/ConfirmDialog"; // Import ConfirmDialog component
-import Header from "@/pages/pharmacist/Header"; // Import Header component
-
-// src/pages/pharmacist/PharmacistPage.js
+import Sidebar from "@/pages/pharmacist/Sidebar";
+import Dashboard from "@/pages/pharmacist/Dashboard";
+import PrescriptionList from "@/pages/pharmacist/PrescriptionList";
+import PrescriptionDetails from "@/pages/pharmacist/PrescriptionDetails";
+import Dispensing from "@/pages/pharmacist/Dispensing";
+import Inventory from "@/pages/pharmacist/Inventory";
+import Reports from "@/pages/pharmacist/Reports";
+import Patients from "@/pages/pharmacist/Patients";
+import NewPrescriptionDialog from "@/pages/pharmacist/NewPrescriptionDialog";
+import AddDrugDialog from "@/pages/pharmacist/AddDrugDialog";
+import AddInventoryDialog from "@/pages/pharmacist/AddInventoryDialog";
+import ConfirmDialog from "@/pages/pharmacist/ConfirmDialog";
+import Header from "@/pages/pharmacist/Header";
 
 const COLORS = {
-  // Define color constants for different statuses
-  PENDING: "#eab308",
-  DELIVERED: "#22c55e",
-  default: "#ef4444",
+  PENDING: "#eab308", // Yellow
+  DELIVERED: "#22c55e", // Green
+  default: "#ef4444", // Red
 };
 
 export default function PharmacistPage() {
-  // Main component function for the pharmacist page
-  const navigate = useNavigate(); // Initialize navigation hook
-  const { toast } = useToast(); // Initialize toast for notifications
-  const isInitialMount = useRef(true); // Ref to track initial mount
-  const [patients, setPatients] = useState([]); // State for patient list
-  const [prescriptions, setPrescriptions] = useState([]); // State for prescription list
-  const [drugs, setDrugs] = useState([]); // State for drug list
-  const [searchQuery, setSearchQuery] = useState(""); // State for search query
-  const [selectedPrescription, setSelectedPrescription] = useState(null); // State for selected prescription
-  const [selectedPatient, setSelectedPatient] = useState(null); // State for selected patient
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const isInitialMount = useRef(true);
+  const [patients, setPatients] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [drugs, setDrugs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPrescription, setSelectedPrescription] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [showNewPrescriptionDialog, setShowNewPrescriptionDialog] =
-    useState(false); // State for new prescription dialog visibility
-  const [showAddDrugDialog, setShowAddDrugDialog] = useState(false); // State for add drug dialog visibility
-  const [showAddInventoryDialog, setShowAddInventoryDialog] = useState(false); // State for add inventory dialog visibility
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false); // State for confirm dialog visibility
-  const [confirmAction, setConfirmAction] = useState(null); // State for confirm action details
+    useState(false);
+  const [showAddDrugDialog, setShowAddDrugDialog] = useState(false);
+  const [showAddInventoryDialog, setShowAddInventoryDialog] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [newPrescription, setNewPrescription] = useState({
-    // Initial state for new prescription form
     patientId: "",
     hospitalId: "1",
     notes: "",
     drugs: [],
   });
   const [newDrug, setNewDrug] = useState({
-    // Initial state for new drug form
     name: "",
     genericName: "",
     dosageForm: "TABLET",
@@ -91,7 +85,6 @@ export default function PharmacistPage() {
     reorderLevel: 0,
   });
   const [newInventory, setNewInventory] = useState({
-    // Initial state for new inventory form
     drugId: "",
     batchNumber: "",
     expirationDate: "",
@@ -102,7 +95,6 @@ export default function PharmacistPage() {
     sellingPrice: 0,
   });
   const [medicationToAdd, setMedicationToAdd] = useState({
-    // Initial state for medication to add
     name: "",
     dosage: "",
     frequency: "",
@@ -110,28 +102,25 @@ export default function PharmacistPage() {
     quantity: 0,
     instructions: "",
   });
-  const [notifications, setNotifications] = useState([]); // State for notifications
-  const [activeTab, setActiveTab] = useState("dashboard"); // State for active tab
-  const [activityLog, setActivityLog] = useState([]); // State for activity log
-  const [isLoading, setIsLoading] = useState(false); // State for overall loading status
+  const [notifications, setNotifications] = useState([]);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activityLog, setActivityLog] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
-    // State for specific loading states
     drugs: false,
     prescriptions: false,
     patients: false,
     delivery: false,
   });
-  const [error, setError] = useState(null); // State for error messages
+  const [error, setError] = useState(null);
   const [user, setUser] = useState({
-    // Initial state for user details
     name: localStorage.getItem("userName") || "Pharmacist",
     role: localStorage.getItem("userRole") || "PHARMACIST",
     avatar: localStorage.getItem("userAvatar") || null,
   });
-  const [formErrors, setFormErrors] = useState({}); // State for form validation errors
+  const [formErrors, setFormErrors] = useState({});
 
   const navigation = [
-    // Define navigation menu items with names, values, and icons
     { name: "Dashboard", value: "dashboard", icon: Pill },
     { name: "Prescriptions", value: "prescriptions", icon: ClipboardList },
     { name: "Dispensing", value: "dispensing", icon: Package },
@@ -141,7 +130,6 @@ export default function PharmacistPage() {
   ];
 
   const getFirstNameFromEmail = (email) => {
-    // Function to extract first name from email
     if (!email) return "";
     const namePart = email.split("@")[0];
     return namePart
@@ -153,7 +141,6 @@ export default function PharmacistPage() {
   };
 
   useEffect(() => {
-    // Effect to handle user authentication on mount
     const currentUser = authService.getCurrentUser();
     if (!currentUser) {
       toast({
@@ -188,7 +175,6 @@ export default function PharmacistPage() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    // Callback to fetch data based on active tab
     setIsLoading(true);
     setError(null);
     try {
@@ -253,7 +239,6 @@ export default function PharmacistPage() {
         setLoadingStates((prev) => ({ ...prev, patients: true }));
         const patientResponse = await pharmacyService.getPatients();
         if (patientResponse.success) {
-          // Sort patients by addedDate or createdAt in descending order (most recent first)
           const sortedPatients = (patientResponse.data || []).sort(
             (a, b) =>
               new Date(b.addedDate || b.createdAt) -
@@ -277,12 +262,10 @@ export default function PharmacistPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    // Effect to fetch data when active tab changes
     fetchData();
   }, [fetchData]);
 
   const addNotification = (message, type = "info") => {
-    // Function to add notifications
     const newNotification = {
       id:
         notifications.length > 0
@@ -304,7 +287,6 @@ export default function PharmacistPage() {
   };
 
   const handleNewDrugSubmit = async () => {
-    // Function to handle new drug submission
     try {
       setIsLoading(true);
       const response = await pharmacyService.addDrug(newDrug);
@@ -347,7 +329,6 @@ export default function PharmacistPage() {
   };
 
   const handleNewInventorySubmit = async () => {
-    // Function to handle new inventory submission
     try {
       setIsLoading(true);
       const response = await pharmacyService.addInventory({
@@ -404,7 +385,6 @@ export default function PharmacistPage() {
   };
 
   const handleNewPrescriptionSubmit = async () => {
-    // Function to handle new prescription submission
     try {
       setIsLoading(true);
       const response = await pharmacyService.createPrescription(
@@ -449,7 +429,6 @@ export default function PharmacistPage() {
   };
 
   const handleAddMedicationToPrescription = () => {
-    // Function to add medication to prescription
     setNewPrescription((prev) => ({
       ...prev,
       drugs: [...prev.drugs, medicationToAdd],
@@ -465,7 +444,6 @@ export default function PharmacistPage() {
   };
 
   const handleRemoveMedicationFromPrescription = (index) => {
-    // Function to remove medication from prescription
     setNewPrescription((prev) => ({
       ...prev,
       drugs: prev.drugs.filter((_, i) => i !== index),
@@ -473,7 +451,6 @@ export default function PharmacistPage() {
   };
 
   const handleViewPrescription = async (prescription) => {
-    // Function to handle viewing prescription details
     try {
       if (!prescription || !prescription.id) {
         throw new Error("Invalid prescription data");
@@ -542,7 +519,6 @@ export default function PharmacistPage() {
   };
 
   const getPrescriptionStatusData = () => {
-    // Function to get prescription status data for reports
     const statusCounts = prescriptions.reduce((acc, prescription) => {
       acc[prescription.deliveryStatus] =
         (acc[prescription.deliveryStatus] || 0) + 1;
@@ -555,7 +531,6 @@ export default function PharmacistPage() {
   };
 
   const getDrugCategoryData = () => {
-    // Function to get drug category data for reports
     const categoryCounts = drugs.reduce((acc, drug) => {
       acc[drug.dosageForm] = (acc[drug.dosageForm] || 0) + 1;
       return acc;
@@ -567,7 +542,6 @@ export default function PharmacistPage() {
   };
 
   const handleShowConfirmDialog = (action, data) => {
-    // Function to show confirmation dialog
     setConfirmAction({
       type: action,
       data: data,
@@ -581,7 +555,6 @@ export default function PharmacistPage() {
   };
 
   const handleConfirmAction = async () => {
-    // Function to handle confirmation action
     if (!confirmAction) return;
 
     try {
@@ -609,7 +582,6 @@ export default function PharmacistPage() {
   };
 
   const handleConfirmDelivery = async (prescriptionId) => {
-    // Function to confirm prescription delivery
     try {
       const response = await pharmacyService.confirmDrugDelivery(
         prescriptionId
@@ -622,13 +594,17 @@ export default function PharmacistPage() {
         );
         toast({
           title: "Success",
-          description: "Prescription delivery confirmed successfully",
+          description: "Confirmed",
         });
         fetchData();
+        const deliveredPrescription = prescriptions.find(
+          (p) => p.id === prescriptionId
+        );
+        const patientName = deliveredPrescription?.patient?.name || "Unknown";
         setActivityLog((prev) => [
           {
             id: prev.length + 1,
-            action: `Confirmed delivery for prescription ID: ${patients.person.firstName}`,
+            action: `Confirmed delivery for prescription ID: ${prescriptionId} (Patient: ${patientName})`,
             user: user.name || "Pharmacist",
             time: new Date().toLocaleTimeString([], {
               hour: "2-digit",
@@ -650,7 +626,6 @@ export default function PharmacistPage() {
   };
 
   const filteredPrescriptions = prescriptions.filter(
-    // Filter prescriptions based on search query
     (prescription) =>
       prescription.patient?.name
         ?.toLowerCase()
@@ -661,14 +636,12 @@ export default function PharmacistPage() {
   );
 
   const filteredDrugs = drugs.filter(
-    // Filter drugs based on search query
     (drug) =>
       drug.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       drug.genericName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getInitials = (name) => {
-    // Function to get initials from a name
     return name
       .split(" ")
       .map((n) => n[0])
@@ -677,26 +650,23 @@ export default function PharmacistPage() {
   };
 
   return (
-    // Main return statement for the component's JSX
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} notifications={notifications} />{" "}
-      {/* Render header with user and notifications */}
+      <Header user={user} notifications={notifications} />
       <div className="flex">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />{" "}
-        {/* Render sidebar for navigation */}
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <main className="flex-1 ml-60 pt-16 min-h-screen">
           <div className="container mx-auto px-6 py-8">
-            {isLoading ? ( // Show loading spinner if data is loading
+            {isLoading ? (
               <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : error ? ( // Show error message if data fetch fails
+            ) : error ? (
               <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
                 <p className="text-red-500">{error}</p>
               </div>
             ) : (
               <>
-                {activeTab === "dashboard" && ( // Render dashboard if active tab is dashboard
+                {activeTab === "dashboard" && (
                   <Dashboard
                     prescriptions={prescriptions}
                     drugs={drugs}
@@ -709,7 +679,7 @@ export default function PharmacistPage() {
                     }}
                   />
                 )}
-                {activeTab === "prescriptions" && ( // Render prescription list if active tab is prescriptions
+                {activeTab === "prescriptions" && (
                   <PrescriptionList
                     prescriptions={filteredPrescriptions}
                     onViewPrescription={handleViewPrescription}
@@ -719,7 +689,7 @@ export default function PharmacistPage() {
                     loading={loadingStates.prescriptions}
                   />
                 )}
-                {activeTab === "dispensing" && ( // Render dispensing view if active tab is dispensing
+                {activeTab === "dispensing" && (
                   <Dispensing
                     prescriptions={prescriptions}
                     onConfirmDelivery={(prescriptionId) =>
@@ -728,7 +698,7 @@ export default function PharmacistPage() {
                     loading={loadingStates.prescriptions}
                   />
                 )}
-                {activeTab === "inventory" && ( // Render inventory view if active tab is inventory
+                {activeTab === "inventory" && (
                   <Inventory
                     drugs={filteredDrugs}
                     onAddDrug={() => setShowAddDrugDialog(true)}
@@ -736,14 +706,14 @@ export default function PharmacistPage() {
                     loading={loadingStates.drugs}
                   />
                 )}
-                {activeTab === "reports" && ( // Render reports view if active tab is reports
+                {activeTab === "reports" && (
                   <Reports
                     prescriptions={prescriptions}
                     drugs={drugs}
                     loading={loadingStates.prescriptions || loadingStates.drugs}
                   />
                 )}
-                {activeTab === "patients" && ( // Render patients view if active tab is patients
+                {activeTab === "patients" && (
                   <Patients
                     patients={patients}
                     onViewPatient={(patientId) => {
@@ -753,25 +723,25 @@ export default function PharmacistPage() {
                       setSelectedPatient(selectedPatient);
                       setActiveTab("patients");
                     }}
-                    selectedPatient={selectedPatient} // Pass selected patient to show details
+                    selectedPatient={selectedPatient}
                     loading={loadingStates.patients}
                   />
                 )}
-                {activeTab === "prescriptions" &&
-                  selectedPrescription && ( // Render prescription details if a prescription is selected
-                    <PrescriptionDetails
-                      prescription={selectedPrescription}
-                      onClose={() => setSelectedPrescription(null)}
-                      onConfirmDelivery={handleConfirmDelivery}
-                      loadingStates={loadingStates}
-                    />
-                  )}
+                {activeTab === "prescriptions" && selectedPrescription && (
+                  <PrescriptionDetails
+                    prescription={selectedPrescription}
+                    onClose={() => setSelectedPrescription(null)}
+                    onConfirmDelivery={handleConfirmDelivery}
+                    loadingStates={loadingStates}
+                    colors={COLORS} // Pass COLORS object as a prop
+                  />
+                )}
               </>
             )}
           </div>
         </main>
       </div>
-      {showNewPrescriptionDialog && ( // Render new prescription dialog if visible
+      {showNewPrescriptionDialog && (
         <NewPrescriptionDialog
           open={showNewPrescriptionDialog}
           onClose={() => setShowNewPrescriptionDialog(false)}
@@ -787,7 +757,7 @@ export default function PharmacistPage() {
           formErrors={formErrors}
         />
       )}
-      {showAddDrugDialog && ( // Render add drug dialog if visible
+      {showAddDrugDialog && (
         <AddDrugDialog
           open={showAddDrugDialog}
           onClose={() => setShowAddDrugDialog(false)}
@@ -797,7 +767,7 @@ export default function PharmacistPage() {
           formErrors={formErrors}
         />
       )}
-      {showAddInventoryDialog && ( // Render add inventory dialog if visible
+      {showAddInventoryDialog && (
         <AddInventoryDialog
           open={showAddInventoryDialog}
           onClose={() => setShowAddInventoryDialog(false)}
@@ -808,7 +778,7 @@ export default function PharmacistPage() {
           formErrors={formErrors}
         />
       )}
-      <ConfirmDialog // Render confirm dialog if visible
+      <ConfirmDialog
         open={isConfirmDialogOpen}
         onClose={() => setIsConfirmDialogOpen(false)}
         onConfirm={handleConfirmAction}

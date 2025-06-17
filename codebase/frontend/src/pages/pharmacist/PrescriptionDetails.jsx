@@ -13,7 +13,12 @@ export default function PrescriptionDetails({
   onClose,
   onConfirmDelivery,
   loadingStates = { prescriptions: false, delivery: false },
+  colors, // New prop to receive COLORS object
 }) {
+  const getStatusColor = (status) => {
+    return colors[status] || colors.default; // Use the passed colors object
+  };
+
   return (
     <Card className="md:col-span-2">
       <CardHeader>
@@ -58,11 +63,12 @@ export default function PrescriptionDetails({
               <div>
                 <p className="font-medium text-gray-500">Status</p>
                 <Badge
-                  variant={
-                    selectedPrescription.deliveryStatus === "DELIVERED"
-                      ? "success"
-                      : "warning"
-                  }
+                  style={{
+                    backgroundColor: getStatusColor(
+                      selectedPrescription.deliveryStatus
+                    ),
+                  }}
+                  className="text-white"
                 >
                   {selectedPrescription.deliveryStatus}
                 </Badge>
