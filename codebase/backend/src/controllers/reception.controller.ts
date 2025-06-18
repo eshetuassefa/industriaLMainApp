@@ -83,6 +83,7 @@ export const addPatient = [
               address: validatedData.address,
             },
           },
+          bloodType: validatedData.bloodType,
           emergencyContact: {
             create: {
               name: validatedData.emergencyContact.name,
@@ -135,6 +136,7 @@ export const updatePatient = [
               address: validatedData.address,
             },
           },
+          bloodType: validatedData.bloodType,
           emergencyContact: {
             upsert: {
               update: {
@@ -226,79 +228,170 @@ export const fetchPatients = [
   },
 ];
 
-// Forward patient to a doctor
+// Forward a patient to a specific doctor
 export const forwardPatient = [
   authenticateToken,
-  authorizeRoles("RECEPTIONIST"),
+  authorizeRoles('RECEPTIONIST'),
   async (req: Request, res: Response) => {
     try {
-      const validatedData = forwardPatientSchema.parse(req.body);
-      const { patientId, doctorId, notes } = validatedData;
+      const { patientId, doctorId, notes } = req.body;
+
+      // Validate required fields
+      if (!patientId || !doctorId) {
+        return res.status(400).json({ message: 'Patient ID and Doctor ID are required' });
+      }
 
       // Check if patient exists
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
+        include: { person: true }
       });
 
       if (!patient) {
-        return res.status(404).json({ message: "Patient not found" });
+        return res.status(404).json({ message: 'Patient not found' });
       }
 
       // Check if doctor exists and is a healthcare provider
       const doctor = await prisma.user.findFirst({
         where: {
           id: doctorId,
-          role: "HEALTHCARE_PROVIDER",
-        },
+          role: 'HEALTHCARE_PROVIDER'
+        }
       });
 
       if (!doctor) {
-        return res.status(404).json({ message: "Doctor not found or not a healthcare provider" });
+        return res.status(404).json({ message: 'Doctor not found or is not a healthcare provider' });
       }
 
-      // Create or update assignment
+      // Create or update patient-doctor assignment
       const assignment = await prisma.patientDoctorAssignment.upsert({
         where: {
           patientId_doctorId: {
             patientId,
-            doctorId,
-          },
+            doctorId
+          }
         },
         update: {
-          status: "ACTIVE",
+          status: 'ACTIVE',
           notes,
-          updatedAt: new Date(),
+          updatedAt: new Date()
         },
         create: {
           patientId,
           doctorId,
           notes,
-        },
-        include: {
-          patient: {
-            include: {
-              person: true,
-            },
-          },
-          doctor: {
-            include: {
-              person: true,
-            },
-          },
-        },
+          status: 'ACTIVE'
+        }
       });
 
       res.status(200).json({
-        message: "Patient forwarded successfully",
-        data: assignment,
+        message: 'Patient forwarded successfully',
+        data: {
+          assignment,
+          patient: {
+            id: patient.id,
+            person: patient.person
+          },
+          doctor: {
+            id: doctor.id,
+            role: doctor.role
+          }
+        }
       });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        console.error(error);
-        res.status(500).json({ message: "Failed to forward patient", error });
-      }
+      console.error('Error forwarding patient:', error);
+      res.status(500).json({ message: 'Error forwarding patient' });
     }
-  },
+  }
+];
+
+// Get forwarded patient details with medical history
+export const getForwardedPatient = [
+  authenticateToken,
+  authorizeRoles('RECEPTIONIST', 'HEALTHCARE_PROVIDER'),
+  async (req: Request, res: Response) => {
+    try {
+      const { patientId, doctorId } = req.params;
+
+      // Validate required fields
+      if (!patientId || !doctorId) {
+        return res.status(400).json({ message: 'Patient ID and Doctor ID are required' });
+      }
+
+      // Get patient-doctor assignment
+      const assignment = await prisma.patientDoctorAssignment.findFirst({
+        where: {
+          patientId,
+          doctorId,
+          status: 'ACTIVE'
+        }
+      });
+
+      if (!assignment) {
+        return res.status(404).json({ message: 'No active assignment found for this patient and doctor' });
+      }
+
+      // Get patient details with medical history
+      const patient = await prisma.patient.findUnique({
+        where: { id: patientId },
+        include: {
+          person: true,
+          emergencyContact: true,
+          medicalRecords: {
+            include: {
+              labResults: true,
+              prescriptions: true,
+              radiologyReports: true,
+              doctor: {
+                include: {
+                  person: true
+                }
+              }
+            },
+            orderBy: {
+              visitDate: 'desc'
+            }
+          }
+        }
+      });
+
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
+
+      res.status(200).json({
+        message: 'Forwarded patient details retrieved successfully',
+        data: {
+          assignment,
+          patient: {
+            id: patient.id,
+            person: patient.person,
+            emergencyContact: patient.emergencyContact,
+            medicalRecords: patient.medicalRecords.map(record => ({
+              id: record.id,
+              visitDate: record.visitDate,
+              diagnosis: record.diagnosis,
+              chiefComplaint: record.chiefComplaint,
+              bloodPressure: record.bloodPressure,
+              heartRate: record.heartRate,
+              temperature: record.temperature,
+              physicalExamination: record.physicalExamination,
+              notes: record.notes,
+              doctor: record.doctor ? {
+                id: record.doctor.id,
+                role: record.doctor.role,
+                person: record.doctor.person
+              } : null,
+              labResults: record.labResults,
+              prescriptions: record.prescriptions,
+              radiologyReports: record.radiologyReports
+            }))
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error getting forwarded patient:', error);
+      res.status(500).json({ message: 'Error getting forwarded patient details' });
+    }
+  }
 ];

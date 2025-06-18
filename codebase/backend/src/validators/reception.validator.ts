@@ -19,6 +19,7 @@ export const patientSchema = z.object({
     address: z.string().min(5, 'Address must be at least 5 characters long'),
     nationalId: z.string().optional(),
     birthCertificate: z.string().optional(),
+    bloodType: z.string().optional(),
     emergencyContact: emergencyContactSchema,
 });
 

@@ -71,7 +71,7 @@ export const login: RequestHandler = async (
         redirectUrl = "/admin/dashboard";
         break;
       case RoleType.HEALTHCARE_PROVIDER:
-        redirectUrl = "/doctor/dashboard";
+        redirectUrl = "/provider";
         break;
       case RoleType.PHARMACIST:
         redirectUrl = "/pharmacy/dashboard";

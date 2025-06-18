@@ -226,7 +226,7 @@ export const addMedicalRecord = [
 // Create a new appointment
 export const createAppointment = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles('HEALTHCARE_PROVIDER'),
   async (req: Request, res: Response) => {
     try {
       const validatedData = createAppointmentSchema.parse(req.body);
@@ -269,7 +269,7 @@ export const createAppointment = [
 // Get all appointments for a doctor
 export const getDoctorAppointments = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles('HEALTHCARE_PROVIDER'),
   async (req: Request, res: Response) => {
     try {
       const appointments = await prisma.appointment.findMany({
@@ -306,7 +306,7 @@ export const getDoctorAppointments = [
 // Get single appointments for a doctor
 export const getAppointments = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles('HEALTHCARE_PROVIDER'),
   async (req: Request, res: Response) => {
     try {
       const { appointmentId } = appointmentIdSchema.parse(req.params);
@@ -347,7 +347,7 @@ export const getAppointments = [
 // Update an appointment
 export const updateAppointment = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles('HEALTHCARE_PROVIDER'),
   async (req: Request, res: Response) => {
     try {
       const { appointmentId } = appointmentIdSchema.parse(req.params);
@@ -389,7 +389,7 @@ export const updateAppointment = [
 // Delete an appointment
 export const deleteAppointment = [
   authenticateToken,
-  authorizeRoles('SUPERADMIN'),
+  authorizeRoles('HEALTHCARE_PROVIDER'),
   async (req: Request, res: Response) => {
     try {
       const { appointmentId } = appointmentIdSchema.parse(req.params);

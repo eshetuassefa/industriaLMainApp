@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ClockIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ClockIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { getForwardedPatient, addMedicalRecord } from '../../services/provider.service';
 
 const labTests = [
   { id: "cbc", name: "Complete Blood Count (CBC)" },
@@ -35,6 +36,10 @@ const MedicalRecord = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [patientData, setPatientData] = useState(null);
+  const [medicalHistory, setMedicalHistory] = useState([]);
   const [formData, setFormData] = useState({
     chiefComplaint: "",
     historyOfPresentIllness: "",
@@ -58,184 +63,23 @@ const MedicalRecord = () => {
     recordStatus: "draft",
   });
 
-  // Mock patient data - in real app, this would come from an API
-  const patientInfo = {
-    name: "Abebe Kebede",
-    age: 45,
-    gender: "Male",
-    id: "P12345",
-    bloodType: "O+",
-    allergies: "Penicillin",
-    lastVisit: "2023-06-15",
-    primaryDoctor: "Dr. Yohannes",
-  };
+  useEffect(() => {
+    fetchForwardedPatient();
+  }, [patientId]);
 
-  // Mock medical history data
-  const medicalHistory = [
-    {
-      id: 1,
-      date: "2023-06-15",
-      chiefComplaint: "Severe headache",
-      historyOfPresentIllness:
-        "Patient reports severe throbbing headache for the past 2 days, worse on the right side.",
-      diagnosis: "Migraine",
-      medications: [
-        {
-          name: "Paracetamol",
-          dosage: "500mg",
-          frequency: "Every 6 hours",
-          duration: "3 days",
-        },
-        {
-          name: "Ibuprofen",
-          dosage: "400mg",
-          frequency: "Every 8 hours",
-          duration: "3 days",
-        },
-      ],
-      vitalSigns: {
-        bloodPressure: "120/80",
-        heartRate: "72",
-        respiratoryRate: "16",
-        temperature: "37.0",
-      },
-      physicalExamination: "No focal neurological deficits. Fundoscopy normal.",
-      labTests: ["CBC", "Lipid Panel"],
-      radiologyTests: ["CT Head"], // These are the *ordered* tests, not the results
-      radiologyResultDetails: [
-        {
-          id: "RAD_HIST_001",
-          // Include patient info relevant to THIS specific radiology result if different from the overall medical record patient
-          // For simplicity in mock, we'll assume it's the same patient as the medical record.
-          // In a real app, this might be a subset or reference.
-          patientInfo: {
-            name: "Abebe Kebede",
-            age: 45,
-            gender: "Male",
-            patientId: "P12345",
-          },
-          imagingModality: "CT Head",
-          examDate: "2023-06-15",
-          examTime: "14:30",
-          reportingRadiologist: "Dr. Yohannes Teklu",
-          dicomImageId: "DICOM_HIST_CT_20230615_001", // Unique ID for historical image
-          imageUrl: "https://example.com/dicom/CT_HIST_20230615_001.jpg", // Mock image URL for historical result
-          impression: "No acute intracranial abnormality.", // Keep impression here for summary view
-          report: {
-            narrative:
-              "Detailed narrative for the historical CT Head scan. Patient presented with severe headache. Imaging shows no evidence of acute intracranial hemorrhage, mass effect, or significant structural abnormalities. Ventricles and cisterns are normal in size. The visualized paranasal sinuses and mastoid air cells are clear.",
-            impression: "Normal CT Head.", // Impression also in report structure for full view consistency
-            measurements: [
-              // Add any relevant measurements here if available
-              { label: "Ventricle Size", value: "Normal" },
-            ],
-            annotations: [
-              // Add any relevant annotations here if available
-              "No hemorrhage",
-              "No mass effect",
-            ],
-          },
-        },
-      ],
-      adviceAndFollowUp: "Follow up in 1 week if symptoms persist.",
-      recordedBy: {
-        name: "Dr. Yohannes",
-        hospital: "Tikur Anbessa Specialized Hospital",
-      },
-      status: "Completed",
-      labResults: [
-        {
-          testName: "TSH",
-          result: "1.35",
-          unit: "ulU/ml",
-          flag: "Normal",
-          referenceRange: "0.3-4.5",
-          remark: "",
-        },
-        {
-          testName: "FT4",
-          result: "5.86",
-          unit: "ng/dl",
-          flag: "High",
-          referenceRange: "0.9-1.75",
-          remark: "",
-        },
-        {
-          testName: "FT3",
-          result: "1.54",
-          unit: "Pg/dl",
-          flag: "Low",
-          referenceRange: "2-4.2",
-          remark: "",
-        },
-        {
-          testName: "Folate",
-          result: "21.9",
-          unit: "ng/ml",
-          flag: "Normal",
-          referenceRange: "5.21-24.0",
-          remark: "",
-        },
-        {
-          testName: "iCa",
-          result: "0.24",
-          unit: "mmol/l",
-          flag: "Low",
-          referenceRange: "1.1-1.35",
-          remark: "",
-        },
-        {
-          testName: "TCa",
-          result: "0.50",
-          unit: "mmol/l",
-          flag: "Low",
-          referenceRange: "2.2-2.7",
-          remark: "",
-        },
-        {
-          testName: "Rheumatoid factor",
-          result: "Non-reactive",
-          unit: "",
-          flag: "Normal",
-          referenceRange: "",
-          remark: "",
-        },
-      ],
-      labReportedBy: "Lab Tech Name",
-    },
-    {
-      id: 2,
-      date: "2023-05-20",
-      chiefComplaint: "Fever and cough",
-      historyOfPresentIllness:
-        "Patient presents with 3-day history of fever up to 38.5°C and productive cough.",
-      diagnosis: "Upper Respiratory Infection",
-      medications: [
-        {
-          name: "Amoxicillin",
-          dosage: "500mg",
-          frequency: "Three times daily",
-          duration: "7 days",
-        },
-      ],
-      vitalSigns: {
-        bloodPressure: "118/78",
-        heartRate: "85",
-        respiratoryRate: "18",
-        temperature: "38.2",
-      },
-      physicalExamination: "Pharynx erythematous. Lungs clear to auscultation.",
-      labTests: ["CBC", "Chest X-ray"],
-      radiologyTests: [],
-      adviceAndFollowUp:
-        "Rest and increase fluid intake. Follow up if symptoms worsen.",
-      recordedBy: {
-        name: "Dr. Yohannes",
-        hospital: "Tikur Anbessa Specialized Hospital",
-      },
-      status: "Completed",
-    },
-  ];
+  const fetchForwardedPatient = async () => {
+    try {
+      setLoading(true);
+      const doctorId = localStorage.getItem('doctorId');
+      const response = await getForwardedPatient(patientId, doctorId);
+      setPatientData(response.data);
+      // You might want to fetch medical history here as well
+    } catch (err) {
+      setError(err.message || 'Failed to fetch patient data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
@@ -353,10 +197,75 @@ const MedicalRecord = () => {
     // Show success message or handle response
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement API call to save medical record
-    console.log("Form submitted:", formData);
+    try {
+      // Format the data according to the API specification
+      const recordData = {
+        patientId: patientId,
+        visitDate: new Date().toISOString(),
+        diagnosis: formData.diagnosis.conditions,
+        chiefComplaint: formData.chiefComplaint,
+        bloodPressure: formData.vitalSigns.bloodPressure,
+        heartRate: parseInt(formData.vitalSigns.heartRate) || 0,
+        temperature: parseFloat(formData.vitalSigns.temperature) || 0,
+        physicalExamination: formData.physicalExamination,
+        notes: formData.adviceAndFollowUp,
+        labResults: formData.labTests.map(test => ({
+          testName: test,
+          testDate: new Date().toISOString(),
+          resultValue: '', // These will be filled by lab
+          unit: '',
+          referenceRange: ''
+        })),
+        prescriptions: formData.prescriptions.map(prescription => ({
+          drug: prescription.medication,
+          dosage: prescription.dosage,
+          frequency: prescription.frequency,
+          duration: prescription.duration,
+          instructions: '' // Optional field
+        })),
+        radiologyReports: formData.radiologyRequests.map(test => ({
+          imagingType: test,
+          reportText: formData.radiologyReason,
+          bodyPart: '', // To be filled by radiology
+          reportDate: new Date().toISOString()
+        }))
+      };
+
+      const response = await addMedicalRecord(recordData);
+      
+      // Show success message
+      alert('Medical record saved successfully!');
+      
+      // Reset form or navigate away
+      setFormData({
+        chiefComplaint: '',
+        historyOfPresentIllness: '',
+        vitalSigns: {
+          bloodPressure: '',
+          heartRate: '',
+          respiratoryRate: '',
+          temperature: '',
+        },
+        physicalExamination: '',
+        diagnosis: {
+          conditions: '',
+          status: 'provisional',
+        },
+        labTests: [],
+        labTestsUrgency: 'normal',
+        radiologyRequests: [],
+        radiologyReason: '',
+        prescriptions: [],
+        adviceAndFollowUp: '',
+        recordStatus: 'draft',
+      });
+      
+    } catch (error) {
+      console.error('Error saving medical record:', error);
+      alert(error.message || 'Failed to save medical record. Please try again.');
+    }
   };
 
   const handleViewRecord = (record) => {
@@ -452,6 +361,33 @@ const MedicalRecord = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading patient data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500">{error}</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -467,6 +403,7 @@ const MedicalRecord = () => {
         </div>
 
         {/* Patient Information Card */}
+        {patientInfo && (
         <div className="bg-white p-6 rounded-lg shadow mb-8">
           <h2 className="text-xl font-semibold mb-4">Patient Information</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -480,17 +417,10 @@ const MedicalRecord = () => {
                 {patientInfo.age} / {patientInfo.gender}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Patient ID</p>
-              <p className="font-medium">{patientInfo.id}</p>
-            </div>
+              
             <div>
               <p className="text-sm text-gray-500">Blood Type</p>
               <p className="font-medium">{patientInfo.bloodType}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Allergies</p>
-              <p className="font-medium">{patientInfo.allergies}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Last Visit</p>
@@ -498,6 +428,7 @@ const MedicalRecord = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Medical History Modal */}
         {showHistory && (

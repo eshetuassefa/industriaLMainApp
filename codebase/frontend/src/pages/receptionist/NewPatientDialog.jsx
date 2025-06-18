@@ -343,6 +343,33 @@ const NewPatientDialog = ({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="bloodType">Blood Type</Label>
+              <Select
+                value={isEditing ? editingPatient.bloodType : newPatient.bloodType}
+                onValueChange={(value) =>
+                  isEditing
+                    ? setEditingPatient({ ...editingPatient, bloodType: value })
+                    : setNewPatient({ ...newPatient, bloodType: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A+">A+</SelectItem>
+                  <SelectItem value="A-">A-</SelectItem>
+                  <SelectItem value="B+">B+</SelectItem>
+                  <SelectItem value="B-">B-</SelectItem>
+                  <SelectItem value="AB+">AB+</SelectItem>
+                  <SelectItem value="AB-">AB-</SelectItem>
+                  <SelectItem value="O+">O+</SelectItem>
+                  <SelectItem value="O-">O-</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
         <DialogFooter className="sticky bottom-0 bg-white pt-4 border-t">
           <Button

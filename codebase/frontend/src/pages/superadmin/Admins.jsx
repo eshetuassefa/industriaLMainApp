@@ -1,70 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
-
-const adminData = [
-  {
-    name: 'Abebe Bekele',
-    hospital: 'Tikur Anbessa Specialized Hospital',
-    email: 'abebe.bekele@example.com',
-    phone: '+251911234567',
-    status: 'Active',
-  },
-  {
-    name: 'Tigist Haile',
-    hospital: "St. Paul's Hospital",
-    email: 'tigist.haile@example.com',
-    phone: '+251922345678',
-    status: 'Active',
-  },
-  {
-    name: 'Dawit Tadesse',
-    hospital: 'Gondar University Hospital',
-    email: 'dawit.tadesse@example.com',
-    phone: '+251933456789',
-    status: 'Active',
-  },
-  {
-    name: 'Hiwot Mekonnen',
-    hospital: 'Jimma University Medical Center',
-    email: 'hiwot.mekonnen@example.com',
-    phone: '+251944567890',
-    status: 'Active',
-  },
-  {
-    name: 'Solomon Tesfaye',
-    hospital: 'Hawassa Referral Hospital',
-    email: 'solomon.tesfaye@example.com',
-    phone: '+251955678901',
-    status: 'Active',
-  },
-];
-
-const hospitalOptions = [
-  'Tikur Anbessa Specialized Hospital',
-  "St. Paul's Hospital",
-  'Gondar University Hospital',
-  'Jimma University Medical Center',
-  'Hawassa Referral Hospital',
-];
+import superadminService from '../../services/superadmin.service';
 
 const Admins = () => {
-  const [admins] = useState(adminData);
+  const [admins, setAdmins] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
-    name: '',
-    hospital: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    phone: '',
+    phoneNumber: '',
+    password: '',
+    hospitalId: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchAdmins();
+    fetchHospitals();
+  }, []);
+
+  const fetchAdmins = async () => {
+    try {
+      const response = await superadminService.getAllHospitalAdmins();
+      if (response.success) {
+        setAdmins(response.data);
+      } else {
+        setError(response.error.message);
+      }
+    } catch (err) {
+      setError('Failed to fetch admins');
+    }
+  };
+
+  const fetchHospitals = async () => {
+    try {
+      const response = await superadminService.getAllHospitals();
+      if (response.success) {
+        setHospitals(response.data);
+      } else {
+        setError(response.error.message);
+      }
+    } catch (err) {
+      setError('Failed to fetch hospitals');
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await superadminService.createHospitalAdmin(form);
+      if (response.success) {
+        setAdmins([...admins, response.data]);
+        handleClose();
+      } else {
+        setError(response.error.message);
+      }
+    } catch (err) {
+      setError('Failed to create admin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOpen = () => setShowModal(true);
   const handleClose = () => {
     setShowModal(false);
-    setForm({ name: '', hospital: '', email: '', phone: '' });
+    setForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      password: '',
+      hospitalId: '',
+    });
+    setError(null);
   };
 
   return (
@@ -73,9 +92,16 @@ const Admins = () => {
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-lg font-semibold">Hospital Administrators</h2>
         <button className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 active:scale-95 transition-transform" onClick={handleOpen}>
-          <PlusIcon className="w-5 h-5" /> Add Admin
+          <PlusIcon className="w-5 h-5" /> Add Administrator
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {/* Admins Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
@@ -86,20 +112,16 @@ const Admins = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hospital</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {admins.map((admin, idx) => (
-              <tr key={idx}>
-                <td className="px-6 py-4 whitespace-nowrap font-semibold">{admin.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{admin.hospital}</td>
+            {admins.map((admin) => (
+              <tr key={admin.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{`${admin.person?.firstName} ${admin.person?.lastName}`}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{admin.hospital?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{admin.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{admin.phone}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-black text-white">{admin.status}</span>
-                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{admin.person?.phoneNumber}</td>
                 <td className="px-6 py-4 whitespace-nowrap flex gap-2">
                   <button className="text-gray-600 hover:text-black active:scale-95 transition-transform">
                     <PencilSquareIcon className="w-5 h-5" />
@@ -114,7 +136,7 @@ const Admins = () => {
         </table>
       </div>
 
-      {/* Modal Popup */}
+      {/* Admin Creation Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8 relative">
@@ -126,56 +148,86 @@ const Admins = () => {
               <XMarkIcon className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-semibold mb-1">Add Hospital Administrator</h3>
-            <p className="text-gray-500 text-sm mb-6">Assign an administrator to manage a hospital in the system.</p>
-            <form className="space-y-4">
+            <p className="text-gray-500 text-sm mb-6">Create a new hospital administrator account.</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">First Name</label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={form.firstName}
+                    onChange={handleChange}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                    placeholder="Enter first name"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={form.lastName}
+                    onChange={handleChange}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                    placeholder="Enter last name"
+                    required
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Full Name</label>
+                <label className="block text-sm font-medium mb-1">Email</label>
                 <input
-                  type="text"
-                  name="name"
-                  value={form.name}
+                  type="email"
+                  name="email"
+                  value={form.email}
                   onChange={handleChange}
                   className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
-                  placeholder="Enter administrator's name"
+                  placeholder="admin@hospital.gov.et"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  value={form.phoneNumber}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                  placeholder="+251..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                  placeholder="Enter password"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Hospital</label>
                 <select
-                  name="hospital"
-                  value={form.hospital}
+                  name="hospitalId"
+                  value={form.hospitalId}
                   onChange={handleChange}
                   className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+                  required
                 >
                   <option value="">Select hospital</option>
-                  {hospitalOptions.map((hosp, idx) => (
-                    <option key={idx} value={hosp}>{hosp}</option>
+                  {hospitals.map((hospital) => (
+                    <option key={hospital.id} value={hospital.id}>
+                      {hospital.name}
+                    </option>
                   ))}
                 </select>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
-                    placeholder="admin@hospital.gov.et"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
-                    placeholder="+251..."
-                  />
-                </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <button
@@ -188,8 +240,9 @@ const Admins = () => {
                 <button
                   type="submit"
                   className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 active:scale-95 transition-transform"
+                  disabled={loading}
                 >
-                  Add Administrator
+                  {loading ? 'Creating...' : 'Add Administrator'}
                 </button>
               </div>
             </form>

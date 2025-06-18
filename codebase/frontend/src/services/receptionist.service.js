@@ -83,6 +83,7 @@ const receptionistService = {
         nationalId: patientData.nationalId,
         dob: patientData.dob || null,
         sex: patientData.sex,
+        bloodType: patientData.bloodType || null,
         phoneNumber: patientData.phoneNumber,
         email: patientData.email || null,
         address: patientData.address || null,

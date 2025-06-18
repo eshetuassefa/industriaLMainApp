@@ -11,7 +11,7 @@ export const createSystemAdmin: RequestHandler = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { email, password, firstName, lastName, phoneNumber } = req.body;
+    const { email, password, firstName, lastName, phoneNumber, hospitalId } = req.body;
 
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
@@ -20,6 +20,15 @@ export const createSystemAdmin: RequestHandler = async (
 
     if (existingAdmin) {
       res.status(400).json({ message: "Admin with this email already exists" });
+      return;
+    }
+
+    // Check if hospital exists
+    const hospital = await prisma.hospital.findUnique({
+      where: { id: hospitalId },
+    });
+    if (!hospital) {
+      res.status(400).json({ message: "Hospital does not exist" });
       return;
     }
 
@@ -44,19 +53,22 @@ export const createSystemAdmin: RequestHandler = async (
         password: hashedPassword,
         role: "ADMIN",
         personId: person.id,
+        hospitalId: hospital.id,
       },
       include: {
         person: true,
+        hospital: true,
       },
     });
 
     res.status(201).json({
-      message: "System admin created successfully",
+      message: "Admin created successfully",
       admin: {
         id: admin.id,
         email: admin.email,
         role: admin.role,
         person: admin.person,
+        hospital: admin.hospital,
       },
     });
   } catch (error) {
@@ -77,6 +89,7 @@ export const getAllSystemAdmins: RequestHandler = async (
       },
       include: {
         person: true,
+        hospital: true,
       },
     });
 
@@ -142,32 +155,6 @@ export const deleteSystemAdmin: RequestHandler = async (
 };
 
 // Create a new hospital
-// export const createHospital: RequestHandler = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ): Promise<void> => {
-//   try {
-//     const { name, code, regionId, city, zone } = req.body;
-
-//     const hospital = await prisma.hospital.create({
-//       data: {
-//         name,
-//         code,
-//         regionId,
-//         city,
-//         zone,
-//       },
-//     });
-
-//     res.status(201).json({
-//       message: "Hospital created successfully",
-//       hospital,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 export const createHospital: RequestHandler = async (
   req: Request,
   res: Response,
@@ -178,7 +165,7 @@ export const createHospital: RequestHandler = async (
 
     // Validate region existence
     const region = await prisma.region.findUnique({
-      where: { id: regionId },
+      where: { id: Number(regionId) },
     });
 
     if (!region) {
@@ -188,13 +175,26 @@ export const createHospital: RequestHandler = async (
       return;
     }
 
+    // Check if hospital code already exists
+    const existingHospital = await prisma.hospital.findFirst({
+      where: { code },
+    });
+
+    if (existingHospital) {
+      res.status(400).json({ message: "Hospital with this code already exists" });
+      return;
+    }
+
     const hospital = await prisma.hospital.create({
       data: {
         name,
         code,
-        regionId,
+        regionId: Number(regionId),
         city,
         zone,
+      },
+      include: {
+        region: true,
       },
     });
 
@@ -217,7 +217,14 @@ export const getAllHospitals: RequestHandler = async (
     const hospitals = await prisma.hospital.findMany({
       include: {
         region: true,
-        
+        users: {
+          where: {
+            role: "ADMIN"
+          },
+          include: {
+            person: true
+          }
+        }
       },
     });
 
@@ -271,6 +278,20 @@ export const deleteHospital: RequestHandler = async (
     });
 
     res.status(200).json({ message: "Hospital deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get all regions
+export const getAllRegions: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const regions = await prisma.region.findMany();
+    res.status(200).json(regions);
   } catch (error) {
     next(error);
   }

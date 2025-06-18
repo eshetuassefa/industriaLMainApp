@@ -17,6 +17,11 @@ class AuthService {
 
         // Store user info
         localStorage.setItem("user", JSON.stringify(response.data.user));
+        
+        // Store role-specific IDs
+        if (response.data.user.role === "HEALTHCARE_PROVIDER") {
+          localStorage.setItem("doctorId", response.data.user.id);
+        }
       }
 
       return response.data;
@@ -31,6 +36,7 @@ class AuthService {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
+    localStorage.removeItem("doctorId");
   }
 
   getCurrentUser() {

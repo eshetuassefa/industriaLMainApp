@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const navigation = [
-  { name: 'Dashboard', href: '/provider', icon: CalendarDaysIcon },
+  { name: 'Dashboard', href: '/provider/dashboard', icon: CalendarDaysIcon },
   { name: 'Patients', href: '/provider/patients', icon: UserGroupIcon },
   { name: 'Appointments', href: '/provider/appointments', icon: CalendarDaysIcon },
   { name: 'Medical Records', href: '/provider/medical-records', icon: HeartIcon },

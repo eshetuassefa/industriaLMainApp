@@ -26,6 +26,7 @@ model Patient {
   id                 String            @id @default(uuid())
   nationalId         String?
   birthCertificate   String?
+  bloodType          String?          
   emergencyContact   EmergencyContact? @relation(fields: [emergencyContactId], references: [id])
   emergencyContactId String?           @unique
   person             Person            @relation(fields: [personId], references: [id])
@@ -57,6 +58,8 @@ model User {
   personId              String            @unique
   department            Department?       @relation(fields: [departmentId], references: [id])
   departmentId          String?           // Optional for HEALTHCARE_PROVIDER
+  hospital              Hospital?         @relation(fields: [hospitalId], references: [id])
+  hospitalId            String?           // Optional for ADMIN
   createdAt             DateTime          @default(now())
   updatedAt             DateTime?         // Optional
   technicianResults     TestResult[]      @relation("TechnicianResults")
@@ -215,10 +218,12 @@ model Hospital {
   regionId      Int
   city          String
   zone          String
+   woreda String
   testRequests  TestRequest[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime?   // Optional
   Department    Department[]
+  users         User[]      // Relation to users (admins)
 }
 
 model Region {

@@ -57,6 +57,7 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
+  
   {
     path: "/login",
     element: (
@@ -65,6 +66,8 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
+  
+  
   // {
   //   path: "/about",
   //   element: (
@@ -104,7 +107,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/doctor/dashboard",
+    path: "/provider",
     element: <ProviderLayout />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
