@@ -22,7 +22,8 @@ const Sidebar = () => {
         const filteredRequests = (response.data || [])
           .filter((req) => {
             if (status === "pending-scans") return req.status === "PENDING";
-            if (status === "in-progress-scans") return req.status === "IN_PROGRESS";
+            if (status === "in-progress-scans")
+              return req.status === "IN_PROGRESS";
             if (status === "completed-scans") return req.status === "COMPLETED";
             if (status === "urgent-scans") return req.urgency === "URGENT";
             return false;
@@ -77,7 +78,11 @@ const Sidebar = () => {
           setSelectedRequest(requests.find((r) => r.id === requestId));
           return;
         }
-        result = await radiologyService.submitReport(requestId, { reportText: "" }, []);
+        result = await radiologyService.submitReport(
+          requestId,
+          { reportText: "" },
+          []
+        );
         setSelectedRequest(null);
       }
       if (result.success) {
@@ -117,26 +122,27 @@ const Sidebar = () => {
     }
   };
 
+  // Helper function to get full name safely
+  const getFullName = (person) => {
+    if (!person) return "N/A";
+    const { firstName, middleName, lastName } = person;
+    return [firstName, middleName, lastName].filter(Boolean).join(" ") || "N/A";
+  };
+
   if (!status) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        No status selected
-      </div>
+      <div className="p-4 text-center text-gray-500">No status selected</div>
     );
   }
 
   if (error) {
-    return (
-      <div className="p-4 text-center text-red-500">
-        {error}
-      </div>
-    );
+    return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4 capitalize">
-        {status.replace(/-/g, ' ')} Requests
+        {status.replace(/-/g, " ")} Requests
       </h1>
       {requests.length === 0 ? (
         <div className="text-center text-gray-500 py-8">
@@ -147,26 +153,40 @@ const Sidebar = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Patient Name</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Doctor Name</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Radiologist Name</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Imaging Type</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Body Part</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Actions</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Patient Name
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Doctor Name
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Radiologist Name
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Imaging Type
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Body Part
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Status
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {requests.map((req) => (
                 <tr key={req.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.medicalRecord?.patient?.person?.firstName} {req.medicalRecord?.patient?.person?.lastName}
+                    {getFullName(req.medicalRecord?.patient?.person)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.medicalRecord?.doctor?.person?.firstName} {req.medicalRecord?.doctor?.person?.lastName}
+                    {getFullName(req.medicalRecord?.doctor?.person)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.report?.radiologist?.person?.firstName} {req.report?.radiologist?.person?.lastName}
+                    {getFullName(req.report?.radiologist?.person)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     {req.imagingType}
@@ -194,7 +214,9 @@ const Sidebar = () => {
                         variant="outline"
                         size="sm"
                         className="text-blue-600 hover:text-blue-900"
-                        onClick={() => handleStatusUpdate(req.id, "IN_PROGRESS")}
+                        onClick={() =>
+                          handleStatusUpdate(req.id, "IN_PROGRESS")
+                        }
                       >
                         <Play className="w-4 h-4 mr-1" />
                         Start

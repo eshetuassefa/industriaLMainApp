@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
+import { z } from "zod";
 import {
   patientSchema,
   updatePatientSchema,
@@ -13,57 +14,15 @@ import {
 
 const prisma = new PrismaClient();
 
-// Add a new patient
-// export const addPatient = [
-//   authenticateToken,
-//   authorizeRoles("RECEPTIONIST"), //NB. add receptionist role latter when they created
-//   async (req: Request, res: Response) => {
-//     try {
-//       const validatedData = patientSchema.parse(req.body);
-//       const newPatient = await prisma.patient.create({
-//         data: {
-//           nationalId: validatedData.nationalId,
-//           birthCertificate: validatedData.birthCertificate,
-//           person: {
-//             create: {
-//               firstName: validatedData.firstName,
-//               middleName: validatedData.middleName,
-//               lastName: validatedData.lastName,
-//               sex: validatedData.sex,
-//               dob: new Date(validatedData.dob),
-//               phoneNumber: validatedData.phoneNumber,
-//               address: validatedData.address,
-//             },
-//           },
-//           emergencyContact: {
-//             create: {
-//               name: validatedData.emergencyContact.name,
-//               phone: validatedData.emergencyContact.phone,
-//             },
-//           },
-//         },
-//         include: {
-//           person: true,
-//           emergencyContact: true,
-//         },
-//       });
+// UUID validation schema for params
+const idSchema = z.object({
+  id: z.string().uuid({ message: "Invalid patient ID format" }),
+});
 
-//       res
-//         .status(201)
-//         .json({ message: "Patient added successfully", patient: newPatient });
-//     } catch (error) {
-//       if (error instanceof Error) {
-//         res.status(400).json({ message: error.message });
-//       } else {
-//         console.error(error);
-//         res.status(500).json({ message: "Failed to add patient", error });
-//       }
-//     }
-//   },
-// ];
+// Add a new patient
 export const addPatient = [
   authenticateToken,
-  authorizeRoles("RECEPTIONIST"), // 👈 Only RECEPTIONIST can access
+  authorizeRoles("RECEPTIONIST"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = patientSchema.parse(req.body);
@@ -98,28 +57,58 @@ export const addPatient = [
       });
 
       res.status(201).json({
+        success: true,
         message: "Patient added successfully",
         patient: newPatient,
       });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Validation error",
+            error: error.errors,
+          });
+      } else if (error instanceof Error) {
+        res.status(400).json({ success: false, message: error.message });
       } else {
-        console.error(error);
-        res.status(500).json({ message: "Failed to add patient", error });
+        console.error("Error adding patient:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to add patient", error });
       }
     }
   },
 ];
+
 // Update patient details
 export const updatePatient = [
   authenticateToken,
   authorizeRoles("ADMIN", "RECEPTIONIST"),
   async (req: Request, res: Response) => {
     try {
-      const patientId = req.params.id;
+      // Debug incoming request
+      console.log("Update patient request - req.params:", req.params);
+      console.log("Update patient request - req.body:", req.body);
+
+      // Validate patientId from params
+      const { id: patientId } = idSchema.parse(req.params);
+
+      // Validate request body
       const validatedData = updatePatientSchema.parse(req.body);
-      
+
+      // Check if patient exists
+      const existingPatient = await prisma.patient.findUnique({
+        where: { id: patientId },
+      });
+
+      if (!existingPatient) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Patient not found" });
+      }
+
       const updatedPatient = await prisma.patient.update({
         where: { id: patientId },
         data: {
@@ -139,16 +128,16 @@ export const updatePatient = [
           bloodType: validatedData.bloodType,
           emergencyContact: {
             upsert: {
-                update: {
+              update: {
                 name: validatedData.emergencyContact.name,
                 phone: validatedData.emergencyContact.phone,
-                },
-                create: {
+              },
+              create: {
                 name: validatedData.emergencyContact.name,
                 phone: validatedData.emergencyContact.phone,
               },
             },
-              },
+          },
         },
         include: {
           person: true,
@@ -157,15 +146,26 @@ export const updatePatient = [
       });
 
       res.status(200).json({
+        success: true,
         message: "Patient updated successfully",
         patient: updatedPatient,
       });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Validation error",
+            error: error.errors,
+          });
+      } else if (error instanceof Error) {
+        res.status(400).json({ success: false, message: error.message });
       } else {
-        console.error(error);
-        res.status(500).json({ message: "Failed to update patient", error });
+        console.error("Error updating patient:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to update patient", error });
       }
     }
   },
@@ -174,7 +174,7 @@ export const updatePatient = [
 // Fetch all or searched patients
 export const fetchPatients = [
   authenticateToken,
-  authorizeRoles("SUPERADMIN", "RECEPTIONIST", "HEALTHCARE_PROVIDER"), // 👈 Only RECEPTIONIST can access
+  authorizeRoles("SUPERADMIN", "RECEPTIONIST", "HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
       const validatedData = searchPatientSchema.parse(req.query);
@@ -216,13 +216,23 @@ export const fetchPatients = [
       }
 
       const patients = await prisma.patient.findMany(query);
-      res.status(200).json(patients);
+      res.status(200).json({ success: true, data: patients });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Validation error",
+            error: error.errors,
+          });
+      } else if (error instanceof Error) {
+        res.status(400).json({ success: false, message: error.message });
       } else {
-        console.error(error);
-        res.status(500).json({ message: "Failed to fetch patients", error });
+        console.error("Error fetching patients:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to fetch patients", error });
       }
     }
   },
@@ -231,36 +241,39 @@ export const fetchPatients = [
 // Forward a patient to a specific doctor
 export const forwardPatient = [
   authenticateToken,
-  authorizeRoles('RECEPTIONIST'),
+  authorizeRoles("RECEPTIONIST"),
   async (req: Request, res: Response) => {
     try {
-      const { patientId, doctorId, notes } = req.body;
-
-      // Validate required fields
-      if (!patientId || !doctorId) {
-        return res.status(400).json({ message: 'Patient ID and Doctor ID are required' });
-      }
+      const validatedData = forwardPatientSchema.parse(req.body);
+      const { patientId, doctorId, notes } = validatedData;
 
       // Check if patient exists
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
-        include: { person: true }
+        include: { person: true },
       });
 
       if (!patient) {
-        return res.status(404).json({ message: 'Patient not found' });
+        return res
+          .status(404)
+          .json({ success: false, message: "Patient not found" });
       }
 
       // Check if doctor exists and is a healthcare provider
       const doctor = await prisma.user.findFirst({
         where: {
           id: doctorId,
-          role: 'HEALTHCARE_PROVIDER'
-        }
+          role: "HEALTHCARE_PROVIDER",
+        },
       });
 
       if (!doctor) {
-        return res.status(404).json({ message: 'Doctor not found or is not a healthcare provider' });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Doctor not found or is not a healthcare provider",
+          });
       }
 
       // Create or update patient-doctor assignment
@@ -268,67 +281,84 @@ export const forwardPatient = [
         where: {
           patientId_doctorId: {
             patientId,
-            doctorId
-          }
+            doctorId,
+          },
         },
         update: {
-          status: 'ACTIVE',
+          status: "ACTIVE",
           notes,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         create: {
           patientId,
           doctorId,
           notes,
-          status: 'ACTIVE'
-        }
+          status: "ACTIVE",
+        },
       });
 
       res.status(200).json({
-        message: 'Patient forwarded successfully',
+        success: true,
+        message: "Patient forwarded successfully",
         data: {
           assignment,
           patient: {
             id: patient.id,
-            person: patient.person
+            person: patient.person,
           },
           doctor: {
             id: doctor.id,
-            role: doctor.role
-          }
-        }
+            role: doctor.role,
+          },
+        },
       });
     } catch (error) {
-      console.error('Error forwarding patient:', error);
-      res.status(500).json({ message: 'Error forwarding patient' });
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Validation error",
+            error: error.errors,
+          });
+      } else if (error instanceof Error) {
+        res.status(400).json({ success: false, message: error.message });
+      } else {
+        console.error("Error forwarding patient:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Error forwarding patient", error });
+      }
     }
-  }
+  },
 ];
 
 // Get forwarded patient details with medical history
 export const getForwardedPatient = [
   authenticateToken,
-  authorizeRoles('RECEPTIONIST', 'HEALTHCARE_PROVIDER'),
+  authorizeRoles("RECEPTIONIST", "HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
-      const { patientId, doctorId } = req.params;
-
-      // Validate required fields
-      if (!patientId || !doctorId) {
-        return res.status(400).json({ message: 'Patient ID and Doctor ID are required' });
-      }
+      // Validate params
+      const paramsSchema = z.object({
+        patientId: z.string().uuid({ message: "Invalid patient ID format" }),
+        doctorId: z.string().uuid({ message: "Invalid doctor ID format" }),
+      });
+      const { patientId, doctorId } = paramsSchema.parse(req.params);
 
       // Get patient-doctor assignment
       const assignment = await prisma.patientDoctorAssignment.findFirst({
         where: {
           patientId,
           doctorId,
-          status: 'ACTIVE'
-        }
+          status: "ACTIVE",
+        },
       });
 
       if (!assignment) {
-        return res.status(404).json({ message: 'You have No active assignment  ' });
+        return res
+          .status(404)
+          .json({ success: false, message: "No active assignment found" });
       }
 
       // Get patient details with medical history
@@ -344,30 +374,32 @@ export const getForwardedPatient = [
               radiologyReports: true,
               doctor: {
                 include: {
-                  person: true
-                }
-              }
+                  person: true,
+                },
+              },
             },
             orderBy: {
-              visitDate: 'desc'
-            }
-          }
-        }
+              visitDate: "desc",
+            },
+          },
+        },
       });
 
       if (!patient) {
-        return res.status(404).json({ message: 'Patient not found' });
+        return res
+          .status(404)
+          .json({ success: false, message: "Patient not found" });
       }
 
       res.status(200).json({
-        message: 'Forwarded patient details retrieved successfully',
+        success: true,
+        message: "Forwarded patient details retrieved successfully",
         data: {
-          assignment,
           patient: {
             id: patient.id,
             person: patient.person,
-            emergencyContact: patient.emergencyContact,
-            medicalRecords: patient.medicalRecords.map(record => ({
+            emergencyContact: patient.emergencyContact || null,
+            medicalRecords: patient.medicalRecords.map((record) => ({
               id: record.id,
               visitDate: record.visitDate,
               diagnosis: record.diagnosis,
@@ -377,21 +409,47 @@ export const getForwardedPatient = [
               temperature: record.temperature,
               physicalExamination: record.physicalExamination,
               notes: record.notes,
-              doctor: record.doctor ? {
-                id: record.doctor.id,
-                role: record.doctor.role,
-                person: record.doctor.person
-              } : null,
+              doctor: record.doctor
+                ? {
+                    id: record.doctor.id,
+                    role: record.doctor.role,
+                    person: record.doctor.person,
+                  }
+                : null,
               labResults: record.labResults,
               prescriptions: record.prescriptions,
-              radiologyReports: record.radiologyReports
-            }))
-          }
-        }
+              radiologyReports: record.radiologyReports,
+            })),
+          },
+        },
       });
     } catch (error) {
-      console.error('Error getting forwarded patient:', error);
-      res.status(500).json({ message: 'Error getting forwarded patient details' });
+      if (error instanceof z.ZodError) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Validation error",
+            error: error.errors,
+          });
+      } else if (error instanceof Error) {
+        res.status(400).json({ success: false, message: error.message });
+      } else {
+        console.error("Error getting forwarded patient:", error);
+        res
+          .status(500)
+          .json({
+            success: false,
+            message: "Failed to get forwarded patient details",
+            error,
+          });
+      }
     }
-  }
+  },
 ];
+
+// Cleanup Prisma client on server shutdown
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});

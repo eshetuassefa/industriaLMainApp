@@ -1,11 +1,11 @@
-import express from 'express';
+import express from "express";
 import {
   addPatient,
   updatePatient,
   fetchPatients,
   forwardPatient,
-  getForwardedPatient
-} from '../controllers/reception.controller';
+  getForwardedPatient,
+} from "../controllers/reception.controller";
 
 const router = express.Router();
 
@@ -22,6 +22,8 @@ const router = express.Router();
  *   post:
  *     summary: Add a new patient
  *     tags: [Reception]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -56,6 +58,8 @@ const router = express.Router();
  *                 type: string
  *               birthCertificate:
  *                 type: string
+ *               bloodType:
+ *                 type: string
  *               emergencyContact:
  *                 type: object
  *                 properties:
@@ -66,21 +70,28 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Patient added successfully
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Server error
  */
-router.post('/add-patient', addPatient);
+router.post("/add-patient", addPatient);
 
 /**
  * @swagger
- * /api/reception/update-patient/{patientId}:
+ * /api/reception/update-patient/{id}:
  *   put:
  *     summary: Update patient details by ID
  *     tags: [Reception]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: patientId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: The unique identifier of the patient to update
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     requestBody:
@@ -89,11 +100,6 @@ router.post('/add-patient', addPatient);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - sex
- *               - dob
  *             properties:
  *               firstName:
  *                 type: string
@@ -124,11 +130,11 @@ router.post('/add-patient', addPatient);
  *               birthCertificate:
  *                 type: string
  *                 example: "BC789012"
+ *               bloodType:
+ *                 type: string
+ *                 example: "O+"
  *               emergencyContact:
  *                 type: object
- *                 required:
- *                   - name
- *                   - phone
  *                 properties:
  *                   name:
  *                     type: string
@@ -144,6 +150,9 @@ router.post('/add-patient', addPatient);
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
  *                   example: "Patient updated successfully"
@@ -172,7 +181,7 @@ router.post('/add-patient', addPatient);
  *       500:
  *         description: Server error
  */
-router.put('/update-patient/:patientId', ...updatePatient);
+router.put("/update-patient/:id", updatePatient);
 
 /**
  * @swagger
@@ -180,6 +189,8 @@ router.put('/update-patient/:patientId', ...updatePatient);
  *   get:
  *     summary: Fetch all patients or search by national ID or name
  *     tags: [Reception]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: nationalId
@@ -232,8 +243,12 @@ router.put('/update-patient/:patientId', ...updatePatient);
  *                         type: string
  *                       phone:
  *                         type: string
+ *       400:
+ *         description: Invalid query parameters
+ *       500:
+ *         description: Server error
  */
-router.get('/fetch-patients', ...fetchPatients);
+router.get("/fetch-patients", fetchPatients);
 
 /**
  * @swagger
@@ -255,8 +270,10 @@ router.get('/fetch-patients', ...fetchPatients);
  *             properties:
  *               patientId:
  *                 type: string
+ *                 format: uuid
  *               doctorId:
  *                 type: string
+ *                 format: uuid
  *               notes:
  *                 type: string
  *     responses:
@@ -266,8 +283,10 @@ router.get('/fetch-patients', ...fetchPatients);
  *         description: Invalid input data
  *       404:
  *         description: Patient or doctor not found
+ *       500:
+ *         description: Server error
  */
-router.post('/forward-patient', forwardPatient);
+router.post("/forward-patient", forwardPatient);
 
 /**
  * @swagger
@@ -283,19 +302,25 @@ router.post('/forward-patient', forwardPatient);
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID of the patient
  *       - in: path
  *         name: doctorId
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID of the doctor
  *     responses:
  *       200:
  *         description: Forwarded patient details retrieved successfully
+ *       400:
+ *         description: Invalid input data
  *       404:
  *         description: No active assignment found or patient not found
+ *       500:
+ *         description: Server error
  */
-router.get('/forwarded-patient/:patientId/:doctorId', getForwardedPatient);
+router.get("/forwarded-patient/:patientId/:doctorId", getForwardedPatient);
 
 export default router;

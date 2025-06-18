@@ -38,11 +38,12 @@ const RadiologistDashboard = () => {
       const response = await radiologyService.getAllRadiologyRequests();
       if (response.success) {
         const allRequests = response.data || [];
-        
+
         // Calculate statistics
         const stats = {
           pending: allRequests.filter((r) => r.status === "PENDING").length,
-          inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS").length,
+          inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS")
+            .length,
           completed: allRequests.filter((r) => r.status === "COMPLETED").length,
           urgent: allRequests.filter((r) => r.urgency === "URGENT").length,
           scanTypes: allRequests.reduce((acc, r) => {
@@ -89,9 +90,12 @@ const RadiologistDashboard = () => {
     fetchAllRadiologyRequests();
   }, [fetchAllRadiologyRequests]);
 
-  const handleCardClick = useCallback((status) => {
-    navigate(`/radiology/dashboard/${status}`);
-  }, [navigate]);
+  const handleCardClick = useCallback(
+    (status) => {
+      navigate(`/radiology/dashboard/${status}`);
+    },
+    [navigate]
+  );
 
   const filteredRequests = requests.filter((request) => {
     const searchLower = searchTerm.toLowerCase();
@@ -171,6 +175,13 @@ const RadiologistDashboard = () => {
     if (selectedRequest) {
       await handleStatusUpdate(selectedRequest.id, "COMPLETED");
     }
+  };
+
+  // Helper function to get full name safely
+  const getFullName = (person) => {
+    if (!person) return "N/A";
+    const { firstName, middleName, lastName } = person;
+    return [firstName, middleName, lastName].filter(Boolean).join(" ") || "N/A";
   };
 
   if (loading) {
@@ -261,12 +272,6 @@ const RadiologistDashboard = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button
-              onClick={() => navigate("/radiology/schedule")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-r-lg flex items-center hover:bg-blue-700"
-            >
-              <PlusIcon className="h-5 w-5 mr-1" /> New Request
-            </button>
           </div>
         </div>
 
@@ -303,28 +308,46 @@ const RadiologistDashboard = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Radiologist Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imaging Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Body Part</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Patient Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Doctor Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Radiologist Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Imaging Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Body Part
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Notes
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created At
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRequests.map((request) => (
                 <tr key={request.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.medicalRecord?.patient?.person?.firstName} {request.medicalRecord?.patient?.person?.lastName}
+                    {getFullName(request.medicalRecord?.patient?.person)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.medicalRecord?.doctor?.person?.firstName} {request.medicalRecord?.doctor?.person?.lastName}
+                    {getFullName(request.medicalRecord?.doctor?.person)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.report?.radiologist?.person?.firstName} {request.report?.radiologist?.person?.lastName}
+                    {getFullName(request.report?.radiologist?.person)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -394,17 +417,51 @@ const RadiologistDashboard = () => {
 
         {/* Enhanced Report Submission Modal */}
         {selectedRequest && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => {
-            setSelectedRequest(null);
-            setReportText("");
-            setImages([]);
-            setImagePreviews([]);
-          }}>
-            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold mb-6 text-gray-900">
-                Submit Report for Request #{selectedRequest.id}
-              </h2>
-              <form onSubmit={handleSubmitReport} className="space-y-4">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setSelectedRequest(null);
+              setReportText("");
+              setImages([]);
+              setImagePreviews([]);
+            }}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Submit Report for Request #{selectedRequest.id}
+                </h2>
+                <button
+                  onClick={() => {
+                    setSelectedRequest(null);
+                    setReportText("");
+                    setImages([]);
+                    setImagePreviews([]);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <form onSubmit={handleSubmitReport} className="p-6 space-y-4">
                 <div>
                   <label
                     htmlFor="reportText"
@@ -449,52 +506,145 @@ const RadiologistDashboard = () => {
                     </div>
                   )}
                 </div>
-                <div className="flex justify-end gap-4">
-                  <button
-                    type="button"
-                    className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                    onClick={() => {
-                      setSelectedRequest(null);
-                      setReportText("");
-                      setImages([]);
-                      setImagePreviews([]);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-                    disabled={!reportText}
-                  >
-                    Submit Report
-                  </button>
-                </div>
               </form>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-4 p-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                  onClick={() => {
+                    setSelectedRequest(null);
+                    setReportText("");
+                    setImages([]);
+                    setImagePreviews([]);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                  disabled={!reportText}
+                  onClick={handleSubmitReport}
+                >
+                  Submit Report
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* View Details Modal */}
         {showDetails && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowDetails(null)}>
-            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold mb-6 text-gray-900">Scan Details</h2>
-              <div className="space-y-4">
-                <p className="text-lg"><strong>Patient:</strong> {showDetails.medicalRecord?.patient?.person?.firstName} {showDetails.medicalRecord?.patient?.person?.lastName}</p>
-                <p className="text-lg"><strong>Doctor:</strong> {showDetails.medicalRecord?.doctor?.person?.firstName} {showDetails.medicalRecord?.doctor?.person?.lastName}</p>
-                <p className="text-lg"><strong>Radiologist:</strong> {showDetails.report?.radiologist?.person?.firstName} {showDetails.report?.radiologist?.person?.lastName}</p>
-                <p className="text-lg"><strong>Imaging Type:</strong> {showDetails.imagingType}</p>
-                <p className="text-lg"><strong>Body Part:</strong> {showDetails.bodyPart}</p>
-                <p className="text-lg"><strong>Status:</strong> {showDetails.status}</p>
-                <p className="text-lg"><strong>Notes:</strong> {showDetails.notes}</p>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDetails(null)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Scan Details
+                </h2>
+                <button
+                  onClick={() => setShowDetails(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => setShowDetails(null)}
-                className="mt-6 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-lg"
-              >
-                Close
-              </button>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">Patient:</span>
+                    <span className="text-gray-900">
+                      {getFullName(showDetails.medicalRecord?.patient?.person)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">Doctor:</span>
+                    <span className="text-gray-900">
+                      {getFullName(showDetails.medicalRecord?.doctor?.person)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">
+                      Radiologist:
+                    </span>
+                    <span className="text-gray-900">
+                      {getFullName(showDetails.report?.radiologist?.person)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">
+                      Imaging Type:
+                    </span>
+                    <span className="text-gray-900">
+                      {showDetails.imagingType}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">
+                      Body Part:
+                    </span>
+                    <span className="text-gray-900">
+                      {showDetails.bodyPart}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-medium">Status:</span>
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        showDetails.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800"
+                          : showDetails.status === "IN_PROGRESS"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {showDetails.status}
+                    </span>
+                  </div>
+                  {showDetails.notes && (
+                    <div className="col-span-2">
+                      <span className="text-gray-600 font-medium block mb-2">
+                        Notes:
+                      </span>
+                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {showDetails.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end p-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowDetails(null)}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

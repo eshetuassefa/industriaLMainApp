@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ClockIcon,
   DocumentTextIcon,
@@ -43,7 +43,65 @@ const LabDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const toastRef = useRef(toast);
   const [allRequests, setAllRequests] = useState([]); // Add this state for storing all requests
+  const [resultRows, setResultRows] = useState([
+    {
+      parameter: "",
+      value: "",
+      unit: "",
+      flag: "",
+      referenceRange: "",
+      remark: "",
+    },
+  ]);
+
+  // Update ref when toast changes
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  // Helper to reset resultRows when opening modal for a new test
+  useEffect(() => {
+    if (isCompleteModalOpen && selectedRequest) {
+      setResultRows([
+        {
+          parameter: "",
+          value: "",
+          unit: "",
+          flag: "",
+          referenceRange: "",
+          remark: "",
+        },
+      ]);
+    }
+  }, [isCompleteModalOpen, selectedRequest]);
+
+  const handleResultRowChange = (idx, field, value) => {
+    setResultRows((prev) => {
+      const updated = [...prev];
+      updated[idx][field] = value;
+      return updated;
+    });
+  };
+
+  const handleAddParameter = () => {
+    setResultRows((prev) => [
+      ...prev,
+      {
+        parameter: "",
+        value: "",
+        unit: "",
+        flag: "",
+        referenceRange: "",
+        remark: "",
+      },
+    ]);
+  };
+
+  const handleRemoveParameter = (idx) => {
+    setResultRows((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const fetchAllTestRequests = useCallback(async () => {
     try {
@@ -53,13 +111,15 @@ const LabDashboard = () => {
 
         // Calculate statistics
         const stats = {
-          pendingTests: fetchedRequests.filter((r) => r.status === "PENDING")
+          pendingTests: fetchedRequests.filter((r) => r.status === "REQUESTED")
             .length,
           inProgress: fetchedRequests.filter((r) => r.status === "IN_PROGRESS")
             .length,
-          completedToday: fetchedRequests.filter((r) => r.status === "COMPLETED")
+          completedToday: fetchedRequests.filter(
+            (r) => r.status === "COMPLETED"
+          ).length,
+          urgentTests: fetchedRequests.filter((r) => r.urgency === "URGENT")
             .length,
-          urgentTests: fetchedRequests.filter((r) => r.urgency === "URGENT").length,
           testTypes: fetchedRequests.reduce((acc, r) => {
             acc[r.testType?.name || "Unknown"] =
               (acc[r.testType?.name || "Unknown"] || 0) + 1;
@@ -74,7 +134,7 @@ const LabDashboard = () => {
         let filteredRequests = fetchedRequests;
         if (activeTab === "pendingInProgress") {
           filteredRequests = fetchedRequests.filter(
-            (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+            (r) => r.status === "REQUESTED" || r.status === "IN_PROGRESS"
           );
         } else if (activeTab === "recentlyCompleted") {
           filteredRequests = fetchedRequests.filter(
@@ -91,14 +151,14 @@ const LabDashboard = () => {
       }
     } catch (err) {
       setError("Failed to fetch test requests");
-      toast({
+      toastRef.current({
         title: "Error",
         description: "Failed to load test requests",
         variant: "destructive",
       });
       setLoading(false);
     }
-  }, [activeTab, toast]);
+  }, [activeTab]); // Removed toast dependency
 
   useEffect(() => {
     fetchAllTestRequests();
@@ -108,32 +168,39 @@ const LabDashboard = () => {
     (status) => {
       switch (status) {
         case "pending-tests":
-          navigate('/lab/pending-tests');
+          navigate("/lab/pending-tests");
           break;
         case "in-progress-tests":
-          navigate('/lab/in-progress-tests');
+          navigate("/lab/in-progress-tests");
           break;
         case "completed-tests":
-          navigate('/lab/completed-tests');
+          navigate("/lab/completed-tests");
           break;
         case "urgent-tests":
-          navigate('/lab/urgent-tests');
+          navigate("/lab/urgent-tests");
           break;
         default:
-          navigate('/lab/dashboard');
+          navigate("/lab/dashboard");
       }
     },
     [navigate]
   );
 
-  const handleTabChange = useCallback((tab) => {
-    setActiveTab(tab);
-    if (tab === "pendingInProgress") {
-      setRequests(allRequests.filter(r => r.status === "PENDING" || r.status === "IN_PROGRESS"));
-    } else if (tab === "recentlyCompleted") {
-      setRequests(allRequests.filter(r => r.status === "COMPLETED"));
-    }
-  }, [allRequests]);
+  const handleTabChange = useCallback(
+    (tab) => {
+      setActiveTab(tab);
+      if (tab === "pendingInProgress") {
+        setRequests(
+          allRequests.filter(
+            (r) => r.status === "REQUESTED" || r.status === "IN_PROGRESS"
+          )
+        );
+      } else if (tab === "recentlyCompleted") {
+        setRequests(allRequests.filter((r) => r.status === "COMPLETED"));
+      }
+    },
+    [allRequests]
+  );
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
@@ -141,18 +208,29 @@ const LabDashboard = () => {
       if (newStatus === "IN_PROGRESS") {
         result = await labTechnicianService.startRequest(requestId);
       } else if (newStatus === "COMPLETED") {
-        if (!selectedRequest || selectedRequest.id !== requestId) {
-          setSelectedRequest(requests.find((r) => r.id === requestId));
-          return;
-        }
-        result = await labTechnicianService.submitReport(requestId, {
-          values: reportValues,
+        // Convert resultRows to values object
+        const values = {};
+        resultRows.forEach((row) => {
+          if (row.parameter) values[row.parameter] = row.value;
         });
-        setReportValues("");
+
+        result = await labTechnicianService.submitReport(requestId, {
+          values,
+        });
+        setResultRows([
+          {
+            parameter: "",
+            value: "",
+            unit: "",
+            flag: "",
+            referenceRange: "",
+            remark: "",
+          },
+        ]);
         setSelectedRequest(null);
       }
       if (result.success) {
-        toast({
+        toastRef.current({
           title: "Success",
           description: `Status updated to ${newStatus}`,
         });
@@ -161,7 +239,7 @@ const LabDashboard = () => {
         throw new Error(result.error.message);
       }
     } catch (err) {
-      toast({
+      toastRef.current({
         title: "Error",
         description: err.message || "Failed to update status",
         variant: "destructive",
@@ -171,17 +249,17 @@ const LabDashboard = () => {
 
   const handleViewDetails = async (requestId) => {
     try {
-      const response = await labTechnicianService.getReport(requestId);
-      if (response.success) {
-        setSelectedReport(response.data);
+      const request = requests.find((r) => r.id === requestId);
+      if (request) {
+        setSelectedReport(request);
         setIsDetailsModalOpen(true);
       } else {
-        throw new Error(response.error?.message || "Failed to load report");
+        throw new Error("Request not found");
       }
     } catch (err) {
-      toast({
+      toastRef.current({
         title: "Error",
-        description: err.message || "Failed to load report details",
+        description: err.message || "Failed to load request details",
         variant: "destructive",
       });
     }
@@ -201,7 +279,7 @@ const LabDashboard = () => {
     try {
       const result = await labTechnicianService.startRequest(requestId);
       if (result.success) {
-        toast({
+        toastRef.current({
           title: "Success",
           description: "Test started successfully",
         });
@@ -210,7 +288,7 @@ const LabDashboard = () => {
         throw new Error(result.error?.message || "Failed to start test");
       }
     } catch (err) {
-      toast({
+      toastRef.current({
         title: "Error",
         description: err.message || "Failed to start test",
         variant: "destructive",
@@ -220,18 +298,17 @@ const LabDashboard = () => {
 
   const handleCompleteClick = async (requestId) => {
     try {
-      const response = await labTechnicianService.getReport(requestId);
-      if (response.success) {
-        setSelectedReport(response.data);
-        setSelectedRequest(requests.find((r) => r.id === requestId));
+      const request = requests.find((r) => r.id === requestId);
+      if (request) {
+        setSelectedRequest(request);
         setIsCompleteModalOpen(true);
       } else {
-        throw new Error(response.error?.message || "Failed to load report");
+        throw new Error("Request not found");
       }
     } catch (err) {
-      toast({
+      toastRef.current({
         title: "Error",
-        description: err.message || "Failed to load report details",
+        description: err.message || "Failed to load request details",
         variant: "destructive",
       });
     }
@@ -341,125 +418,157 @@ const LabDashboard = () => {
 
         {/* Requests Table */}
         <div className="overflow-x-auto">
-        {requests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-            <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-300 mb-4">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No Test Requests</h2>
-            <p className="text-gray-500 mb-4">There are currently no test requests. Check back later or refresh the page.</p>
-            <Button onClick={() => navigate('/lab/dashboard')}>Back to Dashboard</Button>
-          </div>
-        ) : (
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Test Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Patient
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Notes
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Requested At
-              </th>
-              {activeTab === "recentlyCompleted" && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Lab Technician
-                </th>
-              )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {requests.map((request) => (
-              <tr key={request.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {request.testType?.name || "Unknown"}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {request.patient?.person?.firstName} {request.patient?.person?.middleName} {request.patient?.person?.lastName}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs truncate">
-                    {request.notes}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      request.status === "COMPLETED"
-                        ? "bg-green-100 text-green-800"
-                        : request.status === "IN_PROGRESS"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {request.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(request.requestedAt).toLocaleDateString()}
-                </td>
-                {activeTab === "recentlyCompleted" && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {request.results && request.results[0]?.technician?.person?.firstName
-                      ? `${request.results[0].technician.person.firstName} ${request.results[0].technician.person.middleName || ''} ${request.results[0].technician.person.lastName || ''}`.trim()
-                      : request.results && request.results[0]?.technicianId
-                      ? request.results[0].technicianId
-                      : 'N/A'}
-                  </td>
-                )}
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {request.status === "PENDING" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                      onClick={() => handleStartTest(request.id)}
-                    >
-                      <Play className="w-4 h-4 mr-1" />
-                      Start
-                    </Button>
+          {requests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+              <svg
+                width="64"
+                height="64"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                className="text-gray-300 mb-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">
+                No Test Requests
+              </h2>
+              <p className="text-gray-500 mb-4">
+                There are currently no test requests. Check back later or
+                refresh the page.
+              </p>
+              <Button onClick={() => navigate("/lab/dashboard")}>
+                Back to Dashboard
+              </Button>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Test Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Patient
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Notes
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Requested At
+                  </th>
+                  {activeTab === "recentlyCompleted" && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Lab Technician
+                    </th>
                   )}
-                  {request.status === "IN_PROGRESS" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:text-green-900 mr-3"
-                      onClick={() => handleCompleteClick(request.id)}
-                    >
-                      <FileText className="w-4 h-4 mr-1" />
-                      Complete
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-indigo-600 hover:text-indigo-900"
-                    onClick={() => handleViewDetails(request.id)}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    View Details
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        )}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {requests.map((request) => (
+                  <tr key={request.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {request.testType?.name || "Unknown"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {request.patient?.person?.firstName}{" "}
+                        {request.patient?.person?.middleName}{" "}
+                        {request.patient?.person?.lastName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                        {request.notes}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          request.status === "COMPLETED"
+                            ? "bg-green-100 text-green-800"
+                            : request.status === "IN_PROGRESS"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {request.status === "REQUESTED"
+                          ? "PENDING"
+                          : request.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(request.requestedAt).toLocaleDateString()}
+                    </td>
+                    {activeTab === "recentlyCompleted" && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {request.results &&
+                        request.results[0]?.technician?.person?.firstName
+                          ? `${
+                              request.results[0].technician.person.firstName
+                            } ${
+                              request.results[0].technician.person.middleName ||
+                              ""
+                            } ${
+                              request.results[0].technician.person.lastName ||
+                              ""
+                            }`.trim()
+                          : request.results && request.results[0]?.technicianId
+                          ? request.results[0].technicianId
+                          : "N/A"}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {request.status === "REQUESTED" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          onClick={() => handleStartTest(request.id)}
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Start
+                        </Button>
+                      )}
+                      {request.status === "IN_PROGRESS" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 hover:text-green-900 mr-3"
+                          onClick={() => handleCompleteClick(request.id)}
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          Complete
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-indigo-600 hover:text-indigo-900"
+                        onClick={() => handleViewDetails(request.id)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -467,13 +576,13 @@ const LabDashboard = () => {
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
+            <DialogTitle>Test Request Details</DialogTitle>
             <DialogDescription>
               View the complete details of this test request
             </DialogDescription>
           </DialogHeader>
           {selectedReport && (
-            <div className="py-4 space-y-4">
+            <div className="py-4 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold text-sm text-gray-500">
@@ -495,7 +604,9 @@ const LabDashboard = () => {
                         : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
-                    {selectedReport.status}
+                    {selectedReport.status === "REQUESTED"
+                      ? "PENDING"
+                      : selectedReport.status}
                   </Badge>
                 </div>
                 <div>
@@ -505,14 +616,33 @@ const LabDashboard = () => {
                   <p className="text-sm">
                     {selectedReport.testType?.name || "Unknown"}
                   </p>
+                  {selectedReport.testType?.code && (
+                    <p className="text-xs text-gray-500">
+                      Code: {selectedReport.testType.code}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-gray-500">
                     Patient
                   </h3>
                   <p className="text-sm">
-                    {selectedReport.request?.patient?.person?.fullName ||
-                      "Unknown Patient"}
+                    {selectedReport.patient?.person?.firstName}{" "}
+                    {selectedReport.patient?.person?.middleName}{" "}
+                    {selectedReport.patient?.person?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    ID: {selectedReport.patient?.id}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Requested By
+                  </h3>
+                  <p className="text-sm">
+                    Dr. {selectedReport.doctor?.person?.firstName}{" "}
+                    {selectedReport.doctor?.person?.middleName}{" "}
+                    {selectedReport.doctor?.person?.lastName}
                   </p>
                 </div>
                 <div>
@@ -520,9 +650,7 @@ const LabDashboard = () => {
                     Requested Date
                   </h3>
                   <p className="text-sm">
-                    {new Date(
-                      selectedReport.request?.requestedAt
-                    ).toLocaleDateString()}
+                    {new Date(selectedReport.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
@@ -532,27 +660,89 @@ const LabDashboard = () => {
                   <Badge
                     variant="secondary"
                     className={
-                      selectedReport.request?.urgency === "URGENT"
+                      selectedReport.urgency === "URGENT"
                         ? "bg-red-100 text-red-800"
                         : "bg-gray-100 text-gray-800"
                     }
                   >
-                    {selectedReport.request?.urgency || "Routine"}
+                    {selectedReport.urgency || "Routine"}
                   </Badge>
                 </div>
+                {selectedReport.testType?.specimens && (
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-500">
+                      Specimens
+                    </h3>
+                    <p className="text-sm">
+                      {selectedReport.testType.specimens.join(", ")}
+                    </p>
+                  </div>
+                )}
+                {selectedReport.testType?.duration && (
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-500">
+                      Duration
+                    </h3>
+                    <p className="text-sm">
+                      {selectedReport.testType.duration} hours
+                    </p>
+                  </div>
+                )}
               </div>
-              {selectedReport.values && (
+
+              {selectedReport.notes && (
                 <div>
                   <h3 className="font-semibold text-sm text-gray-500 mb-2">
-                    Test Values
+                    Notes
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <pre className="text-sm whitespace-pre-wrap">
-                      {JSON.stringify(selectedReport.values, null, 2)}
-                    </pre>
-                  </div>
+                  <p className="text-sm bg-gray-50 p-3 rounded-md">
+                    {selectedReport.notes}
+                  </p>
                 </div>
               )}
+
+              {/* Show results if completed */}
+              {selectedReport.status === "COMPLETED" &&
+                selectedReport.results &&
+                selectedReport.results[0] && (
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-500 mb-2">
+                      Test Results
+                    </h3>
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <div className="mb-2">
+                        <strong>Completed by:</strong>{" "}
+                        {
+                          selectedReport.results[0].technician?.person
+                            ?.firstName
+                        }{" "}
+                        {
+                          selectedReport.results[0].technician?.person
+                            ?.middleName
+                        }{" "}
+                        {selectedReport.results[0].technician?.person?.lastName}
+                      </div>
+                      <div className="mb-2">
+                        <strong>Completed at:</strong>{" "}
+                        {new Date(
+                          selectedReport.results[0].completedAt
+                        ).toLocaleDateString()}
+                      </div>
+                      {selectedReport.results[0].values && (
+                        <div>
+                          <strong>Values:</strong>
+                          <pre className="text-sm whitespace-pre-wrap mt-1">
+                            {JSON.stringify(
+                              selectedReport.results[0].values,
+                              null,
+                              2
+                            )}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
           )}
           <DialogFooter>
@@ -568,66 +758,172 @@ const LabDashboard = () => {
 
       {/* Complete Modal */}
       <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[900px]">
           <DialogHeader>
-            <DialogTitle>Complete Request</DialogTitle>
-            <DialogDescription>
-              Submit the final test result and complete this request
-            </DialogDescription>
+            <DialogTitle>
+              Enter Lab Results for Test: {selectedRequest?.testType?.name}
+            </DialogTitle>
           </DialogHeader>
-          {selectedReport && (
+          {selectedRequest && (
             <div className="py-4 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Request ID
-                  </h3>
-                  <p className="text-sm">{selectedReport.id}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Test Type
-                  </h3>
-                  <p className="text-sm">
-                    {selectedReport.testType?.name || "Unknown"}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Patient
-                  </h3>
-                  <p className="text-sm">
-                    {selectedReport.request?.patient?.person?.fullName ||
-                      "Unknown Patient"}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Urgency
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      selectedReport.request?.urgency === "URGENT"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {selectedReport.request?.urgency || "Routine"}
-                  </Badge>
-                </div>
-              </div>
-
+              {/* Patient Info */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Test Values (JSON)
-                </label>
-                <Textarea
-                  placeholder='Enter test values in JSON format, e.g. {"hemoglobin": 14.5, "glucose": 90}'
-                  value={reportValues}
-                  onChange={(e) => setReportValues(e.target.value)}
-                  className="min-h-[200px]"
-                />
+                <h2 className="text-lg font-semibold mb-2">
+                  Patient Information
+                </h2>
+                <p>
+                  <strong>Name:</strong>{" "}
+                  {selectedRequest.patient?.person?.firstName}{" "}
+                  {selectedRequest.patient?.person?.middleName}{" "}
+                  {selectedRequest.patient?.person?.lastName}
+                </p>
+                <p>
+                  <strong>Patient ID:</strong> {selectedRequest.patient?.id}
+                </p>
+                <p>
+                  <strong>Requested By:</strong> Dr.{" "}
+                  {selectedRequest.doctor?.person?.firstName}{" "}
+                  {selectedRequest.doctor?.person?.middleName}{" "}
+                  {selectedRequest.doctor?.person?.lastName}
+                </p>
+                <p>
+                  <strong>Urgency:</strong>{" "}
+                  {selectedRequest.urgency || "Routine"}
+                </p>
+              </div>
+              {/* Results Table */}
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Results</h2>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-1 border">Test Name</th>
+                        <th className="px-2 py-1 border">Result</th>
+                        <th className="px-2 py-1 border">Unit</th>
+                        <th className="px-2 py-1 border">Flag</th>
+                        <th className="px-2 py-1 border">Reference Range</th>
+                        <th className="px-2 py-1 border">Remark</th>
+                        <th className="px-2 py-1 border"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultRows.map((row, idx) => (
+                        <tr key={idx}>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.parameter}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "parameter",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Test Name"
+                              required
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.value}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "value",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Result"
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.unit}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "unit",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Unit"
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.flag}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "flag",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Flag"
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.referenceRange}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "referenceRange",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Reference Range"
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            <input
+                              type="text"
+                              className="w-full border rounded px-2 py-1"
+                              value={row.remark}
+                              onChange={(e) =>
+                                handleResultRowChange(
+                                  idx,
+                                  "remark",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Remark"
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            {resultRows.length > 1 && (
+                              <button
+                                type="button"
+                                className="text-red-500 font-bold px-2"
+                                onClick={() => handleRemoveParameter(idx)}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddParameter}
+                  className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                >
+                  + Add Another Parameter
+                </button>
               </div>
             </div>
           )}
@@ -636,8 +932,16 @@ const LabDashboard = () => {
               variant="outline"
               onClick={() => {
                 setIsCompleteModalOpen(false);
-                setReportValues("");
-                setSelectedReport(null);
+                setResultRows([
+                  {
+                    parameter: "",
+                    value: "",
+                    unit: "",
+                    flag: "",
+                    referenceRange: "",
+                    remark: "",
+                  },
+                ]);
                 setSelectedRequest(null);
               }}
             >
@@ -645,7 +949,11 @@ const LabDashboard = () => {
             </Button>
             <Button
               onClick={handleSubmitReport}
-              disabled={isSubmitting || !reportValues.trim()}
+              disabled={
+                isSubmitting ||
+                resultRows.length === 0 ||
+                resultRows.some((row) => !row.parameter)
+              }
             >
               {isSubmitting ? "Submitting..." : "Submit Result"}
             </Button>
@@ -656,4 +964,4 @@ const LabDashboard = () => {
   );
 };
 
-export default LabDashboard; 
+export default LabDashboard;

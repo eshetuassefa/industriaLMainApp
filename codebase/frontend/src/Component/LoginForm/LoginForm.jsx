@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import authService from "../../services/auth.service";
 
@@ -10,6 +12,16 @@ const LoginForm = () => {
   const [error, setError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract error and redirect from query parameters
+  const params = new URLSearchParams(location.search);
+  const errorMessage = params.get("error")
+    ? decodeURIComponent(params.get("error"))
+    : "";
+  const redirectTo = params.get("redirect")
+    ? decodeURIComponent(params.get("redirect"))
+    : "/";
 
   useEffect(() => {
     // Setup axios interceptors when component mounts
@@ -24,12 +36,12 @@ const LoginForm = () => {
     try {
       const response = await authService.login(email, password);
       console.log("Login successful:", response);
-      
-      // Redirect based on user role
+
+      // Redirect based on user role, fallback to redirect query param or home
       if (response.user && response.user.redirectUrl) {
         navigate(response.user.redirectUrl);
       } else {
-        navigate('/'); // Fallback to home if no redirect URL
+        navigate(redirectTo);
       }
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.");
@@ -52,6 +64,11 @@ const LoginForm = () => {
           className="bg-white p-8 rounded-lg shadow-lg space-y-6"
           onSubmit={handleSubmit}
         >
+          {errorMessage && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+              {errorMessage}
+            </div>
+          )}
           {error && (
             <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
               {error}

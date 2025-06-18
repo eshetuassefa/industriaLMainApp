@@ -7,7 +7,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className="fixed left-0 top-16 h-[calc(100vh-5rem)] w-60 bg-gray-50 border-r border-gray-200 z-10 overflow-y-auto">
+    <div className="fixed left-0 top-16 h-[calc(100vh-5rem)] w-60 bg-gray-800 border-r border-gray-200 z-10 overflow-y-auto">
       <div className="flex flex-col gap-1 p-4">
         {tabs.map((tab) => (
           <button
@@ -15,8 +15,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             onClick={() => setActiveTab(tab.value)}
             className={`w-full py-3 px-4 text-left rounded-md text-base font-medium transition-colors hover:bg-gray-100 flex items-center gap-2 ${
               activeTab === tab.value
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-50 text-gray-700"
+              ? "bg-white text-gray-900 hover:bg-gray-100"
+              : "text-white hover:bg-gray-500"
             }`}
           >
             <tab.icon className="h-5 w-5" />

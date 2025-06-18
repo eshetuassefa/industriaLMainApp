@@ -42,6 +42,13 @@ const RadiologyResultPage = () => {
     }
   }, [requestId, location.state, toast]);
 
+  // Helper function to get full name safely
+  const getFullName = (person) => {
+    if (!person) return "N/A";
+    const { firstName, middleName, lastName } = person;
+    return [firstName, middleName, lastName].filter(Boolean).join(" ") || "N/A";
+  };
+
   if (loading) return <div className="p-8 text-center">Loading report...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
   if (!report) return <div className="p-8 text-center">No report found</div>;
@@ -71,8 +78,8 @@ const RadiologyResultPage = () => {
           {new Date(report.reportDate).toLocaleString()}
         </p>
         <p>
-          <strong>Radiologist:</strong> {report.radiologist?.person?.firstName}{" "}
-          {report.radiologist?.person?.lastName}
+          <strong>Radiologist:</strong>{" "}
+          {getFullName(report.radiologist?.person)}
         </p>
         {report.imageUrls &&
           Array.isArray(report.imageUrls) &&

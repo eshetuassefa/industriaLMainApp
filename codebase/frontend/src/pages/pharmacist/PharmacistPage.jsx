@@ -1,8 +1,7 @@
-// "use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent } from "../../components/ui/tabs";
 import { format } from "date-fns";
 import {
   Search,
@@ -46,7 +45,6 @@ import NewPrescriptionDialog from "@/pages/pharmacist/NewPrescriptionDialog";
 import AddDrugDialog from "@/pages/pharmacist/AddDrugDialog";
 import AddInventoryDialog from "@/pages/pharmacist/AddInventoryDialog";
 import ConfirmDialog from "@/pages/pharmacist/ConfirmDialog";
-import Header from "@/pages/pharmacist/Header";
 
 const COLORS = {
   PENDING: "#eab308", // Yellow
@@ -119,6 +117,8 @@ export default function PharmacistPage() {
     avatar: localStorage.getItem("userAvatar") || null,
   });
   const [formErrors, setFormErrors] = useState({});
+
+  const cardClass = "bg-gray-100 shadow rounded-lg p-4"; // Consistent gray card style
 
   const navigation = [
     { name: "Dashboard", value: "dashboard", icon: Pill },
@@ -209,7 +209,7 @@ export default function PharmacistPage() {
             drugName: p.drugName || "Unknown",
             dosage: p.dosage || "Not specified",
             frequency: p.frequency || "Not specified",
-            duration: p.duration || "Not specified",
+            duration: p.dosage || "Not specified",
             instructions: p.instructions || "No special instructions",
             deliveredAt: p.deliveredAt,
             deliveredBy: p.deliveredBy
@@ -650,11 +650,10 @@ export default function PharmacistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header user={user} notifications={notifications} />
+    <div className="min-h-screen bg-[#fdf9f5]">
       <div className="flex">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-1 ml-60 pt-16 min-h-screen">
+        <main className="flex-1 ml-60 min-h-screen">
           <div className="container mx-auto px-6 py-8">
             {isLoading ? (
               <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
@@ -677,6 +676,7 @@ export default function PharmacistPage() {
                       setActiveTab("prescriptions");
                       setSelectedPrescription(null);
                     }}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "prescriptions" && (
@@ -687,6 +687,7 @@ export default function PharmacistPage() {
                       handleShowConfirmDialog("delivery", prescriptionId)
                     }
                     loading={loadingStates.prescriptions}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "dispensing" && (
@@ -696,6 +697,7 @@ export default function PharmacistPage() {
                       handleShowConfirmDialog("delivery", prescriptionId)
                     }
                     loading={loadingStates.prescriptions}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "inventory" && (
@@ -704,6 +706,7 @@ export default function PharmacistPage() {
                     onAddDrug={() => setShowAddDrugDialog(true)}
                     onAddInventory={() => setShowAddInventoryDialog(true)}
                     loading={loadingStates.drugs}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "reports" && (
@@ -711,6 +714,7 @@ export default function PharmacistPage() {
                     prescriptions={prescriptions}
                     drugs={drugs}
                     loading={loadingStates.prescriptions || loadingStates.drugs}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "patients" && (
@@ -725,6 +729,7 @@ export default function PharmacistPage() {
                     }}
                     selectedPatient={selectedPatient}
                     loading={loadingStates.patients}
+                    cardClass={cardClass}
                   />
                 )}
                 {activeTab === "prescriptions" && selectedPrescription && (
@@ -733,7 +738,8 @@ export default function PharmacistPage() {
                     onClose={() => setSelectedPrescription(null)}
                     onConfirmDelivery={handleConfirmDelivery}
                     loadingStates={loadingStates}
-                    colors={COLORS} // Pass COLORS object as a prop
+                    colors={COLORS}
+                    cardClass={cardClass}
                   />
                 )}
               </>
@@ -755,6 +761,7 @@ export default function PharmacistPage() {
           onAddMedication={handleAddMedicationToPrescription}
           onRemoveMedication={handleRemoveMedicationFromPrescription}
           formErrors={formErrors}
+          cardClass="bg-gray-100 shadow rounded-lg p-6" // Slightly more padding for dialog
         />
       )}
       {showAddDrugDialog && (
@@ -765,6 +772,7 @@ export default function PharmacistPage() {
           newDrug={newDrug}
           setNewDrug={setNewDrug}
           formErrors={formErrors}
+          cardClass="bg-gray-100 shadow rounded-lg p-6"
         />
       )}
       {showAddInventoryDialog && (
@@ -776,6 +784,7 @@ export default function PharmacistPage() {
           setNewInventory={setNewInventory}
           drugs={drugs}
           formErrors={formErrors}
+          cardClass="bg-gray-100 shadow rounded-lg p-6"
         />
       )}
       <ConfirmDialog
@@ -785,6 +794,7 @@ export default function PharmacistPage() {
         title={confirmAction?.title || "Confirm Action"}
         message={confirmAction?.message || "Are you sure you want to proceed?"}
         isLoading={loadingStates.delivery}
+        cardClass="bg-gray-100 shadow rounded-lg p-6"
       />
     </div>
   );

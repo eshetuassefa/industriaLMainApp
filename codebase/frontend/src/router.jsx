@@ -1,6 +1,10 @@
-// router.js
 import React from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useLocation,
+} from "react-router-dom";
 import NotFound from "./pages/notefound/NotFound";
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
@@ -25,7 +29,6 @@ import UrgentPatientsList from "./pages/lab/UrgentPatientsList";
 import RadiologistLayout from "./layouts/RadiologistLayout";
 import RadiologistDashboard from "./pages/radiologist/RadiologistDashboard";
 import RadiologyResultPage from "./pages/radiologist/RadiologyResultPage";
-
 import PendingScansList from "./pages/radiologist/PendingScansList";
 import InProgressScansList from "./pages/radiologist/InProgressScansList";
 import CompletedScansList from "./pages/radiologist/CompletedScansList";
@@ -39,6 +42,7 @@ import Home from "./Component/Home/Home";
 import ReceptionistPage from "./pages/receptionist/ReceptionistPage";
 import PharmacyPage from "./pages/pharmacist/PharmacistPage";
 import AdminPage from "./pages/admin/AdminPage";
+import authService from "@/services/auth.service"; // Adjust the import path as needed
 
 const Layout = ({ children }) => (
   <>
@@ -47,6 +51,25 @@ const Layout = ({ children }) => (
     <Footer />
   </>
 );
+
+// ProtectedRoute component to restrict access to authenticated users
+const ProtectedRoute = () => {
+  const user = authService.getCurrentUser();
+  const location = useLocation();
+
+  if (!user) {
+    // Redirect to login with error message and intended route
+    const redirectTo = encodeURIComponent(location.pathname + location.search);
+    return (
+      <Navigate
+        to={`/login?error=You%20must%20first%20login&redirect=${redirectTo}`}
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+};
 
 const router = createBrowserRouter([
   {
@@ -57,7 +80,6 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
-  
   {
     path: "/login",
     element: (
@@ -66,8 +88,6 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
-  
-  
   // {
   //   path: "/about",
   //   element: (
@@ -77,87 +97,116 @@ const router = createBrowserRouter([
   //   ),
   // },
   {
-    path: "reception/dashboard",
-    element: (
-      <Layout>
-        <ReceptionistPage />
-      </Layout>
-    ),
-  },
-  {
-    path: "pharmacy/dashboard",
-    element: <PharmacyPage />,
-  },
-  {
-    path: "/admin/dashboard",
-    element: (
-      <Layout>
-        <AdminPage />
-      </Layout>
-    ),
-  },
-  {
-    path: "/superadmin",
-    element: <SuperAdminLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <SuperAdminDashboard /> },
-      { path: "admins", element: <SuperAdminAdmins /> },
-      { path: "hospitals", element: <SuperAdminHospitals /> },
+      {
+        path: "reception/dashboard",
+        element: (
+          <Layout>
+            <ReceptionistPage />
+          </Layout>
+        ),
+      },
+      {
+        path: "pharmacy/dashboard",
+        element: (
+          <Layout>
+            <PharmacyPage />
+          </Layout>
+        ),
+      },
+      {
+        path: "/admin/dashboard",
+        element: (
+          <Layout>
+            <AdminPage />
+          </Layout>
+        ),
+      },
+      {
+        path: "/superadmin",
+        element: (
+          <Layout>
+            <SuperAdminLayout />
+          </Layout>
+        ),
+        children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: "dashboard", element: <SuperAdminDashboard /> },
+          { path: "admins", element: <SuperAdminAdmins /> },
+          { path: "hospitals", element: <SuperAdminHospitals /> },
+        ],
+      },
+      {
+        path: "/provider",
+        element: (
+          <Layout>
+            <ProviderLayout />
+          </Layout>
+        ),
+        children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: "dashboard", element: <DoctorDashboard /> },
+          { path: "patients", element: <Patients /> },
+          { path: "appointments", element: <Appointments /> },
+          { path: "medical-records", element: <MedicalRecords /> },
+          { path: "medical-record/:patientId", element: <MedicalRecord /> },
+          { path: "lab-results", element: <LabResults /> },
+          { path: "lab-results/:resultId", element: <LabResultDetails /> },
+          { path: "radiology", element: <RadiologyResults /> },
+        ],
+      },
+      {
+        path: "/lab",
+        element: (
+          <Layout>
+            <LabLayout />
+          </Layout>
+        ),
+        children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: "dashboard", element: <LabDashboard /> },
+          { path: "results/:testId", element: <LabResultForm /> },
+          { path: "pending-tests", element: <PendingPatientsList /> },
+          { path: "in-progress-tests", element: <InProgressPatientsList /> },
+          { path: "completed-tests", element: <CompletedPatientsList /> },
+          { path: "urgent-tests", element: <UrgentPatientsList /> },
+        ],
+      },
+      {
+        path: "/radiology/dashboard",
+        element: (
+          <Layout>
+            <RadiologistLayout />
+          </Layout>
+        ),
+        children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: "dashboard", element: <RadiologistDashboard /> },
+          { path: "pending-scans", element: <PendingScansList /> },
+          { path: "in-progress-scans", element: <InProgressScansList /> },
+          { path: "completed-scans", element: <CompletedScansList /> },
+          { path: "urgent-scans", element: <UrgentScansList /> },
+          { path: "results/:scanId", element: <RadiologyResultEntry /> },
+        ],
+      },
+      {
+        path: "/radiology/result/:requestId",
+        element: (
+          <Layout>
+            <RadiologyResultPage />
+          </Layout>
+        ),
+      },
     ],
-  },
-  {
-    path: "/provider",
-    element: <ProviderLayout />,
-    children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <DoctorDashboard /> },
-      { path: "patients", element: <Patients /> },
-      { path: "appointments", element: <Appointments /> },
-      { path: "medical-records", element: <MedicalRecords /> },
-      { path: "medical-record/:patientId", element: <MedicalRecord /> },
-      { path: "lab-results", element: <LabResults /> },
-      { path: "lab-results/:resultId", element: <LabResultDetails /> },
-      { path: "radiology", element: <RadiologyResults /> },
-    ],
-  },
-  {
-    path: "/lab",
-    element: <LabLayout />,
-    children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <LabDashboard /> },
-      { path: "results/:testId", element: <LabResultForm /> },
-      { path: "pending-tests", element: <PendingPatientsList /> },
-      { path: "in-progress-tests", element: <InProgressPatientsList /> },
-      { path: "completed-tests", element: <CompletedPatientsList /> },
-      { path: "urgent-tests", element: <UrgentPatientsList /> },
-    ],
-  },
-  {
-    path: "/radiology/dashboard",
-    element: <RadiologistLayout />,
-    children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <RadiologistDashboard /> },
-      { path: "pending-scans", element: <PendingScansList /> },
-      { path: "in-progress-scans", element: <InProgressScansList /> },
-      { path: "completed-scans", element: <CompletedScansList /> },
-      { path: "urgent-scans", element: <UrgentScansList /> },
-      { path: "results/:scanId", element: <RadiologyResultEntry /> },
-    ],
-  },
-  {
-    path: "/radiology/result/:requestId",
-    element: (
-      <Layout>
-        <RadiologyResultPage />
-      </Layout>
-    ),
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: (
+      <Layout>
+        <NotFound />
+      </Layout>
+    ),
   },
 ]);
 

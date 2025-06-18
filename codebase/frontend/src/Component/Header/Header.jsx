@@ -1,9 +1,15 @@
+"use client";
+
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/images/logo.png";
-import { Link } from "react-router-dom";
+import authService from "@/services/auth.service";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const currentUser = authService.getCurrentUser();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -11,6 +17,32 @@ const Header = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate("/login");
+      closeMobileMenu();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  // Extract email prefix and prepend "Hi"
+  const getUserDisplayName = () => {
+    if (!currentUser || !currentUser.email) return "User";
+    const emailPrefix = currentUser.email.split("@")[0];
+    return `Hi ${emailPrefix}`;
   };
 
   return (
@@ -40,25 +72,52 @@ const Header = () => {
                       Home
                     </Link>
                   </li>
-                  {/* <li>
-                    <Link
-                      to="/about"
-                      className="text-gray-700 font-semibold hover:text-blue-500 transition-colors duration-200 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-blue-500 hover:after:w-full after:transition-all after:duration-300"
-                    >
-                      About Us
-                    </Link>
-                  </li> */}
+                
                 </ul>
               </nav>
 
-              {/* Login Button */}
-              <div>
-                <Link
-                  to="/login"
-                  className="bg-green-600 text-white py-2 px-5 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                  Login
-                </Link>
+              {/* User Info and Button */}
+              <div className="flex items-center space-x-4">
+                {currentUser && (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-10 w-10">
+                      {currentUser.avatar ? (
+                        <img
+                          src={currentUser.avatar}
+                          alt={currentUser.firstName || getUserDisplayName()}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-blue-100 text-blue-700">
+                          {getInitials(
+                            currentUser.firstName || getUserDisplayName()
+                          )}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{getUserDisplayName()}</p>
+                      <p className="text-sm text-gray-500">
+                        {currentUser.role || "User"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {currentUser ? (
+                  <button
+                    onClick={handleLogout}
+                    className="bg-red-600 text-white py-2 px-5 rounded-lg hover:bg-red-700 transition-colors duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="bg-green-600 text-white py-2 px-5 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  >
+                    Login
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -92,7 +151,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu - Fixed version */}
+      {/* Mobile Navigation Menu */}
       <div
         className={`md:hidden fixed top-16 left-0 right-0 bg-white shadow-lg z-40 transition-all duration-300 ease-in-out ${
           isMobileMenuOpen
@@ -111,23 +170,51 @@ const Header = () => {
                 Home
               </Link>
             </li>
-            <li>
-              <Link
-                to="/about"
-                className="block py-2 px-4 text-gray-700 font-semibold hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors duration-200"
-                onClick={closeMobileMenu}
-              >
-                About Us
-              </Link>
-            </li>
+           
+            {currentUser && (
+              <li>
+                <div className="flex items-center gap-2 py-2 px-4">
+                  <Avatar className="h-8 w-8">
+                    {currentUser.avatar ? (
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.firstName || getUserDisplayName()}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-blue-100 text-blue-700">
+                        {getInitials(
+                          currentUser.firstName || getUserDisplayName()
+                        )}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{getUserDisplayName()}</p>
+                    <p className="text-sm text-gray-500">
+                      {currentUser.role || "User"}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            )}
             <li className="mt-2">
-              <Link
-                to="/login"
-                className="block text-center bg-green-600 text-white py-2 px-5 rounded-lg hover:bg-green-700 transition-colors duration-300"
-                onClick={closeMobileMenu}
-              >
-                Login
-              </Link>
+              {currentUser ? (
+                <button
+                  onClick={handleLogout}
+                  className="block text-center bg-red-600 text-white py-2 px-5 rounded-lg hover:bg-red-700 transition-colors duration-300 w-full"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="block text-center bg-green-600 text-white py-2 px-5 rounded-lg hover:bg-green-700 transition-colors duration-300"
+                  onClick={closeMobileMenu}
+                >
+                  Login
+                </Link>
+              )}
             </li>
           </ul>
         </nav>

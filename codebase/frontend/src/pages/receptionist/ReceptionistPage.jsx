@@ -531,30 +531,7 @@ export default function ReceptionistPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white text-black shadow-md z-50">
-        <div className="container mx-auto px-4 p-2 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold">Receptionist Page</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <span className="font-medium text-blue-700">
-                  {getInitials(user.name)}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium">{user.name}</p>
-                <p className="text-sm text-gray-500">{user.role}</p>
-                {user.email && (
-                  <p className="text-xs text-gray-400">{user.email}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      
       {/* Notifications */}
       <div className="fixed top-20 right-4 z-50">
         {notifications.map((notification) => (

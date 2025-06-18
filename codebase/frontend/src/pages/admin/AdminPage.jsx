@@ -640,29 +640,10 @@ export default function AdminPage() {
           {notif.message}
         </div>
       ))}
-      <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">
-        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Admin Page
-            </h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 w-full sm:w-auto bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </Button>
-          </div>
-        </div>
-      </header>
 
       <main className="flex-1 container mx-auto px-4 py-6 mt-16">
         <div className="flex flex-col lg:flex-row">
-          <div className="lg:fixed lg:left-0 lg:top-16 lg:h-[calc(100vh-5rem)] lg:w-60 bg-white border-r border-gray-200 z-10 overflow-y-auto overflow-x-hidden mb-4 lg:mb-0">
+          <div className="lg:fixed lg:left-0 lg:top-16 lg:h-[calc(100vh-5rem)] lg:w-60 bg-gray-800 border-r border-gray-200 z-10 overflow-y-auto overflow-x-hidden mb-4 lg:mb-0">
             <div className="flex flex-col gap-1 p-4">
               {[
                 { value: "dashboard", label: "Dashboard", icon: Building2 },
@@ -681,8 +662,8 @@ export default function AdminPage() {
                   onClick={() => setActiveTab(tab.value)}
                   className={`w-full py-3 px-4 text-left rounded-md text-base font-medium transition-colors hover:bg-gray-100 flex items-center gap-2 ${
                     activeTab === tab.value
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-white text-gray-700"
+                      ? "bg-white text-gray-900 hover:bg-gray-100"
+                      : "text-white hover:bg-gray-500"
                   }`}
                 >
                   <tab.icon className="h-5 w-5" />

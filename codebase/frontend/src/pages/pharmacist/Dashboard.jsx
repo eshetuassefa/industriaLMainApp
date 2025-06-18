@@ -34,7 +34,7 @@ const Dashboard = ({
         className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer"
         onClick={onViewPrescriptions}
       >
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-t-lg">
+        <CardHeader className="bg-gray-500 from-blue-500 to-indigo-600 text-white p-4 rounded-t-lg">
           <CardTitle className="text-xl font-bold">
             Today's Prescriptions
           </CardTitle>
@@ -62,7 +62,7 @@ const Dashboard = ({
 
       {/* Total Drugs Card */}
       <Card className="bg-white shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white p-4 rounded-t-lg">
+        <CardHeader className="bg-gray-500  from-green-500 to-teal-600 text-white p-4 rounded-t-lg">
           <CardTitle className="text-xl font-bold">Total Drugs</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -83,7 +83,7 @@ const Dashboard = ({
 
       {/* Total Patients Card */}
       <Card className="bg-white shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 rounded-t-lg">
+        <CardHeader className="bg-gray-500  from-purple-500 to-pink-600 text-white p-4 rounded-t-lg">
           <CardTitle className="text-xl font-bold">Total Patients</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
