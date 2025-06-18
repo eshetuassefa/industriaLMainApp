@@ -13,29 +13,36 @@ import fs from "fs";
 
 const prisma = new PrismaClient();
 
-// Configure multer for file uploads
-const storage: StorageEngine = multer.diskStorage({
-  destination: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void
-  ) => {
-    const uploadPath = path.join(__dirname, "../../uploads");
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+// Configure multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "../../uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
-    cb(null, uploadPath);
+    cb(null, uploadDir);
   },
-  filename: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void
-  ) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-const upload = multer({ storage });
+// Configure multer upload
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPEG, PNG and GIF are allowed."));
+    }
+  },
+});
 
 // Middleware composition function
 const composeHandler = (
@@ -68,6 +75,18 @@ const getFullName = (person: any) => {
   return `${person?.firstName || ""} ${person?.middleName || ""} ${
     person?.lastName || ""
   }`.trim();
+};
+
+// Helper function to handle file uploads
+const handleFileUpload = (req: Request) => {
+  let imageUrls: string[] = [];
+  
+  if (req.files) {
+    const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+    imageUrls = files.map(file => `/uploads/${file.filename}`);
+  }
+  
+  return imageUrls;
 };
 
 export const createRadiologyRequest = composeHandler(
@@ -272,16 +291,7 @@ export const submitRadiologyReport = composeHandler(
         return;
       }
 
-      let imageUrls: string[] = [];
-      if (req.files && Array.isArray(req.files)) {
-        imageUrls = req.files.map(
-          (file: Express.Multer.File) => `/uploads/${file.filename}`
-        );
-      } else if (req.files && typeof req.files === "object") {
-        imageUrls = Object.values(req.files)
-          .flat()
-          .map((file: Express.Multer.File) => `/uploads/${file.filename}`);
-      }
+      const imageUrls = handleFileUpload(req);
 
       const updatedReport = await prisma.radiologyReport.update({
         where: { id: request.report.id },
@@ -585,3 +595,6 @@ export const getRadiologyRequestById = composeHandler(
     }
   }
 );
+
+// Export the upload middleware
+export const uploadMiddleware = upload.array("images", 5); // Allow up to 5 images

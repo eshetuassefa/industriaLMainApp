@@ -9,7 +9,7 @@ import swaggerSpec from "./docs/swagger";
 import authRoutes from "./routes/auth.routes";
 import adminRoutes from "./routes/admin.route";
 import labResultRouter from "./routes/labResult.route";
-import receptionRoutes from "./routes/reception.route";
+import receptionRoutes from "./routes/rescptions.route";
 import doctorRoutes from "./routes/doctor.route";
 import superadminRoutes from "./routes/superadmin.route";
 import radiologistRoutes from "./routes/radiologist.route";

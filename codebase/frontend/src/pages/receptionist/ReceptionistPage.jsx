@@ -413,11 +413,12 @@ export default function ReceptionistPage() {
       setLoading(true);
       const forwardData = {
         patientId: selectedPatient.id,
-        providerId: forwardDetails.providerId,
-        department: forwardDetails.department,
-        reason: forwardDetails.reason,
+        doctorId: forwardDetails.providerId,
+        notes: forwardDetails.reason,
         priority: forwardDetails.priority,
+        department: forwardDetails.department
       };
+      console.log("Forwarding patient with data:", forwardData);
       const response = await receptionistService.forwardPatient(forwardData);
       if (response.success) {
         await addNotification(
@@ -436,9 +437,11 @@ export default function ReceptionistPage() {
           "Failed to forward patient:",
           response.error?.message || "Unknown error"
         );
+        await addNotification("Failed to forward patient. Please try again.");
       }
     } catch (error) {
       console.error("Error forwarding patient:", error);
+      await addNotification("Error forwarding patient. Please try again.");
     } finally {
       setLoading(false);
     }

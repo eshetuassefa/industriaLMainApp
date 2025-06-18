@@ -169,9 +169,8 @@ const receptionistService = {
     try {
       if (
         !forwardData.patientId ||
-        !forwardData.providerId ||
-        !forwardData.department ||
-        !forwardData.reason
+        !forwardData.doctorId ||
+        !forwardData.notes
       ) {
         throw new Error("Missing required forward details");
       }
@@ -179,7 +178,12 @@ const receptionistService = {
       const client = createAxiosInstance();
       const response = await client.post(
         "/reception/forward-patient",
-        forwardData
+        {
+          patientId: forwardData.patientId,
+          doctorId: forwardData.doctorId,
+          notes: forwardData.notes,
+          priority: forwardData.priority || "normal"
+        }
       );
 
       return {

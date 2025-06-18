@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import adminService from "@/services/admin.service";
+import authService from "@/services/auth.service";
 import {
   Card,
   CardContent,
@@ -45,6 +47,7 @@ import {
   Scan,
   Pencil,
   Trash2,
+  LogOut,
 } from "lucide-react";
 
 const staffTabMap = {
@@ -136,6 +139,7 @@ export default function AdminPage() {
   });
   const [activities, setActivities] = useState([]);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -143,10 +147,9 @@ export default function AdminPage() {
       setError(null);
       try {
         const staffResponse = await adminService.getAllStaff();
-        if (staffResponse.success) {
-          // Log response to debug structure
-          console.log("staffResponse.data:", staffResponse.data);
+        console.log("Staff response:", staffResponse);
 
+        if (staffResponse.success) {
           // Ensure backendData is an array
           let backendData = Array.isArray(staffResponse.data)
             ? staffResponse.data
@@ -157,6 +160,16 @@ export default function AdminPage() {
             console.warn("backendData is not an array:", backendData);
             backendData = [];
           }
+
+          // Log each staff member's data for debugging
+          backendData.forEach((staff, index) => {
+            console.log(`Staff ${index} data:`, {
+              id: staff.id,
+              role: staff.role,
+              hospital: staff.hospital,
+              hospitalId: staff.hospitalId
+            });
+          });
 
           const transformedData = {
             healthProviders: backendData
@@ -181,12 +194,12 @@ export default function AdminPage() {
               .filter((u) => u.role === "SUPERADMIN")
               .map(transformStaffToFrontend)
           );
+          setActivities([]);
         } else {
           throw new Error(
             staffResponse.error.message || "Failed to fetch staff data"
           );
         }
-        setActivities([]);
       } catch (error) {
         console.error("Error fetching data:", error);
         setError(error.message || "Failed to load data");
@@ -213,6 +226,8 @@ export default function AdminPage() {
       : "",
     address: staff.person?.address || "",
     password: "hashedPassword123",
+    hospital: staff.hospital?.name || "Unknown Hospital",
+    hospitalId: staff.hospitalId || null,
   });
 
   const transformStaffToBackend = (staff) => {
@@ -580,6 +595,7 @@ export default function AdminPage() {
       { key: "email", label: "Email" },
       { key: "phoneNumber", label: "Phone" },
       { key: "role", label: "Role" },
+      { key: "hospital", label: "Hospital" },
       { key: "sex", label: "Sex" },
       { key: "dob", label: "Date of Birth" },
       { key: "address", label: "Address" },
@@ -588,10 +604,20 @@ export default function AdminPage() {
     ];
 
     if (activeTab === "health-providers") {
-      baseColumns.splice(6, 0, { key: "department", label: "Department" });
+      baseColumns.splice(7, 0, { key: "department", label: "Department" });
     }
 
     return baseColumns;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      addNotification('Failed to logout. Please try again.', 'error');
+    }
   };
 
   return (
@@ -622,83 +648,14 @@ export default function AdminPage() {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 w-full sm:w-auto"
-                >
-                  <User className="h-5 w-5" />
-                  <span>Admin Users</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Admin Users Management</DialogTitle>
-                  <DialogDescription>
-                    Manage system administrators and their access levels
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex justify-end">
-                    <Button
-                      className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={() => setShowAddAdminDialog(true)}
-                      disabled={isLoading}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Add Admin
-                    </Button>
-                  </div>
-                  <div className="rounded-md border">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
-                            Username
-                          </th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
-                            Email
-                          </th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
-                            Role
-                          </th>
-                          <th className="px-2 py-2 text-left text-sm font-medium text-gray-500">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {adminUsers.map((admin) => (
-                          <tr key={admin.id}>
-                            <td className="px-2 py-2 text-sm text-gray-900">
-                              {admin.username || admin.firstName}
-                            </td>
-                            <td className="px-2 py-2 text-sm text-gray-500">
-                              {admin.email}
-                            </td>
-                            <td className="px-2 py-2 text-sm text-gray-500">
-                              {admin.role}
-                            </td>
-                            <td className="px-2 py-2 text-sm text-gray-500">
-                              <Badge
-                                variant={
-                                  admin.status === "Active"
-                                    ? "success"
-                                    : "destructive"
-                                }
-                              >
-                                {admin.status}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 w-full sm:w-auto bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -937,6 +894,9 @@ export default function AdminPage() {
                                   </td>
                                   <td className="py-2 px-3 text-xs text-gray-500 max-w-[100px] truncate">
                                     {staff.role}
+                                  </td>
+                                  <td className="py-2 px-3 text-xs text-gray-500 max-w-[150px] truncate">
+                                    {staff.hospital}
                                   </td>
                                   {activeTab === "health-providers" && (
                                     <td className="py-2 px-3 text-xs text-gray-500 max-w-[150px] truncate">

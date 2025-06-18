@@ -6,9 +6,27 @@ import {
   updateStaffController,
   deleteStaffController,
   getAllDepartmentsController,
+  createDepartmentController,
+  associateDepartmentsController,
 } from "../controllers/admin.controller";
+import { authenticateToken, authorizeRoles } from "../middleware/auth.middleware";
 
 const router = express.Router();
+
+// Apply authentication middleware to all admin routes
+router.use(authenticateToken);
+
+// Apply role-based authorization for specific routes
+router.use("/staffs/register", authorizeRoles("ADMIN"));
+router.use("/staff/update", authorizeRoles("ADMIN"));
+router.use("/staff/delete", authorizeRoles("ADMIN"));
+router.use("/departments/create", authorizeRoles("ADMIN"));
+router.use("/departments/associate", authorizeRoles("ADMIN"));
+
+// Routes accessible by both ADMIN and RECEPTIONIST
+router.get("/staffs/getall", authorizeRoles("ADMIN", "RECEPTIONIST"), getAllStaffsController);
+router.get("/staff/getsingle/:id", authorizeRoles("ADMIN", "RECEPTIONIST"), getStaffByIdController);
+router.get("/departments/getall", authorizeRoles("ADMIN", "RECEPTIONIST"), getAllDepartmentsController);
 
 /**
  * @swagger
@@ -163,72 +181,6 @@ router.post("/staffs/register", registerStaffController);
 
 /**
  * @swagger
- * /api/admin/staffs/getall:
- *   get:
- *     summary: Get all staff members
- *     description: Fetch a list of all staff members (admin only).
- *     tags: [Admin - Staff]
- *     responses:
- *       200:
- *         description: List of all staff members
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/User'
- *       500:
- *         description: Internal Server Error
- */
-router.get("/staffs/getall", getAllStaffsController);
-
-/**
- * @swagger
- * /api/admin/staff/getsingle/{id}:
- *   get:
- *     summary: Get a staff member by ID
- *     description: Fetch a specific staff member's details by ID (admin only).
- *     tags: [Admin - Staff]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         description: Staff member ID
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Staff member found successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Staff retrieved successfully
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *       404:
- *         description: Staff member not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Staff not found
- *       500:
- *         description: Internal Server Error
- */
-router.get("/staff/getsingle/:id", getStaffByIdController);
-
-/**
- * @swagger
  * /api/admin/staff/update/{id}:
  *   put:
  *     summary: Update staff member information
@@ -327,30 +279,88 @@ router.delete("/staff/delete/:id", deleteStaffController);
 
 /**
  * @swagger
- * /api/admin/departments/getall:
- *   get:
- *     summary: Get all departments
- *     description: Fetch a list of all departments.
+ * /api/admin/departments/create:
+ *   post:
+ *     summary: Create a new department
+ *     description: Create a new department in the admin's hospital.
  *     tags: [Admin - Departments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - code
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the department
+ *               code:
+ *                 type: string
+ *                 description: Unique code for the department
  *     responses:
- *       200:
- *         description: List of all departments
+ *       201:
+ *         description: Department created successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   code:
- *                     type: string
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Department created successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     code:
+ *                       type: string
+ *       400:
+ *         description: Invalid input or department already exists
  *       500:
  *         description: Internal Server Error
  */
-router.get("/departments/getall", getAllDepartmentsController);
+router.post("/departments/create", createDepartmentController);
+
+/**
+ * @swagger
+ * /api/admin/departments/associate:
+ *   post:
+ *     summary: Associate departments with hospital
+ *     description: Associate all unassigned departments with the admin's hospital.
+ *     tags: [Admin - Departments]
+ *     responses:
+ *       200:
+ *         description: Departments associated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Departments associated with hospital successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *       400:
+ *         description: Admin not associated with a hospital
+ *       500:
+ *         description: Internal Server Error
+ */
+router.post("/departments/associate", associateDepartmentsController);
 
 export default router;

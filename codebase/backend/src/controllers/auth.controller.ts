@@ -50,6 +50,7 @@ export const login: RequestHandler = async (
         email: user.email,
         role: user.role,
         personId: user.personId,
+        hospitalId: user.hospitalId,
       },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "55m" }
@@ -98,6 +99,7 @@ export const login: RequestHandler = async (
         email: user.email,
         role: user.role,
         person: user.person,
+        hospitalId: user.hospitalId,
         redirectUrl,
       },
     });
@@ -144,6 +146,7 @@ export const refreshToken: RequestHandler = async (
         email: user.email,
         role: user.role,
         personId: user.personId,
+        hospitalId: user.hospitalId,
       },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "15m" }
@@ -152,6 +155,26 @@ export const refreshToken: RequestHandler = async (
     res.status(200).json({
       message: "Token refreshed successfully",
       accessToken,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({ message: error.message });
+    } else {
+      next(error);
+    }
+  }
+};
+
+export const logout: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Since we're using JWT tokens, we don't need to do anything on the server side
+    // The client will remove the token from storage
+    res.status(200).json({
+      message: "Logged out successfully"
     });
   } catch (error) {
     if (error instanceof Error) {

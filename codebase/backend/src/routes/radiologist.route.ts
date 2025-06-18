@@ -1,4 +1,5 @@
-import { Router } from "express";
+import express from "express";
+import { authenticateToken, authorizeRoles } from "../middleware/auth.middleware";
 import {
   createRadiologyRequest,
   startRadiologyRequest,
@@ -6,9 +7,10 @@ import {
   getRadiologyReport,
   getAllRadiologyRequests,
   getRadiologyRequestById,
+  uploadMiddleware,
 } from "../controllers/radiologist.controller";
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @swagger
@@ -738,6 +740,18 @@ router.get("/all-requests", getAllRadiologyRequests);
  *       500:
  *         description: Server error
  */
+router.get("/request/:requestId", getRadiologyRequestById);
+
+// Apply authentication and authorization middleware
+router.use(authenticateToken);
+router.use(authorizeRoles("RADIOLOGIST"));
+
+// Routes
+router.post("/create-request", createRadiologyRequest);
+router.post("/start-request/:requestId", startRadiologyRequest);
+router.post("/submit-report/:requestId", submitRadiologyReport);
+router.get("/view-report/:requestId", getRadiologyReport);
+router.get("/all-requests", getAllRadiologyRequests);
 router.get("/request/:requestId", getRadiologyRequestById);
 
 export default router;

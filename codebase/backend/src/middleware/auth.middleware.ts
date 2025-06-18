@@ -28,8 +28,23 @@ export const authenticateToken = async (
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "your-secret-key"
-    );
-    req.user = decoded;
+    ) as {
+      id: string;
+      email: string;
+      role: string;
+      personId: string;
+      hospitalId: string;
+    };
+
+    // Assign the decoded user information to the request object
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+      personId: decoded.personId,
+      hospitalId: decoded.hospitalId
+    };
+
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {

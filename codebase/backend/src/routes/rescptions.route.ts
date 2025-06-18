@@ -3,7 +3,8 @@ import {
   addPatient,
   updatePatient,
   fetchPatients,
-  forwardPatient
+  forwardPatient,
+  getForwardedPatient
 } from '../controllers/reception.controller';
 
 const router = express.Router();
@@ -238,9 +239,8 @@ router.get('/fetch-patients', ...fetchPatients);
  * @swagger
  * /api/reception/forward-patient:
  *   post:
- *     tags: [Reception]
  *     summary: Forward a patient to a specific doctor
- *     description: Assigns a patient to a specific doctor for treatment
+ *     tags: [Reception]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -255,77 +255,47 @@ router.get('/fetch-patients', ...fetchPatients);
  *             properties:
  *               patientId:
  *                 type: string
- *                 format: uuid
- *                 description: The ID of the patient to forward
- *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               doctorId:
  *                 type: string
- *                 format: uuid
- *                 description: The ID of the doctor to forward the patient to
- *                 example: "123e4567-e89b-12d3-a456-426614174001"
  *               notes:
  *                 type: string
- *                 description: Optional notes about the forwarding
- *                 example: "Patient needs immediate attention"
  *     responses:
  *       200:
  *         description: Patient forwarded successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Patient forwarded successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     patientId:
- *                       type: string
- *                       format: uuid
- *                     doctorId:
- *                       type: string
- *                       format: uuid
- *                     status:
- *                       type: string
- *                       enum: [ACTIVE, INACTIVE, COMPLETED]
- *                     notes:
- *                       type: string
  *       400:
- *         description: Invalid request data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Invalid request data"
+ *         description: Invalid input data
  *       404:
  *         description: Patient or doctor not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Patient not found"
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Failed to forward patient"
  */
 router.post('/forward-patient', forwardPatient);
+
+/**
+ * @swagger
+ * /api/reception/forwarded-patient/{patientId}/{doctorId}:
+ *   get:
+ *     summary: Get forwarded patient details with medical history
+ *     tags: [Reception]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the patient
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the doctor
+ *     responses:
+ *       200:
+ *         description: Forwarded patient details retrieved successfully
+ *       404:
+ *         description: No active assignment found or patient not found
+ */
+router.get('/forwarded-patient/:patientId/:doctorId', getForwardedPatient);
 
 export default router;

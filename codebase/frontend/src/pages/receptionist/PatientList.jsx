@@ -45,7 +45,7 @@ const PatientList = ({
           <div className="flex items-center space-x-2 mb-4 px-4">
             <Search className="h-5 w-5 text-gray-400" />
             <Input
-              placeholder="Search patients by national_id, name, email, or phone..."
+              placeholder="Search patients by national_id, name..."
               className="flex-1"
               value={searchQuery}
               onChange={handleSearchChange}

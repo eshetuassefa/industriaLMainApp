@@ -64,22 +64,140 @@ const MedicalRecord = () => {
   });
 
   useEffect(() => {
+    const fetchForwardedPatient = async () => {
+      try {
+        setLoading(true);
+        // Get doctorId from localStorage or context
+        const doctorId = localStorage.getItem('doctorId');
+        const response = await getForwardedPatient(patientId, doctorId);
+        
+        // Set patient data
+        setPatientData(response.data);
+        
+        // Update formData with patient's latest medical record if available
+        if (response.data.patient.medicalRecords && response.data.patient.medicalRecords.length > 0) {
+          const latestRecord = response.data.patient.medicalRecords[0];
+          setFormData(prev => ({
+            ...prev,
+            chiefComplaint: latestRecord.chiefComplaint || '',
+            historyOfPresentIllness: latestRecord.notes || '',
+      vitalSigns: {
+              bloodPressure: latestRecord.bloodPressure || '',
+              heartRate: latestRecord.heartRate?.toString() || '',
+              respiratoryRate: '',
+              temperature: latestRecord.temperature?.toString() || '',
+            },
+            physicalExamination: latestRecord.physicalExamination || '',
+            diagnosis: {
+              conditions: latestRecord.diagnosis || '',
+              status: 'provisional',
+            },
+            labTests: latestRecord.labResults?.map(result => result.testName) || [],
+            radiologyRequests: latestRecord.radiologyReports?.map(report => report.imagingType) || [],
+            prescriptions: latestRecord.prescriptions?.map(prescription => ({
+              medication: prescription.drugName,
+              dosage: prescription.dosage,
+              frequency: prescription.frequency,
+              duration: prescription.duration,
+            })) || [],
+            adviceAndFollowUp: latestRecord.notes || '',
+          }));
+        }
+
+        // Update medical history with actual records
+        if (response.data.patient.medicalRecords) {
+          const formattedHistory = response.data.patient.medicalRecords.map(record => ({
+            id: record.id,
+            date: new Date(record.visitDate).toLocaleDateString(),
+            chiefComplaint: record.chiefComplaint,
+            historyOfPresentIllness: record.notes,
+            diagnosis: record.diagnosis,
+            medications: record.prescriptions?.map(p => ({
+              name: p.drugName,
+              dosage: p.dosage,
+              frequency: p.frequency,
+              duration: p.duration,
+            })) || [],
+      vitalSigns: {
+              bloodPressure: record.bloodPressure,
+              heartRate: record.heartRate?.toString(),
+              respiratoryRate: '',
+              temperature: record.temperature?.toString(),
+            },
+            physicalExamination: record.physicalExamination,
+            labTests: record.labResults?.map(result => result.testName) || [],
+            radiologyTests: record.radiologyReports?.map(report => report.imagingType) || [],
+            radiologyResultDetails: record.radiologyReports?.map(report => ({
+              id: report.id,
+              imagingModality: report.imagingType,
+              examDate: new Date(report.reportDate).toLocaleDateString(),
+              examTime: new Date(report.reportDate).toLocaleTimeString(),
+              reportingRadiologist: report.reportingRadiologist,
+              impression: report.impression,
+              report: {
+                narrative: report.reportText,
+                impression: report.impression,
+                measurements: [],
+                annotations: [],
+              },
+              imageUrl: report.imageUrl,
+            })) || [],
+            adviceAndFollowUp: record.notes,
+      recordedBy: {
+              name: `${record.doctor?.person?.firstName} ${record.doctor?.person?.lastName}`,
+        hospital: 'Tikur Anbessa Specialized Hospital'
+      },
+            status: 'Completed',
+            labResults: record.labResults?.map(result => ({
+              testName: result.testName,
+              result: result.resultValue,
+              unit: result.unit,
+              flag: result.flag,
+              referenceRange: result.referenceRange,
+              remark: result.remark,
+            })) || [],
+            labReportedBy: record.labResults?.[0]?.reportedBy || 'Lab Tech Name',
+          }));
+          setMedicalHistory(formattedHistory);
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to fetch patient data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchForwardedPatient();
   }, [patientId]);
 
-  const fetchForwardedPatient = async () => {
-    try {
-      setLoading(true);
-      const doctorId = localStorage.getItem('doctorId');
-      const response = await getForwardedPatient(patientId, doctorId);
-      setPatientData(response.data);
-      // You might want to fetch medical history here as well
-    } catch (err) {
-      setError(err.message || 'Failed to fetch patient data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mock patient data - in real app, this would come from an API
+  const patientInfo = patientData?.patient ? {
+    name: `${patientData.patient.person.firstName} ${patientData.patient.person.middleName || ''} ${patientData.patient.person.lastName}`,
+    age: patientData.patient.person.dob ? 
+      (() => {
+        const dob = new Date(patientData.patient.person.dob);
+        const today = new Date();
+        if (dob > today) {
+          return 'Invalid DOB';
+        }
+        const diffTime = Math.abs(today - dob);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffMonths = Math.floor(diffDays / 30.44); // Average days in a month
+        
+        if (diffDays < 30) {
+          return `${diffDays} days`;
+        } else if (diffMonths < 12) {
+          return `${diffMonths} months`;
+        } else {
+          return `${Math.floor(diffDays / 365.25)} years`;
+        }
+      })() : 'N/A',
+    gender: patientData.patient.person.sex,
+    id: patientData.patient.id,
+    bloodType: patientData.patient.person.bloodType || 'N/A',
+    lastVisit: new Date(patientData.patient.medicalRecords[0]?.visitDate).toLocaleDateString() || 'N/A',
+    primaryDoctor: `${patientData.patient.medicalRecords[0]?.doctor?.person?.firstName} ${patientData.patient.medicalRecords[0]?.doctor?.person?.lastName}` || 'N/A',
+  } : null;
 
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
@@ -465,16 +583,12 @@ const MedicalRecord = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-medium">{record.date}</p>
-                        <p className="text-gray-600">
-                          Chief Complaint: {record.chiefComplaint}
-                        </p>
-                        <p className="text-gray-600">
-                          Diagnosis: {record.diagnosis}
-                        </p>
-                        <p className="text-gray-500 text-sm mt-1">
-                          Recorded by: {record.recordedBy.name} -{" "}
-                          {record.recordedBy.hospital}
-                        </p>
+                        <p className="text-gray-600">Chief Complaint: {record.chiefComplaint}</p>
+                        <p className="text-gray-600">Diagnosis: {record.diagnosis}</p>
+                        <div className="text-gray-500 text-sm mt-1">
+                          <p>Recorded by: {record.recordedBy.name}</p>
+                          <p>{record.recordedBy.hospital}</p>
+                        </div>
                       </div>
                       <span className="px-2 py-1 text-sm rounded-full bg-green-100 text-green-800">
                         {record.status}
@@ -594,7 +708,7 @@ const MedicalRecord = () => {
                 <div>
                   <h3 className="font-semibold mb-2">Ordered Lab Tests</h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedRecord.labTests.map((test, index) => (
+                  {selectedRecord.labTests.map((test, index) => (
                       <span
                         key={index}
                         className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
@@ -605,19 +719,19 @@ const MedicalRecord = () => {
                     {/* Lab Results for this record */}
                     {selectedRecord.labResults &&
                       selectedRecord.labResults.length > 0 && (
-                        <div className="mt-6">
+                      <div className="mt-6">
                           <h4 className="text-lg font-semibold mb-2">
                             Lab Results
                           </h4>
-                          {selectedRecord.labReportedBy && (
+                        {selectedRecord.labReportedBy && (
                             <p className="text-sm text-gray-600 mb-2">
                               Reported by: {selectedRecord.labReportedBy}
                             </p>
-                          )}
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-400 mt-4 border border-gray-400">
-                              <thead className="bg-gray-50">
-                                <tr>
+                        )}
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-400 mt-4 border border-gray-400">
+                            <thead className="bg-gray-50">
+                              <tr>
                                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Test Name
                                   </th>
@@ -636,12 +750,12 @@ const MedicalRecord = () => {
                                   <th className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     Remark
                                   </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-400">
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-400">
                                 {selectedRecord.labResults.map(
                                   (item, index) => (
-                                    <tr key={index}>
+                                <tr key={index}>
                                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {item.testName}
                                       </td>
@@ -660,14 +774,14 @@ const MedicalRecord = () => {
                                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {item.remark}
                                       </td>
-                                    </tr>
+                                </tr>
                                   )
                                 )}
-                              </tbody>
-                            </table>
-                          </div>
+                            </tbody>
+                          </table>
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -688,41 +802,41 @@ const MedicalRecord = () => {
                   {/* Radiology Results for this record */}
                   {selectedRecord.radiologyResultDetails &&
                     selectedRecord.radiologyResultDetails.length > 0 && (
-                      <div className="mt-6">
+                    <div className="mt-6">
                         <h4 className="text-lg font-semibold mb-2">
                           Radiology Results
                         </h4>
-                        <div className="space-y-4">
-                          {selectedRecord.radiologyResultDetails.map((item) => (
+                      <div className="space-y-4">
+                        {selectedRecord.radiologyResultDetails.map((item) => (
                             <div
                               key={item.id}
                               className="border rounded-lg p-3"
                             >
-                              {/* Summary View */}
-                              <div className="flex justify-between items-center">
+                            {/* Summary View */}
+                            <div className="flex justify-between items-center">
                                 <p className="font-medium">
                                   {item.imagingModality} - {item.examDate}
                                 </p>
-                                <button
-                                  onClick={() => toggleRadiologyReport(item.id)}
-                                  className="text-sm text-blue-600 hover:underline focus:outline-none"
-                                >
+                              <button
+                                onClick={() => toggleRadiologyReport(item.id)}
+                                className="text-sm text-blue-600 hover:underline focus:outline-none"
+                              >
                                   {expandedRadiologyReportId === item.id
                                     ? "Hide Full Report"
                                     : "Show Full Report"}
-                                </button>
-                              </div>
+                              </button>
+                            </div>
                               <p className="text-gray-700 text-sm mt-1">
                                 Impression: {item.impression}
                               </p>
 
-                              {/* Full Report Details (Conditionally Rendered) */}
+                            {/* Full Report Details (Conditionally Rendered) */}
                               {expandedRadiologyReportId === item.id &&
                                 item.report && (
-                                  <div className="mt-4 space-y-4 border-t pt-4">
-                                    {/* Patient Information (within Radiology Result context) */}
-                                    {item.patientInfo && (
-                                      <div>
+                              <div className="mt-4 space-y-4 border-t pt-4">
+                                {/* Patient Information (within Radiology Result context) */}
+                                {item.patientInfo && (
+                                  <div>
                                         <h5 className="font-semibold mb-1">
                                           Patient Info (for this scan)
                                         </h5>
@@ -730,11 +844,11 @@ const MedicalRecord = () => {
                                           Name: {item.patientInfo.name}, ID:{" "}
                                           {item.patientInfo.patientId}
                                         </p>
-                                      </div>
-                                    )}
+                                  </div>
+                                )}
 
-                                    {/* Exam Details */}
-                                    <div>
+                                {/* Exam Details */}
+                                <div>
                                       <h5 className="font-semibold mb-1">
                                         Exam Details
                                       </h5>
@@ -756,67 +870,67 @@ const MedicalRecord = () => {
                                           DICOM ID: {item.dicomImageId}
                                         </p>
                                       )}
-                                    </div>
+                                </div>
 
-                                    {/* Image Section */}
-                                    {item.imageUrl && (
-                                      <div className="border-t pt-4 mt-4">
+                                {/* Image Section */}
+                                {item.imageUrl && (
+                                  <div className="border-t pt-4 mt-4">
                                         <h5 className="font-semibold mb-2">
                                           Radiology Image
                                         </h5>
-                                        <div className="relative aspect-square max-w-xs mx-auto bg-gray-100 rounded-lg overflow-hidden">
-                                          <img
-                                            src={item.imageUrl}
-                                            alt={`${item.imagingModality} Image`}
-                                            className="w-full h-full object-contain cursor-pointer"
+                                    <div className="relative aspect-square max-w-xs mx-auto bg-gray-100 rounded-lg overflow-hidden">
+                                      <img
+                                        src={item.imageUrl}
+                                        alt={`${item.imagingModality} Image`}
+                                        className="w-full h-full object-contain cursor-pointer"
                                             onClick={() =>
                                               handleViewFullImage(item.imageUrl)
                                             }
-                                          />
-                                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                                            <button
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                                        <button
                                               onClick={() =>
                                                 handleViewFullImage(
                                                   item.imageUrl
                                                 )
                                               }
-                                              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100"
-                                            >
-                                              <PhotoIcon className="w-5 h-5" />
-                                              View Full Image
-                                            </button>
-                                          </div>
-                                        </div>
+                                          className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100"
+                                        >
+                                          <PhotoIcon className="w-5 h-5" />
+                                          View Full Image
+                                        </button>
                                       </div>
-                                    )}
+                                    </div>
+                                  </div>
+                                )}
 
-                                    {/* Report Narrative */}
-                                    <div>
+                                {/* Report Narrative */}
+                                <div>
                                       <h5 className="font-semibold mb-1">
                                         Narrative
                                       </h5>
                                       <p className="text-gray-700 whitespace-pre-line">
                                         {item.report.narrative}
                                       </p>
-                                    </div>
+                                </div>
 
-                                    {/* Report Impression (already shown in summary, but include for completeness in full view) */}
-                                    <div>
+                                {/* Report Impression (already shown in summary, but include for completeness in full view) */}
+                                <div>
                                       <h5 className="font-semibold mb-1">
                                         Impression
                                       </h5>
                                       <p className="text-gray-700">
                                         {item.report.impression}
                                       </p>
-                                    </div>
+                                </div>
 
                                     {item.report.measurements &&
                                       item.report.measurements.length > 0 && (
-                                        <div>
+                                  <div>
                                           <h5 className="font-semibold mb-1">
                                             Measurements
                                           </h5>
-                                          <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                    <ul className="list-disc list-inside space-y-1 text-gray-700">
                                             {item.report.measurements.map(
                                               (measurement, idx) => (
                                                 <li key={idx}>
@@ -825,32 +939,32 @@ const MedicalRecord = () => {
                                                 </li>
                                               )
                                             )}
-                                          </ul>
-                                        </div>
-                                      )}
+                                    </ul>
+                                  </div>
+                                )}
 
                                     {item.report.annotations &&
                                       item.report.annotations.length > 0 && (
-                                        <div>
+                                  <div>
                                           <h5 className="font-semibold mb-1">
                                             Annotations
                                           </h5>
-                                          <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                    <ul className="list-disc list-inside space-y-1 text-gray-700">
                                             {item.report.annotations.map(
                                               (annotation, idx) => (
-                                                <li key={idx}>{annotation}</li>
+                                        <li key={idx}>{annotation}</li>
                                               )
                                             )}
-                                          </ul>
-                                        </div>
-                                      )}
+                                    </ul>
                                   </div>
                                 )}
-                            </div>
-                          ))}
-                        </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1146,10 +1260,10 @@ const MedicalRecord = () => {
               {formData.prescriptions.map((prescription, index) => {
                 const isComplete =
                   prescription.medication &&
-                  prescription.dosage &&
-                  prescription.frequency &&
-                  prescription.duration;
-
+                                 prescription.dosage && 
+                                 prescription.frequency && 
+                                 prescription.duration;
+                
                 return (
                   <div key={index} className="border p-4 rounded-lg">
                     <div className="flex justify-between mb-2">
@@ -1324,4 +1438,4 @@ const MedicalRecord = () => {
   );
 };
 
-export default MedicalRecord;
+export default MedicalRecord; 

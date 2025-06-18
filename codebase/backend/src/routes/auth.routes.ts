@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, refreshToken } from '../controllers/auth.controller';
+import { login, refreshToken, logout } from '../controllers/auth.controller';
 
 const router = express.Router();
 
@@ -56,5 +56,17 @@ router.post('/login', login);
  *         description: Invalid refresh token
  */
 router.post('/refresh-token', refreshToken);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: User logout
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+router.post('/logout', logout);
 
 export default router;

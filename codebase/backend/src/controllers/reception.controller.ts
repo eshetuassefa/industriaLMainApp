@@ -139,16 +139,16 @@ export const updatePatient = [
           bloodType: validatedData.bloodType,
           emergencyContact: {
             upsert: {
-              update: {
+                update: {
                 name: validatedData.emergencyContact.name,
                 phone: validatedData.emergencyContact.phone,
-              },
-              create: {
+                },
+                create: {
                 name: validatedData.emergencyContact.name,
                 phone: validatedData.emergencyContact.phone,
               },
             },
-          },
+              },
         },
         include: {
           person: true,
@@ -328,7 +328,7 @@ export const getForwardedPatient = [
       });
 
       if (!assignment) {
-        return res.status(404).json({ message: 'No active assignment found for this patient and doctor' });
+        return res.status(404).json({ message: 'You have No active assignment  ' });
       }
 
       // Get patient details with medical history

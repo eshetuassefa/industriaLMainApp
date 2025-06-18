@@ -32,11 +32,18 @@ class AuthService {
     }
   }
 
-  logout() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("doctorId");
+  async logout() {
+    try {
+      const response = await axios.post(`${API_URL}/auth/logout`);
+      // Clear local storage
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("doctorId");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   getCurrentUser() {

@@ -36,8 +36,17 @@ export const registerStaffController: RequestHandler = async (
       email,
       password,
       role,
-      departmentName, // Use departmentName only
+      departmentName,
     } = req.body;
+
+    // Get admin's hospital ID from the JWT token
+    const adminHospitalId = req.user?.hospitalId;
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to create staff",
+      });
+      return;
+    }
 
     // Normalize values
     const normalizedSex = sex?.toUpperCase();
@@ -61,16 +70,20 @@ export const registerStaffController: RequestHandler = async (
         return;
       }
 
-      // Check if department exists
-      const department = await prisma.department.findFirst({
-        where: { name: departmentName },
+      // Find or create the department
+      const department = await prisma.department.upsert({
+        where: { 
+          name: departmentName,
+        },
+        update: {
+          hospitalId: adminHospitalId
+        },
+        create: {
+          name: departmentName,
+          code: departmentName.toUpperCase().replace(/\s+/g, '_'),
+          hospitalId: adminHospitalId
+        }
       });
-      if (!department) {
-        res.status(400).json({
-          message: `Department "${departmentName}" not found`,
-        });
-        return;
-      }
       departmentId = department.id;
     } else if (departmentName) {
       // Non-healthcare providers should not have a department
@@ -92,13 +105,16 @@ export const registerStaffController: RequestHandler = async (
     const hashedPassword = await bcrypt.hash(password, 10);
     const username = `${normalizedRole.toLowerCase()}-${email.split("@")[0]}`;
 
-    // Create user with conditional department assignment
+    // Create user with hospital and conditional department assignment
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         role: normalizedRole as RoleType,
         username,
+        hospital: {
+          connect: { id: adminHospitalId }
+        },
         department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
@@ -114,7 +130,11 @@ export const registerStaffController: RequestHandler = async (
           },
         },
       },
-      include: { person: true, department: true },
+      include: { 
+        person: true, 
+        department: true,
+        hospital: true 
+      },
     });
 
     res.status(201).json({
@@ -133,13 +153,21 @@ export const getAllStaffsController: RequestHandler = async (
   next
 ): Promise<void> => {
   try {
+    // Get admin's hospital ID from the JWT token
+    const adminHospitalId = req.user?.hospitalId;
+    
     const staffs = await prisma.user.findMany({
       where: {
         role: {
           in: allowedRoles,
         },
+        ...(adminHospitalId ? { hospitalId: adminHospitalId } : {}), // Only filter by hospital if adminHospitalId exists
       },
-      include: { person: true, department: true },
+      include: { 
+        person: true, 
+        department: true,
+        hospital: true 
+      },
     });
 
     res.status(200).json({ data: staffs });
@@ -156,9 +184,24 @@ export const getStaffByIdController: RequestHandler = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const staff = await prisma.user.findUnique({
-      where: { id },
-      include: { person: true, department: true },
+    const adminHospitalId = req.user?.hospitalId;
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to view staff",
+      });
+      return;
+    }
+
+    const staff = await prisma.user.findFirst({
+      where: { 
+        id,
+        hospitalId: adminHospitalId // Only get staff from admin's hospital
+      },
+      include: { 
+        person: true, 
+        department: true,
+        hospital: true 
+      },
     });
 
     if (!staff || !allowedRoles.includes(staff.role)) {
@@ -183,6 +226,14 @@ export const updateStaffController: RequestHandler = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const adminHospitalId = req.user?.hospitalId;
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to update staff",
+      });
+      return;
+    }
+
     const {
       email,
       password,
@@ -194,12 +245,15 @@ export const updateStaffController: RequestHandler = async (
       sex,
       phoneNumber,
       address,
-      departmentName, // Use departmentName only
+      departmentName,
     } = req.body;
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id },
+    // Check if user exists and belongs to admin's hospital
+    const existingUser = await prisma.user.findFirst({
+      where: { 
+        id,
+        hospitalId: adminHospitalId 
+      },
       include: { person: true },
     });
 
@@ -215,13 +269,16 @@ export const updateStaffController: RequestHandler = async (
     const normalizedRole = role ? role.toUpperCase() : existingUser.role;
     if (normalizedRole === "HEALTHCARE_PROVIDER") {
       if (departmentName) {
-        // Check if department exists
+        // Check if department exists in admin's hospital
         const department = await prisma.department.findFirst({
-          where: { name: departmentName },
+          where: { 
+            name: departmentName,
+            hospitalId: adminHospitalId 
+          },
         });
         if (!department) {
           res.status(400).json({
-            message: `Department "${departmentName}" not found`,
+            message: `Department "${departmentName}" not found in your hospital`,
           });
           return;
         }
@@ -277,7 +334,11 @@ export const updateStaffController: RequestHandler = async (
             update: personUpdateData,
           },
         },
-        include: { person: true, department: true },
+        include: { 
+          person: true, 
+          department: true,
+          hospital: true 
+        },
       });
 
       res.status(200).json({
@@ -300,10 +361,20 @@ export const deleteStaffController: RequestHandler = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const adminHospitalId = req.user?.hospitalId;
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to delete staff",
+      });
+      return;
+    }
 
-    // Ensure the user exists before attempting to delete
-    const userToDelete = await prisma.user.findUnique({
-      where: { id },
+    // Ensure the user exists and belongs to admin's hospital
+    const userToDelete = await prisma.user.findFirst({
+      where: { 
+        id,
+        hospitalId: adminHospitalId 
+      },
     });
 
     if (!userToDelete) {
@@ -326,13 +397,109 @@ export const getAllDepartmentsController: RequestHandler = async (
   next
 ): Promise<void> => {
   try {
+    const adminHospitalId = req.user?.hospitalId;
+    
     const departments = await prisma.department.findMany({
+      where: adminHospitalId ? {
+        hospitalId: adminHospitalId,
+      } : {},
       orderBy: {
         name: "asc",
       },
     });
 
     res.status(200).json(departments);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Create department
+export const createDepartmentController: RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  try {
+    const { name, code } = req.body;
+    const adminHospitalId = req.user?.hospitalId;
+
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to create departments",
+      });
+      return;
+    }
+
+    // Check if department already exists in the hospital
+    const existingDepartment = await prisma.department.findFirst({
+      where: {
+        name,
+        hospitalId: adminHospitalId,
+      },
+    });
+
+    if (existingDepartment) {
+      res.status(400).json({
+        message: `Department "${name}" already exists in your hospital`,
+      });
+      return;
+    }
+
+    // Create new department
+    const department = await prisma.department.create({
+      data: {
+        name,
+        code,
+        hospitalId: adminHospitalId,
+      },
+    });
+
+    res.status(201).json({
+      message: "Department created successfully",
+      data: department,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Associate departments with hospital
+export const associateDepartmentsController: RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  try {
+    const adminHospitalId = req.user?.hospitalId;
+    if (!adminHospitalId) {
+      res.status(400).json({
+        message: "Admin must be associated with a hospital to manage departments",
+      });
+      return;
+    }
+
+    // Get all departments that don't have a hospital ID
+    const unassignedDepartments = await prisma.department.findMany({
+      where: {
+        hospitalId: null,
+      },
+    });
+
+    // Associate each department with the admin's hospital
+    const updatedDepartments = await Promise.all(
+      unassignedDepartments.map((dept) =>
+        prisma.department.update({
+          where: { id: dept.id },
+          data: { hospitalId: adminHospitalId },
+        })
+      )
+    );
+
+    res.status(200).json({
+      message: "Departments associated with hospital successfully",
+      data: updatedDepartments,
+    });
   } catch (error) {
     next(error);
   }

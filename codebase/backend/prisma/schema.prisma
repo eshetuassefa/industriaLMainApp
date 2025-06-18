@@ -1,4 +1,4 @@
-generator client {
+                                                                                                                                                                                                                                                                                                                                                                                                              generator client {
   provider = "prisma-client-js"
 }
 
@@ -218,7 +218,6 @@ model Hospital {
   regionId      Int
   city          String
   zone          String
-   woreda String
   testRequests  TestRequest[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime?   // Optional
