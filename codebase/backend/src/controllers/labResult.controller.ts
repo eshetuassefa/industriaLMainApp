@@ -1,38 +1,71 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { PrismaClient, TestStatus, ResultStatus } from "@prisma/client";
 import {
   authenticateToken,
   authorizeRoles,
 } from "../middleware/auth.middleware";
 
+// Import the custom types
+/// <reference path="../types/express.d.ts" />
+
 const prisma = new PrismaClient();
 
-// 1. Healthcare Provider creates a test request
-export const createTestRequest = [
-  authenticateToken,
-  authorizeRoles("HEALTHCARE_PROVIDER"),
-  async (req: Request, res: Response) => {
+// Middleware composition function
+const composeHandler = (
+  middlewares: RequestHandler[],
+  handler: (req: Request, res: Response) => Promise<void>
+): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Execute middlewares sequentially and stop if a response is sent
+      for (const middleware of middlewares) {
+        await new Promise<void>((resolve, reject) => {
+          middleware(req, res, (err) => (err ? reject(err) : resolve()));
+        });
+        if (res.headersSent) {
+          console.log("Response already sent by middleware, skipping handler");
+          return; // Exit if middleware sent a response
+        }
+      }
+      if (!res.headersSent) {
+        await handler(req, res);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+export const createTestRequest = composeHandler(
+  [authenticateToken, authorizeRoles("HEALTHCARE_PROVIDER")],
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { patientId, testTypeId, hospitalId, notes } = req.body;
 
-      // Validate patient and testType existence (optional but recommended)
+      // Validate patient and testType existence
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
       });
-      if (!patient)
-        return res.status(404).json({ message: "Patient not found" });
+      if (!patient) {
+        res.status(404).json({ message: "Patient not found" });
+        return;
+      }
 
       const testType = await prisma.testType.findUnique({
         where: { id: testTypeId },
       });
-      if (!testType)
-        return res.status(404).json({ message: "Test type not found" });
+      if (!testType) {
+        res.status(404).json({ message: "Test type not found" });
+        return;
+      }
 
       const hospital = await prisma.hospital.findUnique({
         where: { id: hospitalId },
       });
-      if (!hospital)
-        return res.status(404).json({ message: "Hospital not found" });
+      if (!hospital) {
+        res.status(404).json({ message: "Hospital not found" });
+        return;
+      }
 
       const testRequest = await prisma.testRequest.create({
         data: {
@@ -49,91 +82,104 @@ export const createTestRequest = [
         },
       });
 
-      return res.status(201).json({
+      res.status(201).json({
         message: "Test request created successfully",
         data: testRequest,
       });
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Error creating test request" });
       }
-      return res.status(500).json({ message: "Error creating test request" });
     }
-  },
-];
+  }
+);
 
-// 2. Lab Technician confirms (starts) the test request
-export const startTestRequest = [
-  authenticateToken,
-  authorizeRoles("LAB_TECHNICIAN"),
-  async (req: Request, res: Response) => {
+export const startTestRequest = composeHandler(
+  [authenticateToken, authorizeRoles("LAB_TECHNICIAN")],
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { requestId } = req.params;
 
       const testRequest = await prisma.testRequest.findUnique({
         where: { id: requestId },
+        include: {
+          patient: { include: { person: true } },
+          doctor: { include: { person: true } },
+        },
       });
-      if (!testRequest)
-        return res.status(404).json({ message: "Test request not found" });
-
-      if (testRequest.status !== TestStatus.REQUESTED) {
-        return res.status(400).json({
-          message: `Test request cannot be started when status is '${testRequest.status}'`,
-        });
+      if (!testRequest) {
+        res.status(404).json({ message: "Test request not found" });
+        return;
       }
 
-      // Mark the test request as IN_PROGRESS and record the approval time
+      if (testRequest.status !== TestStatus.REQUESTED) {
+        res
+          .status(400)
+          .json({ message: `Request already in progress or completed` });
+        return;
+      }
+
       const updatedRequest = await prisma.testRequest.update({
         where: { id: requestId },
         data: {
           status: TestStatus.IN_PROGRESS,
           approvedAt: new Date(),
         },
+        include: {
+          patient: { include: { person: true } },
+          doctor: { include: { person: true } },
+        },
       });
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Test request status updated to IN_PROGRESS",
         data: updatedRequest,
       });
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Error starting test request" });
       }
-      return res.status(500).json({ message: "Error starting test request" });
     }
-  },
-];
+  }
+);
 
-// 3. Lab Technician submits test results
-export const submitTestResult = [
-  authenticateToken,
-  authorizeRoles("LAB_TECHNICIAN"),
-  async (req: Request, res: Response) => {
+export const submitTestResult = composeHandler(
+  [authenticateToken, authorizeRoles("LAB_TECHNICIAN")],
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { requestId } = req.params;
       const { values } = req.body;
 
       if (!values) {
-        return res
-          .status(400)
-          .json({ message: "Test result values are required" });
+        res.status(400).json({ message: "Test result values are required" });
+        return;
       }
 
       const testRequest = await prisma.testRequest.findUnique({
         where: { id: requestId },
+        include: {
+          patient: { include: { person: true } },
+          doctor: { include: { person: true } },
+        },
       });
-      if (!testRequest)
-        return res.status(404).json({ message: "Test request not found" });
-
-      if (testRequest.status !== TestStatus.IN_PROGRESS) {
-        return res.status(400).json({
-          message: `Cannot submit test results when test request status is '${testRequest.status}'`,
-        });
+      if (!testRequest) {
+        res.status(404).json({ message: "Test request not found" });
+        return;
       }
 
-      // Create a test result entry
+      if (testRequest.status !== TestStatus.IN_PROGRESS) {
+        res.status(400).json({
+          message: `Cannot submit test results when test request status is '${testRequest.status}'`,
+        });
+        return;
+      }
+
       const testResult = await prisma.testResult.create({
         data: {
           requestId,
@@ -142,42 +188,51 @@ export const submitTestResult = [
           status: ResultStatus.COMPLETED,
           completedAt: new Date(),
         },
+        include: {
+          request: {
+            include: {
+              patient: { include: { person: true } },
+              doctor: { include: { person: true } },
+            },
+          },
+          technician: {
+            include: { person: true }, // Include person details for the technician
+          },
+        },
       });
 
-      // Update the test request status to COMPLETED
       await prisma.testRequest.update({
         where: { id: requestId },
         data: { status: TestStatus.COMPLETED },
       });
 
-      return res
-        .status(200)
-        .json({
-          message: "Test result submitted successfully",
-          data: testResult,
-        });
+      res.status(200).json({
+        message: "Test result submitted successfully",
+        data: testResult,
+      });
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to submit test result" });
       }
-      return res.status(500).json({ message: "Failed to submit test result" });
     }
-  },
-];
+  }
+);
 
-// 4. Healthcare Provider fetches test results for a request
-export const getTestResult = [
-  authenticateToken,
-  authorizeRoles("HEALTHCARE_PROVIDER", "SUPERADMIN"),
-  async (req: Request, res: Response) => {
+export const getTestResult = composeHandler(
+  [authenticateToken, authorizeRoles("HEALTHCARE_PROVIDER", "LAB_TECHNICIAN")],
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { requestId } = req.params;
 
       const testResult = await prisma.testResult.findFirst({
         where: { requestId },
         include: {
-          technician: { select: { id: true, person: true } },
+          technician: {
+            include: { person: true }, // Include person details for the technician
+          },
           request: {
             include: {
               patient: { include: { person: true } },
@@ -189,31 +244,104 @@ export const getTestResult = [
       });
 
       if (!testResult) {
-        return res.status(404).json({ message: "Test result not found" });
+        res.status(404).json({ message: "Test result not found" });
+        return;
       }
 
-      // Optional: Ensure the healthcare provider owns the request (security)
       if (
         testResult.request.doctorId !== req.user!.id &&
+        testResult.technicianId !== req.user!.id &&
         req.user!.role !== "SUPERADMIN"
       ) {
-        return res
-          .status(403)
-          .json({ message: "Access denied to this test result" });
+        res.status(403).json({ message: "Access denied to this test result" });
+        return;
       }
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Test result retrieved successfully",
         data: testResult,
       });
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to retrieve test result" });
       }
-      return res
-        .status(500)
-        .json({ message: "Failed to retrieve test result" });
     }
-  },
-];
+  }
+);
+
+export const getAllTestRequests = composeHandler(
+  [
+    authenticateToken,
+    authorizeRoles("LAB_TECHNICIAN", "HEALTHCARE_PROVIDER", "SUPERADMIN"),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const requests = await prisma.testRequest.findMany({
+        include: {
+          patient: { include: { person: true } },
+          doctor: { include: { person: true } },
+          testType: true,
+          results: {
+            include: {
+              technician: {
+                include: { person: true }, // Include person details for the technician
+              },
+            },
+          },
+        },
+      });
+
+      res.status(200).json({
+        message: "All test requests retrieved successfully",
+        data: requests,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to retrieve test requests" });
+    }
+  }
+);
+
+export const getTestRequestById = composeHandler(
+  [
+    authenticateToken,
+    authorizeRoles("LAB_TECHNICIAN", "HEALTHCARE_PROVIDER", "SUPERADMIN"),
+  ],
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { requestId } = req.params;
+
+      const request = await prisma.testRequest.findUnique({
+        where: { id: requestId },
+        include: {
+          patient: { include: { person: true } },
+          doctor: { include: { person: true } },
+          testType: true,
+          results: {
+            include: {
+              technician: {
+                include: { person: true }, // Include person details for the technician
+              },
+            },
+          },
+        },
+      });
+
+      if (!request) {
+        res.status(404).json({ message: "Test request not found" });
+        return;
+      }
+
+      res.status(200).json({
+        message: "Test request retrieved successfully",
+        data: request,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to retrieve test request" });
+    }
+  }
+);

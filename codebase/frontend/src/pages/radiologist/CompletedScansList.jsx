@@ -1,46 +1,32 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
-import { Eye, Clock } from "lucide-react";
+import { Button } from "../../components/ui/button"; // Assuming Button is available
+import { Eye } from "lucide-react"; // Importing Eye icon for consistency
 import radiologyService from "../../services/radiologist.service";
 import { useToast } from "../../components/ui/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../../components/ui/dialog";
 
 const CompletedScansList = () => {
   const [requests, setRequests] = useState([]);
   const [error, setError] = useState(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [showDetails, setShowDetails] = useState(null);
 
   const fetchRequests = useCallback(async () => {
     try {
       const response = await radiologyService.getAllRadiologyRequests();
       if (response.success) {
         const completedRequests = (response.data || [])
-          .filter((req) => req.status === "COMPLETED")
-          .map((req) => ({
-            ...req,
-            requestedDate: new Date(req.createdAt).toLocaleDateString(),
-          }));
+          .filter((r) => r.status === "COMPLETED");
         setRequests(completedRequests);
       } else {
-        throw new Error(response.error?.message || "Failed to fetch completed scans");
+        throw new Error(response.error?.message || "Failed to fetch requests");
       }
     } catch (err) {
-      setError(err.message || "Failed to fetch completed scans");
+      setError(err.message || "Failed to load requests");
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch completed scans",
+        description: err.message || "Failed to load requests",
         variant: "destructive",
       });
     }
@@ -51,13 +37,8 @@ const CompletedScansList = () => {
     const controller = new AbortController();
 
     const loadData = async () => {
-      try {
-        await fetchRequests();
-      } catch (err) {
-        if (isMounted) {
-          setError(err.message);
-        }
-      }
+      if (!isMounted) return;
+      await fetchRequests();
     };
 
     loadData();
@@ -68,82 +49,59 @@ const CompletedScansList = () => {
     };
   }, [fetchRequests]);
 
-  const handleViewDetails = async (requestId) => {
-    try {
-      const response = await radiologyService.getReport(requestId);
-      if (response.success) {
-        setSelectedReport(response.data);
-        setIsDetailsModalOpen(true);
-      } else {
-        throw new Error(response.error?.message || "Failed to load report");
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to load report details",
-        variant: "destructive",
-      });
-    }
+  const handleViewDetails = (reqId) => {
+    setShowDetails(requests.find((r) => r.id === reqId));
   };
 
   if (error) {
-    return (
-      <div className="p-4 text-center text-red-500">
-        {error}
-      </div>
-    );
+    return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Completed Scans</h1>
-      {requests.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
-          No completed scans found
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
+      <div className="bg-white p-6 rounded-lg shadow">
+        {requests.length === 0 ? (
+          <p className="text-gray-500">No completed scans available.</p>
+        ) : (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  ID
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Imaging Type
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Body Part
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Completed Date
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Radiologist Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imaging Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Body Part</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {requests.map((req) => (
-                <tr key={req.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.id}
+                <tr key={req.id} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {req.medicalRecord?.patient?.person?.firstName} {req.medicalRecord?.patient?.person?.lastName}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.imagingType}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {req.medicalRecord?.doctor?.person?.firstName} {req.medicalRecord?.doctor?.person?.lastName}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.bodyPart}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {req.report?.radiologist?.person?.firstName} {req.report?.radiologist?.person?.lastName}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.requestedDate}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {req.imagingType || "N/A"}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {req.bodyPart || "N/A"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => handleViewDetails(req.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(req.id);
+                      }}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View Details
@@ -153,84 +111,37 @@ const CompletedScansList = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-      <Button
+        )}
+      </div>
+      <button
         onClick={() => navigate("/radiology/dashboard")}
-        variant="outline"
-        className="mt-4 flex items-center gap-2"
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
       >
-        <Clock className="w-4 h-4" />
         Back to Dashboard
-      </Button>
-
-      {/* Details Modal */}
-      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-            <DialogDescription>
-              View the complete details of this completed radiology request
-            </DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Request ID</h3>
-                  <p className="text-sm">{selectedReport.id}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Status</h3>
-                  <Badge
-                    variant="secondary"
-                    className="bg-green-100 text-green-800"
-                  >
-                    {selectedReport.status}
-                  </Badge>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Imaging Type</h3>
-                  <p className="text-sm">{selectedReport.imagingType}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Body Part</h3>
-                  <p className="text-sm">{selectedReport.bodyPart}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Completed Date</h3>
-                  <p className="text-sm">{new Date(selectedReport.updatedAt).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Urgency</h3>
-                  <Badge
-                    variant="secondary"
-                    className={selectedReport.urgency === "URGENT" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}
-                  >
-                    {selectedReport.urgency}
-                  </Badge>
-                </div>
-              </div>
-              {selectedReport.reportText && (
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500 mb-2">Report</h3>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <p className="text-sm whitespace-pre-wrap">{selectedReport.reportText}</p>
-                  </div>
-                </div>
-              )}
+      </button>
+      {/* Modal for View Details */}
+      {showDetails && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" onClick={() => setShowDetails(null)}>
+          <div className="bg-gray-200 p-8 rounded-lg shadow-xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-6 text-gray-900">Scan Details</h2>
+            <div className="space-y-4">
+              <p className="text-lg"><strong>Patient:</strong> {showDetails.medicalRecord?.patient?.person?.firstName} {showDetails.medicalRecord?.patient?.person?.lastName}</p>
+              <p className="text-lg"><strong>Doctor:</strong> {showDetails.medicalRecord?.doctor?.person?.firstName} {showDetails.medicalRecord?.doctor?.person?.lastName}</p>
+              <p className="text-lg"><strong>Radiologist:</strong> {showDetails.report?.radiologist?.person?.firstName} {showDetails.report?.radiologist?.person?.lastName}</p>
+              <p className="text-lg"><strong>Imaging Type:</strong> {showDetails.imagingType}</p>
+              <p className="text-lg"><strong>Body Part:</strong> {showDetails.bodyPart}</p>
+              <p className="text-lg"><strong>Status:</strong> {showDetails.status}</p>
+              <p className="text-lg"><strong>Notes:</strong> {showDetails.notes}</p>
             </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDetailsModalOpen(false)}
+            <button
+              onClick={() => setShowDetails(null)}
+              className="mt-6 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-lg"
             >
               Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

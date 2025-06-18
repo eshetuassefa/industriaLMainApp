@@ -46,6 +46,79 @@ const router = Router();
  *     responses:
  *       201:
  *         description: Radiology request created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     medicalRecordId:
+ *                       type: string
+ *                     imagingType:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         patientId:
+ *                           type: string
+ *                         patient:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                         doctorId:
+ *                           type: string
+ *                         doctor:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
  *       400:
  *         description: Bad request
  *       500:
@@ -71,6 +144,94 @@ router.post("/create-request", createRadiologyRequest);
  *     responses:
  *       201:
  *         description: Radiology report started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     medicalRecordId:
+ *                       type: string
+ *                     imagingType:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     reportDate:
+ *                       type: string
+ *                       format: date-time
+ *                     radiologistId:
+ *                       type: string
+ *                     radiologyRequestId:
+ *                       type: string
+ *                     radiologist:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         person:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             firstName:
+ *                               type: string
+ *                             middleName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *                             fullName:
+ *                               type: string
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         patientId:
+ *                           type: string
+ *                         patient:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                         doctorId:
+ *                           type: string
+ *                         doctor:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
  *       400:
  *         description: Invalid request status
  *       404:
@@ -114,6 +275,102 @@ router.post("/start-request/:requestId", startRadiologyRequest);
  *     responses:
  *       200:
  *         description: Radiology report submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     medicalRecordId:
+ *                       type: string
+ *                     imagingType:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     reportText:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *                     reportDate:
+ *                       type: string
+ *                       format: date-time
+ *                     imageUrls:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     radiologistId:
+ *                       type: string
+ *                     radiologyRequestId:
+ *                       type: string
+ *                     radiologist:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         person:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             firstName:
+ *                               type: string
+ *                             middleName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *                             fullName:
+ *                               type: string
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         patientId:
+ *                           type: string
+ *                         patient:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                         doctorId:
+ *                           type: string
+ *                         doctor:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
  *       404:
  *         description: Report not found
  *       500:
@@ -139,6 +396,104 @@ router.post("/submit-report/:requestId", submitRadiologyReport);
  *     responses:
  *       200:
  *         description: Radiology report retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     medicalRecordId:
+ *                       type: string
+ *                     imagingType:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     reportText:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *                     reportDate:
+ *                       type: string
+ *                       format: date-time
+ *                     imageUrls:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     radiologistId:
+ *                       type: string
+ *                     radiologyRequestId:
+ *                       type: string
+ *                     radiologist:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         person:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             firstName:
+ *                               type: string
+ *                             middleName:
+ *                               type: string
+ *                             lastName:
+ *                               type: string
+ *                             fullName:
+ *                               type: string
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         patientId:
+ *                           type: string
+ *                         patient:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                         doctorId:
+ *                           type: string
+ *                         doctor:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *       403:
+ *         description: Access denied
  *       404:
  *         description: Report not found
  *       500:
@@ -157,6 +512,106 @@ router.get("/view-report/:requestId", getRadiologyReport);
  *     responses:
  *       200:
  *         description: All radiology requests retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       medicalRecordId:
+ *                         type: string
+ *                       imagingType:
+ *                         type: string
+ *                       bodyPart:
+ *                         type: string
+ *                       notes:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       medicalRecord:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           patientId:
+ *                             type: string
+ *                           patient:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               person:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                   firstName:
+ *                                     type: string
+ *                                   middleName:
+ *                                     type: string
+ *                                   lastName:
+ *                                     type: string
+ *                                   fullName:
+ *                                     type: string
+ *                           doctorId:
+ *                             type: string
+ *                           doctor:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               person:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                   firstName:
+ *                                     type: string
+ *                                   middleName:
+ *                                     type: string
+ *                                   lastName:
+ *                                     type: string
+ *                                   fullName:
+ *                                     type: string
+ *                       report:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           radiologistId:
+ *                             type: string
+ *                           radiologist:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               person:
+ *                                 type: object
+ *                                 properties:
+ *                                   id:
+ *                                     type: string
+ *                                   firstName:
+ *                                     type: string
+ *                                   middleName:
+ *                                     type: string
+ *                                   lastName:
+ *                                     type: string
+ *                                   fullName:
+ *                                     type: string
  *       500:
  *         description: Server error
  */
@@ -180,6 +635,104 @@ router.get("/all-requests", getAllRadiologyRequests);
  *     responses:
  *       200:
  *         description: Radiology request retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     medicalRecordId:
+ *                       type: string
+ *                     imagingType:
+ *                       type: string
+ *                     bodyPart:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     medicalRecord:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         patientId:
+ *                           type: string
+ *                         patient:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                         doctorId:
+ *                           type: string
+ *                         doctor:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
+ *                     report:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         radiologistId:
+ *                           type: string
+ *                         radiologist:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             person:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 firstName:
+ *                                   type: string
+ *                                 middleName:
+ *                                   type: string
+ *                                 lastName:
+ *                                   type: string
+ *                                 fullName:
+ *                                   type: string
  *       404:
  *         description: Radiology request not found
  *       500:
