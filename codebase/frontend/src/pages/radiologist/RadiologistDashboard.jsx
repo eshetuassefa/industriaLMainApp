@@ -10,21 +10,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import radiologyService from "../../services/radiologist.service";
 import { useToast } from "../../components/ui/use-toast";
-import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
-import { Eye, Play, Clock, FileText, AlertTriangle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../../components/ui/dialog";
-import { Textarea } from "../../components/ui/textarea";
+import { Eye } from "lucide-react";
 
 const RadiologistDashboard = () => {
   const [activeTab, setActiveTab] = useState("pendingInProgress");
+  const [searchTerm, setSearchTerm] = useState("");
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,10 +29,7 @@ const RadiologistDashboard = () => {
   const [reportText, setReportText] = useState("");
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDetails, setShowDetails] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,12 +38,11 @@ const RadiologistDashboard = () => {
       const response = await radiologyService.getAllRadiologyRequests();
       if (response.success) {
         const allRequests = response.data || [];
-
+        
         // Calculate statistics
         const stats = {
           pending: allRequests.filter((r) => r.status === "PENDING").length,
-          inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS")
-            .length,
+          inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS").length,
           completed: allRequests.filter((r) => r.status === "COMPLETED").length,
           urgent: allRequests.filter((r) => r.urgency === "URGENT").length,
           scanTypes: allRequests.reduce((acc, r) => {
@@ -103,12 +89,18 @@ const RadiologistDashboard = () => {
     fetchAllRadiologyRequests();
   }, [fetchAllRadiologyRequests]);
 
-  const handleCardClick = useCallback(
-    (status) => {
-      navigate(`/radiology/dashboard/${status}`);
-    },
-    [navigate]
-  );
+  const handleCardClick = useCallback((status) => {
+    navigate(`/radiology/dashboard/${status}`);
+  }, [navigate]);
+
+  const filteredRequests = requests.filter((request) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      request.imagingType?.toLowerCase().includes(searchLower) ||
+      request.bodyPart?.toLowerCase().includes(searchLower) ||
+      request.notes?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
@@ -159,8 +151,9 @@ const RadiologistDashboard = () => {
     try {
       const response = await radiologyService.getReport(requestId);
       if (response.success) {
-        setSelectedReport(response.data);
-        setIsDetailsModalOpen(true);
+        navigate(`/radiology/result/${requestId}`, {
+          state: { report: response.data },
+        });
       } else {
         throw new Error(response.error?.message || "Failed to load report");
       }
@@ -176,71 +169,7 @@ const RadiologistDashboard = () => {
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     if (selectedRequest) {
-      setIsSubmitting(true);
       await handleStatusUpdate(selectedRequest.id, "COMPLETED");
-      setIsCompleteModalOpen(false);
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleStartScan = async (requestId) => {
-    try {
-      const result = await radiologyService.startRequest(requestId);
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Scan started successfully",
-        });
-        fetchAllRadiologyRequests();
-      } else {
-        throw new Error(result.error?.message || "Failed to start scan");
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to start scan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleContinueScan = async (requestId) => {
-    try {
-      const result = await radiologyService.continueRequest(requestId);
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Continuing scan...",
-        });
-        navigate(`/radiology/result/${requestId}`);
-      } else {
-        throw new Error(result.error?.message || "Failed to continue scan");
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to continue scan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCompleteClick = async (requestId) => {
-    try {
-      const response = await radiologyService.getReport(requestId);
-      if (response.success) {
-        setSelectedReport(response.data);
-        setSelectedRequest(requests.find((r) => r.id === requestId));
-        setIsCompleteModalOpen(true);
-      } else {
-        throw new Error(response.error?.message || "Failed to load report");
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to load report details",
-        variant: "destructive",
-      });
     }
   };
 
@@ -322,6 +251,25 @@ const RadiologistDashboard = () => {
 
       {/* Radiology Requests Table */}
       <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Radiology Requests</h2>
+          <div className="flex items-center">
+            <input
+              type="text"
+              placeholder="Search requests..."
+              className="px-4 py-2 border rounded-l-lg"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button
+              onClick={() => navigate("/radiology/schedule")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-r-lg flex items-center hover:bg-blue-700"
+            >
+              <PlusIcon className="h-5 w-5 mr-1" /> New Request
+            </button>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="border-b border-gray-200 mb-4">
           <nav className="-mb-px flex space-x-8">
@@ -355,34 +303,28 @@ const RadiologistDashboard = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Request ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Imaging Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Body Part
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Notes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created At
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Radiologist Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imaging Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Body Part</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {requests.map((request) => (
+              {filteredRequests.map((request) => (
                 <tr key={request.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.id}
+                    {request.medicalRecord?.patient?.person?.firstName} {request.medicalRecord?.patient?.person?.lastName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {request.medicalRecord?.doctor?.person?.firstName} {request.medicalRecord?.doctor?.person?.lastName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {request.report?.radiologist?.person?.firstName} {request.report?.radiologist?.person?.lastName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -417,248 +359,146 @@ const RadiologistDashboard = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {request.status === "PENDING" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(request.id, "IN_PROGRESS")
+                        }
                         className="text-blue-600 hover:text-blue-900 mr-3"
-                        onClick={() => handleStartScan(request.id)}
                       >
-                        <Play className="w-4 h-4 mr-1" />
                         Start
-                      </Button>
+                      </button>
                     )}
                     {request.status === "IN_PROGRESS" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
+                      <button
+                        onClick={() => {
+                          setSelectedRequest(request);
+                        }}
                         className="text-green-600 hover:text-green-900 mr-3"
-                        onClick={() => handleCompleteClick(request.id)}
                       >
-                        <FileText className="w-4 h-4 mr-1" />
                         Complete
-                      </Button>
+                      </button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => handleViewDetails(request.id)}
+                    <button
+                      onClick={() => setShowDetails(request)}
+                      className="text-indigo-600 hover:text-indigo-900 ml-3 flex items-center"
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View Details
-                    </Button>
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Enhanced Report Submission Modal */}
+        {selectedRequest && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => {
+            setSelectedRequest(null);
+            setReportText("");
+            setImages([]);
+            setImagePreviews([]);
+          }}>
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">
+                Submit Report for Request #{selectedRequest.id}
+              </h2>
+              <form onSubmit={handleSubmitReport} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="reportText"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Report Text
+                  </label>
+                  <textarea
+                    id="reportText"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={reportText}
+                    onChange={(e) => setReportText(e.target.value)}
+                    placeholder="Enter detailed report text..."
+                    rows={4}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="images"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Upload Images
+                  </label>
+                  <input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg file:bg-blue-50 file:text-blue-700 file:font-medium file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-100"
+                  />
+                  {imagePreviews.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <img
+                          key={index}
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-4">
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                    onClick={() => {
+                      setSelectedRequest(null);
+                      setReportText("");
+                      setImages([]);
+                      setImagePreviews([]);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                    disabled={!reportText}
+                  >
+                    Submit Report
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View Details Modal */}
+        {showDetails && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowDetails(null)}>
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">Scan Details</h2>
+              <div className="space-y-4">
+                <p className="text-lg"><strong>Patient:</strong> {showDetails.medicalRecord?.patient?.person?.firstName} {showDetails.medicalRecord?.patient?.person?.lastName}</p>
+                <p className="text-lg"><strong>Doctor:</strong> {showDetails.medicalRecord?.doctor?.person?.firstName} {showDetails.medicalRecord?.doctor?.person?.lastName}</p>
+                <p className="text-lg"><strong>Radiologist:</strong> {showDetails.report?.radiologist?.person?.firstName} {showDetails.report?.radiologist?.person?.lastName}</p>
+                <p className="text-lg"><strong>Imaging Type:</strong> {showDetails.imagingType}</p>
+                <p className="text-lg"><strong>Body Part:</strong> {showDetails.bodyPart}</p>
+                <p className="text-lg"><strong>Status:</strong> {showDetails.status}</p>
+                <p className="text-lg"><strong>Notes:</strong> {showDetails.notes}</p>
+              </div>
+              <button
+                onClick={() => setShowDetails(null)}
+                className="mt-6 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Details Modal */}
-      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-            <DialogDescription>
-              View the complete details of this radiology request
-            </DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Request ID
-                  </h3>
-                  <p className="text-sm">{selectedReport.id}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Status
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className={`${
-                      selectedReport.status === "COMPLETED"
-                        ? "bg-green-100 text-green-800"
-                        : selectedReport.status === "IN_PROGRESS"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {selectedReport.status}
-                  </Badge>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Imaging Type
-                  </h3>
-                  <p className="text-sm">{selectedReport.imagingType}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Body Part
-                  </h3>
-                  <p className="text-sm">{selectedReport.bodyPart}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Requested Date
-                  </h3>
-                  <p className="text-sm">
-                    {new Date(selectedReport.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Urgency
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      selectedReport.urgency === "URGENT"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {selectedReport.urgency}
-                  </Badge>
-                </div>
-              </div>
-              {selectedReport.reportText && (
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500 mb-2">
-                    Report
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {selectedReport.reportText}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDetailsModalOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Complete Modal */}
-      <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Complete Request</DialogTitle>
-            <DialogDescription>
-              Submit the final report and complete this radiology request
-            </DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="py-4 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Request ID
-                  </h3>
-                  <p className="text-sm">{selectedReport.id}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Imaging Type
-                  </h3>
-                  <p className="text-sm">{selectedReport.imagingType}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Body Part
-                  </h3>
-                  <p className="text-sm">{selectedReport.bodyPart}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Urgency
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      selectedReport.urgency === "URGENT"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {selectedReport.urgency}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Report Text
-                </label>
-                <Textarea
-                  placeholder="Enter your report details..."
-                  value={reportText}
-                  onChange={(e) => setReportText(e.target.value)}
-                  className="min-h-[200px]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload Images
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg file:bg-blue-50 file:text-blue-700 file:font-medium file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-100"
-                />
-                {imagePreviews.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    {imagePreviews.map((preview, index) => (
-                      <img
-                        key={index}
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsCompleteModalOpen(false);
-                setReportText("");
-                setImages([]);
-                setImagePreviews([]);
-                setSelectedReport(null);
-                setSelectedRequest(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmitReport}
-              disabled={isSubmitting || !reportText.trim()}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Report"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

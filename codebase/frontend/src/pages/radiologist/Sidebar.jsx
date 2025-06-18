@@ -2,28 +2,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Eye, Play, FileText, Clock, X } from "lucide-react";
+import { Eye, Play, FileText, Clock } from "lucide-react";
 import radiologyService from "../../services/radiologist.service";
 import { useToast } from "../../components/ui/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../../components/ui/dialog";
-import { Textarea } from "../../components/ui/textarea";
 
 const Sidebar = () => {
   const [requests, setRequests] = useState([]);
   const [error, setError] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reportText, setReportText] = useState("");
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -86,23 +72,22 @@ const Sidebar = () => {
       let result;
       if (newStatus === "IN_PROGRESS") {
         result = await radiologyService.startRequest(requestId);
-        if (result.success) {
-          toast({
-            title: "Success",
-            description: "Scan started successfully",
-          });
-          navigate(`/radiology/result/${requestId}`);
-        }
       } else if (newStatus === "COMPLETED") {
-        setSelectedRequest(requests.find((r) => r.id === requestId));
-        setIsReportModalOpen(true);
-        return;
+        if (!selectedRequest || selectedRequest.id !== requestId) {
+          setSelectedRequest(requests.find((r) => r.id === requestId));
+          return;
+        }
+        result = await radiologyService.submitReport(requestId, { reportText: "" }, []);
+        setSelectedRequest(null);
       }
-      
-      if (result?.success) {
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Status updated to ${newStatus}`,
+        });
         fetchRequests();
       } else {
-        throw new Error(result?.error?.message || "Failed to update status");
+        throw new Error(result.error.message);
       }
     } catch (err) {
       toast({
@@ -113,46 +98,13 @@ const Sidebar = () => {
     }
   };
 
-  const handleSubmitReport = async () => {
-    if (!selectedRequest) return;
-    
-    setIsSubmitting(true);
-    try {
-      const result = await radiologyService.submitReport(
-        selectedRequest.id,
-        { reportText },
-        []
-      );
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Report submitted successfully",
-        });
-        setIsReportModalOpen(false);
-        setReportText("");
-        setSelectedRequest(null);
-        navigate(`/radiology/result/${selectedRequest.id}`);
-      } else {
-        throw new Error(result.error?.message || "Failed to submit report");
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to submit report",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleViewDetails = async (requestId) => {
     try {
       const response = await radiologyService.getReport(requestId);
       if (response.success) {
-        setSelectedReport(response.data);
-        setIsDetailsModalOpen(true);
+        navigate(`/radiology/result/${requestId}`, {
+          state: { report: response.data },
+        });
       } else {
         throw new Error(response.error?.message || "Failed to load report");
       }
@@ -195,28 +147,26 @@ const Sidebar = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  ID
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Imaging Type
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Body Part
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Status
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
-                  Actions
-                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Patient Name</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Doctor Name</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Radiologist Name</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Imaging Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Body Part</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {requests.map((req) => (
                 <tr key={req.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {req.id}
+                    {req.medicalRecord?.patient?.person?.firstName} {req.medicalRecord?.patient?.person?.lastName}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {req.medicalRecord?.doctor?.person?.firstName} {req.medicalRecord?.doctor?.person?.lastName}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {req.report?.radiologist?.person?.firstName} {req.report?.radiologist?.person?.lastName}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     {req.imagingType}
@@ -258,7 +208,7 @@ const Sidebar = () => {
                         onClick={() => handleStatusUpdate(req.id, "COMPLETED")}
                       >
                         <FileText className="w-4 h-4 mr-1" />
-                        Submit Report
+                        Complete
                       </Button>
                     )}
                     <Button
@@ -285,115 +235,6 @@ const Sidebar = () => {
         <Clock className="w-4 h-4" />
         Back to Dashboard
       </Button>
-
-      {/* Report Submission Modal */}
-      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Submit Report</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Enter your report details..."
-              value={reportText}
-              onChange={(e) => setReportText(e.target.value)}
-              className="min-h-[200px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsReportModalOpen(false);
-                setReportText("");
-                setSelectedRequest(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmitReport}
-              disabled={isSubmitting || !reportText.trim()}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Report"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Details Modal */}
-      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-            <DialogDescription>
-              View the complete details of this radiology request
-            </DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Request ID</h3>
-                  <p className="text-sm">{selectedReport.id}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Status</h3>
-                  <Badge
-                    variant="secondary"
-                    className={`${
-                      selectedReport.status === "COMPLETED"
-                        ? "bg-green-100 text-green-800"
-                        : selectedReport.status === "IN_PROGRESS"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {selectedReport.status}
-                  </Badge>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Imaging Type</h3>
-                  <p className="text-sm">{selectedReport.imagingType}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Body Part</h3>
-                  <p className="text-sm">{selectedReport.bodyPart}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Requested Date</h3>
-                  <p className="text-sm">{new Date(selectedReport.createdAt).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Urgency</h3>
-                  <Badge
-                    variant="secondary"
-                    className={selectedReport.urgency === "URGENT" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}
-                  >
-                    {selectedReport.urgency}
-                  </Badge>
-                </div>
-              </div>
-              {selectedReport.reportText && (
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500 mb-2">Report</h3>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <p className="text-sm whitespace-pre-wrap">{selectedReport.reportText}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDetailsModalOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

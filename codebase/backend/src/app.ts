@@ -29,7 +29,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRoutes);
 app.use("/refresh-token", authRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/lab", labResultRouter);
+app.use("/api/lab-results", labResultRouter);
 app.use("/api/reception", receptionRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/superadmin", superadminRoutes);
