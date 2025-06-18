@@ -44,10 +44,6 @@ const LabDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [allRequests, setAllRequests] = useState([]); // Add this state for storing all requests
-  const [resultRows, setResultRows] = useState([
-    { parameter: '', value: '', unit: '', flag: '', referenceRange: '', remark: '' },
-  ]);
-  const [testDetails, setTestDetails] = useState(null);
 
   const fetchAllTestRequests = useCallback(async () => {
     try {
@@ -57,10 +53,8 @@ const LabDashboard = () => {
 
         // Calculate statistics
         const stats = {
-          pendingTests: fetchedRequests.filter((r) => {
-            const status = (r.status || '').toLowerCase();
-            return status === "pending" || status === "requested";
-          }).length,
+          pendingTests: fetchedRequests.filter((r) => r.status === "PENDING")
+            .length,
           inProgress: fetchedRequests.filter((r) => r.status === "IN_PROGRESS")
             .length,
           completedToday: fetchedRequests.filter((r) => r.status === "COMPLETED")
@@ -79,10 +73,9 @@ const LabDashboard = () => {
         // Filter requests based on active tab
         let filteredRequests = fetchedRequests;
         if (activeTab === "pendingInProgress") {
-          filteredRequests = fetchedRequests.filter((r) => {
-            const status = (r.status || '').toLowerCase();
-            return status === "pending" || status === "requested" || status === "in_progress";
-          });
+          filteredRequests = fetchedRequests.filter(
+            (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+          );
         } else if (activeTab === "recentlyCompleted") {
           filteredRequests = fetchedRequests.filter(
             (r) => r.status === "COMPLETED"
@@ -110,14 +103,6 @@ const LabDashboard = () => {
   useEffect(() => {
     fetchAllTestRequests();
   }, [fetchAllTestRequests]);
-
-  useEffect(() => {
-    if (isCompleteModalOpen && selectedRequest) {
-      setResultRows([
-        { parameter: '', value: '', unit: '', flag: '', referenceRange: '', remark: '' },
-      ]);
-    }
-  }, [isCompleteModalOpen, selectedRequest]);
 
   const handleCardClick = useCallback(
     (status) => {
@@ -185,61 +170,29 @@ const LabDashboard = () => {
   };
 
   const handleViewDetails = async (requestId) => {
-    const test = requests.find(r => r.id === requestId);
-    setTestDetails(test);
-    setIsDetailsModalOpen(true);
-  };
-
-  const handleResultRowChange = (idx, field, value) => {
-    setResultRows((prev) => {
-      const updated = [...prev];
-      updated[idx][field] = value;
-      return updated;
-    });
-  };
-
-  const handleAddParameter = () => {
-    setResultRows((prev) => [
-      ...prev,
-      { parameter: '', value: '', unit: '', flag: '', referenceRange: '', remark: '' },
-    ]);
-  };
-
-  const handleRemoveParameter = (idx) => {
-    setResultRows((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleSubmitResult = async (e) => {
-    e.preventDefault();
-    if (!selectedRequest) return;
-    setIsSubmitting(true);
     try {
-      const values = {};
-      resultRows.forEach(row => {
-        if (row.parameter) values[row.parameter] = row.value;
-      });
-      const response = await labTechnicianService.submitReport(selectedRequest.id, {
-        values,
-      });
+      const response = await labTechnicianService.getReport(requestId);
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Test result submitted successfully",
-        });
-        setIsCompleteModalOpen(false);
-        setResultRows([{ parameter: '', value: '', unit: '', flag: '', referenceRange: '', remark: '' }]);
-        setSelectedRequest(null);
-        fetchAllTestRequests();
+        setSelectedReport(response.data);
+        setIsDetailsModalOpen(true);
       } else {
-        throw new Error(response.error?.message || "Failed to submit test result");
+        throw new Error(response.error?.message || "Failed to load report");
       }
     } catch (err) {
       toast({
         title: "Error",
-        description: err.message || "Failed to submit test result",
+        description: err.message || "Failed to load report details",
         variant: "destructive",
       });
-    } finally {
+    }
+  };
+
+  const handleSubmitReport = async (e) => {
+    e.preventDefault();
+    if (selectedRequest) {
+      setIsSubmitting(true);
+      await handleStatusUpdate(selectedRequest.id, "COMPLETED");
+      setIsCompleteModalOpen(false);
       setIsSubmitting(false);
     }
   };
@@ -470,7 +423,7 @@ const LabDashboard = () => {
                   </td>
                 )}
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {((request.status || '').toLowerCase() === "pending" || (request.status || '').toLowerCase() === "requested") && (
+                  {request.status === "PENDING" && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -481,18 +434,15 @@ const LabDashboard = () => {
                       Start
                     </Button>
                   )}
-                  {(request.status === "IN_PROGRESS") && (
+                  {request.status === "IN_PROGRESS" && (
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-green-600 hover:text-green-900 mr-3"
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        setIsCompleteModalOpen(true);
-                      }}
+                      onClick={() => handleCompleteClick(request.id)}
                     >
                       <FileText className="w-4 h-4 mr-1" />
-                      Submit Result
+                      Complete
                     </Button>
                   )}
                   <Button
@@ -517,72 +467,98 @@ const LabDashboard = () => {
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <DialogTitle>Test Request Details</DialogTitle>
+            <DialogTitle>Request Details</DialogTitle>
             <DialogDescription>
-              View complete details of the test request
+              View the complete details of this test request
             </DialogDescription>
           </DialogHeader>
-          {testDetails && (
-            <div className="py-4 space-y-6">
+          {selectedReport && (
+            <div className="py-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Status</h3>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Request ID
+                  </h3>
+                  <p className="text-sm">{selectedReport.id}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Status
+                  </h3>
                   <Badge
                     variant="secondary"
-                    className={
-                      testDetails.status === "COMPLETED"
+                    className={`${
+                      selectedReport.status === "COMPLETED"
                         ? "bg-green-100 text-green-800"
-                        : testDetails.status === "IN_PROGRESS"
+                        : selectedReport.status === "IN_PROGRESS"
                         ? "bg-blue-100 text-blue-800"
                         : "bg-yellow-100 text-yellow-800"
-                    }
+                    }`}
                   >
-                    {testDetails.status}
+                    {selectedReport.status}
                   </Badge>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Patient</h3>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Test Type
+                  </h3>
                   <p className="text-sm">
-                    {testDetails.patient?.person?.firstName} {testDetails.patient?.person?.middleName} {testDetails.patient?.person?.lastName}
+                    {selectedReport.testType?.name || "Unknown"}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Doctor</h3>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Patient
+                  </h3>
                   <p className="text-sm">
-                    Dr. {testDetails.doctor?.person?.firstName} {testDetails.doctor?.person?.middleName} {testDetails.doctor?.person?.lastName}
+                    {selectedReport.request?.patient?.person?.fullName ||
+                      "Unknown Patient"}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Test Type</h3>
-                  <p className="text-sm">{testDetails.testType?.name}</p>
-                  <p className="text-xs text-gray-500">Code: {testDetails.testType?.code}</p>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Requested Date
+                  </h3>
+                  <p className="text-sm">
+                    {new Date(
+                      selectedReport.request?.requestedAt
+                    ).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Requested At</h3>
-                  <p className="text-sm">{new Date(testDetails.requestedAt).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Specimens</h3>
-                  <p className="text-sm">{testDetails.testType?.specimens?.join(", ")}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Duration</h3>
-                  <p className="text-sm">{testDetails.testType?.duration} hours</p>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Urgency
+                  </h3>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      selectedReport.request?.urgency === "URGENT"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }
+                  >
+                    {selectedReport.request?.urgency || "Routine"}
+                  </Badge>
                 </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-sm text-gray-500 mb-2">Notes</h3>
-                <p className="text-sm bg-gray-50 p-3 rounded-md">{testDetails.notes || "No notes provided"}</p>
-              </div>
+              {selectedReport.values && (
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500 mb-2">
+                    Test Values
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <pre className="text-sm whitespace-pre-wrap">
+                      {JSON.stringify(selectedReport.values, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => {
-                setIsDetailsModalOpen(false);
-                setTestDetails(null);
-              }}
+              onClick={() => setIsDetailsModalOpen(false)}
             >
               Close
             </Button>
@@ -590,119 +566,68 @@ const LabDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Complete Modal (Submit Result) */}
+      {/* Complete Modal */}
       <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-        <DialogContent className="sm:max-w-[900px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <DialogTitle>Enter Lab Results for Test: {selectedRequest?.testType?.name}</DialogTitle>
+            <DialogTitle>Complete Request</DialogTitle>
+            <DialogDescription>
+              Submit the final test result and complete this request
+            </DialogDescription>
           </DialogHeader>
-          {selectedRequest && (
+          {selectedReport && (
             <div className="py-4 space-y-6">
-              {/* Patient Info */}
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Patient Information</h2>
-                <p><strong>Name:</strong> {selectedRequest.patient?.person?.firstName} {selectedRequest.patient?.person?.middleName} {selectedRequest.patient?.person?.lastName}</p>
-                <p><strong>Patient ID:</strong> {selectedRequest.patient?.id}</p>
-                <p><strong>Requested By:</strong> Dr. {selectedRequest.doctor?.person?.firstName} {selectedRequest.doctor?.person?.middleName} {selectedRequest.doctor?.person?.lastName}</p>
-                <p><strong>Urgency:</strong> {selectedRequest.urgency || 'Routine'}</p>
-              </div>
-              {/* Results Table */}
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Results</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 border">Test Name</th>
-                        <th className="px-2 py-1 border">Result</th>
-                        <th className="px-2 py-1 border">Unit</th>
-                        <th className="px-2 py-1 border">Flag</th>
-                        <th className="px-2 py-1 border">Reference Range</th>
-                        <th className="px-2 py-1 border">Remark</th>
-                        <th className="px-2 py-1 border"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resultRows.map((row, idx) => (
-                        <tr key={idx}>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.parameter}
-                              onChange={e => handleResultRowChange(idx, 'parameter', e.target.value)}
-                              placeholder="Test Name"
-                              required
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.value}
-                              onChange={e => handleResultRowChange(idx, 'value', e.target.value)}
-                              placeholder="Result"
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.unit}
-                              onChange={e => handleResultRowChange(idx, 'unit', e.target.value)}
-                              placeholder="Unit"
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.flag}
-                              onChange={e => handleResultRowChange(idx, 'flag', e.target.value)}
-                              placeholder="Flag"
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.referenceRange}
-                              onChange={e => handleResultRowChange(idx, 'referenceRange', e.target.value)}
-                              placeholder="Reference Range"
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={row.remark}
-                              onChange={e => handleResultRowChange(idx, 'remark', e.target.value)}
-                              placeholder="Remark"
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            {resultRows.length > 1 && (
-                              <button
-                                type="button"
-                                className="text-red-500 font-bold px-2"
-                                onClick={() => handleRemoveParameter(idx)}
-                              >
-                                ×
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Request ID
+                  </h3>
+                  <p className="text-sm">{selectedReport.id}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddParameter}
-                  className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                >
-                  + Add Another Parameter
-                </button>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Test Type
+                  </h3>
+                  <p className="text-sm">
+                    {selectedReport.testType?.name || "Unknown"}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Patient
+                  </h3>
+                  <p className="text-sm">
+                    {selectedReport.request?.patient?.person?.fullName ||
+                      "Unknown Patient"}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">
+                    Urgency
+                  </h3>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      selectedReport.request?.urgency === "URGENT"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }
+                  >
+                    {selectedReport.request?.urgency || "Routine"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Test Values (JSON)
+                </label>
+                <Textarea
+                  placeholder='Enter test values in JSON format, e.g. {"hemoglobin": 14.5, "glucose": 90}'
+                  value={reportValues}
+                  onChange={(e) => setReportValues(e.target.value)}
+                  className="min-h-[200px]"
+                />
               </div>
             </div>
           )}
@@ -711,15 +636,16 @@ const LabDashboard = () => {
               variant="outline"
               onClick={() => {
                 setIsCompleteModalOpen(false);
-                setResultRows([{ parameter: '', value: '', unit: '', flag: '', referenceRange: '', remark: '' }]);
+                setReportValues("");
+                setSelectedReport(null);
                 setSelectedRequest(null);
               }}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSubmitResult}
-              disabled={isSubmitting || resultRows.length === 0 || resultRows.some(row => !row.parameter)}
+              onClick={handleSubmitReport}
+              disabled={isSubmitting || !reportValues.trim()}
             >
               {isSubmitting ? "Submitting..." : "Submit Result"}
             </Button>
@@ -730,4 +656,4 @@ const LabDashboard = () => {
   );
 };
 
-export default LabDashboard;
+export default LabDashboard; 

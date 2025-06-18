@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import labTechnicianService from "../../services/labTechnician.service";
 import { useToast } from "../../components/ui/use-toast";
 import { Button } from "../../components/ui/button";
@@ -33,21 +33,11 @@ const PendingTestsList = () => {
       try {
         const response = await labTechnicianService.getAllTestRequests();
         if (response.success) {
-          // Debug: log all statuses
-          console.log(
-            "Statuses:",
-            response.data.map((test) => test.status)
-          );
-          // Filter for pending-like statuses (case-insensitive)
-          const pendingTests = response.data.filter((test) => {
-            const status = (test.status || "").toLowerCase();
-            return status === "pending" || status === "requested";
-          });
+          // Filter only pending tests
+          const pendingTests = response.data.filter(test => test.status === "PENDING");
           setPatients(pendingTests);
         } else {
-          throw new Error(
-            response.error?.message || "Failed to fetch pending tests"
-          );
+          throw new Error(response.error?.message || "Failed to fetch pending tests");
         }
       } catch (err) {
         setError(err.message || "Failed to load pending tests");
@@ -75,12 +65,9 @@ const PendingTestsList = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await labTechnicianService.submitReport(
-        selectedTest.id,
-        {
-          values: testResult,
-        }
-      );
+      const response = await labTechnicianService.submitReport(selectedTest.id, {
+        values: testResult,
+      });
 
       if (response.success) {
         toast({
@@ -93,15 +80,11 @@ const PendingTestsList = () => {
         // Refresh the list
         const updatedResponse = await labTechnicianService.getAllTestRequests();
         if (updatedResponse.success) {
-          const pendingTests = updatedResponse.data.filter(
-            (test) => test.status === "PENDING"
-          );
+          const pendingTests = updatedResponse.data.filter(test => test.status === "PENDING");
           setPatients(pendingTests);
         }
       } else {
-        throw new Error(
-          response.error?.message || "Failed to submit test result"
-        );
+        throw new Error(response.error?.message || "Failed to submit test result");
       }
     } catch (err) {
       toast({
@@ -125,9 +108,7 @@ const PendingTestsList = () => {
         // Refresh the list
         const updatedResponse = await labTechnicianService.getAllTestRequests();
         if (updatedResponse.success) {
-          const pendingTests = updatedResponse.data.filter(
-            (test) => test.status === "PENDING"
-          );
+          const pendingTests = updatedResponse.data.filter(test => test.status === "PENDING");
           setPatients(pendingTests);
         }
       } else {
@@ -162,31 +143,12 @@ const PendingTestsList = () => {
   if (patients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <svg
-          width="64"
-          height="64"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="text-gray-300 mb-4"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
+        <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-300 mb-4">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">
-          No Pending Tests
-        </h2>
-        <p className="text-gray-500 mb-4">
-          There are currently no pending tests. Check back later or refresh the
-          page.
-        </p>
-        <Button onClick={() => navigate("/lab/dashboard")}>
-          Back to Dashboard
-        </Button>
+        <h2 className="text-xl font-semibold text-gray-700 mb-2">No Pending Tests</h2>
+        <p className="text-gray-500 mb-4">There are currently no pending tests. Check back later or refresh the page.</p>
+        <Button onClick={() => navigate('/lab/dashboard')}>Back to Dashboard</Button>
       </div>
     );
   }
@@ -194,9 +156,7 @@ const PendingTestsList = () => {
   return (
     <>
       <div className="flex justify-end mb-4">
-        <Button onClick={() => navigate("/lab/dashboard")}>
-          Back to Dashboard
-        </Button>
+        <Button onClick={() => navigate('/lab/dashboard')}>Back to Dashboard</Button>
       </div>
       <h1 className="text-3xl font-bold mb-8">Pending Tests</h1>
 
@@ -204,56 +164,22 @@ const PendingTestsList = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Patient
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Doctor
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Test Type
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Notes
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Requested At
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Actions
-              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Test Type</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {patients.map((test) => (
               <tr key={test.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {test.patient?.person?.firstName}{" "}
-                  {test.patient?.person?.middleName}{" "}
-                  {test.patient?.person?.lastName}
+                  {test.patient?.person?.firstName} {test.patient?.person?.middleName} {test.patient?.person?.lastName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  Dr. {test.doctor?.person?.firstName}{" "}
-                  {test.doctor?.person?.middleName}{" "}
-                  {test.doctor?.person?.lastName}
+                  Dr. {test.doctor?.person?.firstName} {test.doctor?.person?.middleName} {test.doctor?.person?.lastName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {test.testType?.name}
@@ -274,7 +200,18 @@ const PendingTestsList = () => {
                     <Play className="w-4 h-4 mr-1" />
                     Start Test
                   </Button>
-
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 hover:text-green-900"
+                    onClick={() => {
+                      setSelectedTest(test);
+                      setIsSubmitModalOpen(true);
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Submit Result
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -291,31 +228,6 @@ const PendingTestsList = () => {
         </table>
       </div>
 
-      {/* DEBUG: Show all fetched test requests and their statuses */}
-      {/* <div className="mt-8">
-        <h2 className="text-lg font-bold mb-2 text-red-600">Debug: All Test Requests (Raw)</h2>
-        <table className="min-w-full divide-y divide-gray-200 border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">ID</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Patient</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Test Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.isArray(window.__allLabTests) && window.__allLabTests.map((test) => (
-              <tr key={test.id}>
-                <td className="px-4 py-2 text-sm">{test.id}</td>
-                <td className="px-4 py-2 text-sm">{test.status}</td>
-                <td className="px-4 py-2 text-sm">{test.patient?.person?.firstName} {test.patient?.person?.lastName}</td>
-                <td className="px-4 py-2 text-sm">{test.testType?.name}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div> */}
-
       {/* Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
@@ -329,9 +241,7 @@ const PendingTestsList = () => {
             <div className="py-4 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Status
-                  </h3>
+                  <h3 className="font-semibold text-sm text-gray-500">Status</h3>
                   <Badge
                     variant="secondary"
                     className={
@@ -346,66 +256,38 @@ const PendingTestsList = () => {
                   </Badge>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Patient
-                  </h3>
+                  <h3 className="font-semibold text-sm text-gray-500">Patient</h3>
                   <p className="text-sm">
-                    {testDetails.patient?.person?.firstName}{" "}
-                    {testDetails.patient?.person?.middleName}{" "}
-                    {testDetails.patient?.person?.lastName}
+                    {testDetails.patient?.person?.firstName} {testDetails.patient?.person?.middleName} {testDetails.patient?.person?.lastName}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Doctor
-                  </h3>
+                  <h3 className="font-semibold text-sm text-gray-500">Doctor</h3>
                   <p className="text-sm">
-                    Dr. {testDetails.doctor?.person?.firstName}{" "}
-                    {testDetails.doctor?.person?.middleName}{" "}
-                    {testDetails.doctor?.person?.lastName}
+                    Dr. {testDetails.doctor?.person?.firstName} {testDetails.doctor?.person?.middleName} {testDetails.doctor?.person?.lastName}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Test Type
-                  </h3>
+                  <h3 className="font-semibold text-sm text-gray-500">Test Type</h3>
                   <p className="text-sm">{testDetails.testType?.name}</p>
-                  <p className="text-xs text-gray-500">
-                    Code: {testDetails.testType?.code}
-                  </p>
+                  <p className="text-xs text-gray-500">Code: {testDetails.testType?.code}</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Requested At
-                  </h3>
-                  <p className="text-sm">
-                    {new Date(testDetails.requestedAt).toLocaleDateString()}
-                  </p>
+                  <h3 className="font-semibold text-sm text-gray-500">Requested At</h3>
+                  <p className="text-sm">{new Date(testDetails.requestedAt).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Specimens
-                  </h3>
-                  <p className="text-sm">
-                    {testDetails.testType?.specimens?.join(", ")}
-                  </p>
+                  <h3 className="font-semibold text-sm text-gray-500">Specimens</h3>
+                  <p className="text-sm">{testDetails.testType?.specimens?.join(", ")}</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">
-                    Duration
-                  </h3>
-                  <p className="text-sm">
-                    {testDetails.testType?.duration} hours
-                  </p>
+                  <h3 className="font-semibold text-sm text-gray-500">Duration</h3>
+                  <p className="text-sm">{testDetails.testType?.duration} hours</p>
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-sm text-gray-500 mb-2">
-                  Notes
-                </h3>
-                <p className="text-sm bg-gray-50 p-3 rounded-md">
-                  {testDetails.notes || "No notes provided"}
-                </p>
+                <h3 className="font-semibold text-sm text-gray-500 mb-2">Notes</h3>
+                <p className="text-sm bg-gray-50 p-3 rounded-md">{testDetails.notes || "No notes provided"}</p>
               </div>
             </div>
           )}
@@ -422,8 +304,66 @@ const PendingTestsList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Submit Result Modal */}
+      <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Submit Test Result</DialogTitle>
+            <DialogDescription>
+              Enter the test results for {selectedTest?.patient?.person?.firstName} {selectedTest?.patient?.person?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTest && (
+            <div className="py-4 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Test Type</h3>
+                  <p className="text-sm">{selectedTest.testType?.name}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-500">Doctor</h3>
+                  <p className="text-sm">
+                    Dr. {selectedTest.doctor?.person?.firstName} {selectedTest.doctor?.person?.lastName}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Test Results (JSON)
+                </label>
+                <Textarea
+                  placeholder='Enter test results in JSON format, e.g. {"hemoglobin": 14.5, "glucose": 90}'
+                  value={testResult}
+                  onChange={(e) => setTestResult(e.target.value)}
+                  className="min-h-[200px]"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsSubmitModalOpen(false);
+                setTestResult("");
+                setSelectedTest(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitResult}
+              disabled={isSubmitting || !testResult.trim()}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Result"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
 
-export default PendingTestsList;
+export default PendingTestsList; 

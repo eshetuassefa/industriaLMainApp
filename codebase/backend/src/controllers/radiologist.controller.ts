@@ -63,10 +63,10 @@ const composeHandler = (
   };
 };
 
-// Helper function to compute fullName
+// Helper function to compute fullName with null safety
 const getFullName = (person: any) => {
-  return `${person.firstName || ""} ${person.middleName || ""} ${
-    person.lastName || ""
+  return `${person?.firstName || ""} ${person?.middleName || ""} ${
+    person?.lastName || ""
   }`.trim();
 };
 
@@ -107,7 +107,7 @@ export const createRadiologyRequest = composeHandler(
         },
       });
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedRequest = {
         ...request,
         medicalRecord: {
@@ -119,13 +119,15 @@ export const createRadiologyRequest = composeHandler(
               fullName: getFullName(request.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...request.medicalRecord.doctor,
-            person: {
-              ...request.medicalRecord.doctor.person,
-              fullName: getFullName(request.medicalRecord.doctor.person),
-            },
-          },
+          doctor: request.medicalRecord.doctor
+            ? {
+                ...request.medicalRecord.doctor,
+                person: {
+                  ...request.medicalRecord.doctor.person,
+                  fullName: getFullName(request.medicalRecord.doctor.person),
+                },
+              }
+            : null,
         },
       };
 
@@ -190,16 +192,18 @@ export const startRadiologyRequest = composeHandler(
         },
       });
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedReport = {
         ...report,
-        radiologist: {
-          ...report.radiologist,
-          person: {
-            ...report.radiologist.person,
-            fullName: getFullName(report.radiologist.person),
-          },
-        },
+        radiologist: report.radiologist
+          ? {
+              ...report.radiologist,
+              person: {
+                ...report.radiologist.person,
+                fullName: getFullName(report.radiologist.person),
+              },
+            }
+          : null,
         medicalRecord: {
           ...report.medicalRecord,
           patient: {
@@ -209,13 +213,15 @@ export const startRadiologyRequest = composeHandler(
               fullName: getFullName(report.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...report.medicalRecord.doctor,
-            person: {
-              ...report.medicalRecord.doctor.person,
-              fullName: getFullName(report.medicalRecord.doctor.person),
-            },
-          },
+          doctor: report.medicalRecord.doctor
+            ? {
+                ...report.medicalRecord.doctor,
+                person: {
+                  ...report.medicalRecord.doctor.person,
+                  fullName: getFullName(report.medicalRecord.doctor.person),
+                },
+              }
+            : null,
         },
       };
 
@@ -296,16 +302,18 @@ export const submitRadiologyReport = composeHandler(
         },
       });
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedReport = {
         ...updatedReport,
-        radiologist: {
-          ...updatedReport.radiologist,
-          person: {
-            ...updatedReport.radiologist.person,
-            fullName: getFullName(updatedReport.radiologist.person),
-          },
-        },
+        radiologist: updatedReport.radiologist
+          ? {
+              ...updatedReport.radiologist,
+              person: {
+                ...updatedReport.radiologist.person,
+                fullName: getFullName(updatedReport.radiologist.person),
+              },
+            }
+          : null,
         medicalRecord: {
           ...updatedReport.medicalRecord,
           patient: {
@@ -315,13 +323,17 @@ export const submitRadiologyReport = composeHandler(
               fullName: getFullName(updatedReport.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...updatedReport.medicalRecord.doctor,
-            person: {
-              ...updatedReport.medicalRecord.doctor.person,
-              fullName: getFullName(updatedReport.medicalRecord.doctor.person),
-            },
-          },
+          doctor: updatedReport.medicalRecord.doctor
+            ? {
+                ...updatedReport.medicalRecord.doctor,
+                person: {
+                  ...updatedReport.medicalRecord.doctor.person,
+                  fullName: getFullName(
+                    updatedReport.medicalRecord.doctor.person
+                  ),
+                },
+              }
+            : null,
         },
       };
 
@@ -376,16 +388,18 @@ export const getRadiologyReport = composeHandler(
         return;
       }
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedReport = {
         ...report,
-        radiologist: {
-          ...report.radiologist,
-          person: {
-            ...report.radiologist.person,
-            fullName: getFullName(report.radiologist.person),
-          },
-        },
+        radiologist: report.radiologist
+          ? {
+              ...report.radiologist,
+              person: {
+                ...report.radiologist.person,
+                fullName: getFullName(report.radiologist.person),
+              },
+            }
+          : null,
         medicalRecord: {
           ...report.medicalRecord,
           patient: {
@@ -395,13 +409,15 @@ export const getRadiologyReport = composeHandler(
               fullName: getFullName(report.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...report.medicalRecord.doctor,
-            person: {
-              ...report.medicalRecord.doctor.person,
-              fullName: getFullName(report.medicalRecord.doctor.person),
-            },
-          },
+          doctor: report.medicalRecord.doctor
+            ? {
+                ...report.medicalRecord.doctor,
+                person: {
+                  ...report.medicalRecord.doctor.person,
+                  fullName: getFullName(report.medicalRecord.doctor.person),
+                },
+              }
+            : null,
         },
       };
 
@@ -439,7 +455,7 @@ export const getAllRadiologyRequests = composeHandler(
         },
       });
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedRequests = requests.map((request) => ({
         ...request,
         medicalRecord: {
@@ -451,24 +467,28 @@ export const getAllRadiologyRequests = composeHandler(
               fullName: getFullName(request.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...request.medicalRecord.doctor,
-            person: {
-              ...request.medicalRecord.doctor.person,
-              fullName: getFullName(request.medicalRecord.doctor.person),
-            },
-          },
+          doctor: request.medicalRecord.doctor
+            ? {
+                ...request.medicalRecord.doctor,
+                person: {
+                  ...request.medicalRecord.doctor.person,
+                  fullName: getFullName(request.medicalRecord.doctor.person),
+                },
+              }
+            : null,
         },
         report: request.report
           ? {
               ...request.report,
-              radiologist: {
-                ...request.report.radiologist,
-                person: {
-                  ...request.report.radiologist.person,
-                  fullName: getFullName(request.report.radiologist.person),
-                },
-              },
+              radiologist: request.report.radiologist
+                ? {
+                    ...request.report.radiologist,
+                    person: {
+                      ...request.report.radiologist.person,
+                      fullName: getFullName(request.report.radiologist.person),
+                    },
+                  }
+                : null,
             }
           : null,
       }));
@@ -517,7 +537,7 @@ export const getRadiologyRequestById = composeHandler(
         return;
       }
 
-      // Transform response to include fullName
+      // Transform response to include fullName with null safety
       const transformedRequest = {
         ...request,
         medicalRecord: {
@@ -529,24 +549,28 @@ export const getRadiologyRequestById = composeHandler(
               fullName: getFullName(request.medicalRecord.patient.person),
             },
           },
-          doctor: {
-            ...request.medicalRecord.doctor,
-            person: {
-              ...request.medicalRecord.doctor.person,
-              fullName: getFullName(request.medicalRecord.doctor.person),
-            },
-          },
+          doctor: request.medicalRecord.doctor
+            ? {
+                ...request.medicalRecord.doctor,
+                person: {
+                  ...request.medicalRecord.doctor.person,
+                  fullName: getFullName(request.medicalRecord.doctor.person),
+                },
+              }
+            : null,
         },
         report: request.report
           ? {
               ...request.report,
-              radiologist: {
-                ...request.report.radiologist,
-                person: {
-                  ...request.report.radiologist.person,
-                  fullName: getFullName(request.report.radiologist.person),
-                },
-              },
+              radiologist: request.report.radiologist
+                ? {
+                    ...request.report.radiologist,
+                    person: {
+                      ...request.report.radiologist.person,
+                      fullName: getFullName(request.report.radiologist.person),
+                    },
+                  }
+                : null,
             }
           : null,
       };

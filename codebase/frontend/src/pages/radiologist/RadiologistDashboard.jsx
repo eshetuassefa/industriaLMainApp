@@ -95,25 +95,10 @@ const RadiologistDashboard = () => {
 
   const filteredRequests = requests.filter((request) => {
     const searchLower = searchTerm.toLowerCase();
-    // Patient name
-    const patientName = `${request.medicalRecord?.patient?.person?.firstName || ''} ${request.medicalRecord?.patient?.person?.lastName || ''}`.toLowerCase();
-    // Doctor name
-    const doctorName = `${request.medicalRecord?.doctor?.person?.firstName || ''} ${request.medicalRecord?.doctor?.person?.lastName || ''}`.toLowerCase();
-    // Radiologist name
-    const radiologistName = `${request.report?.radiologist?.person?.firstName || ''} ${request.report?.radiologist?.person?.lastName || ''}`.toLowerCase();
-    // Other fields
-    const imagingType = request.imagingType?.toLowerCase() || '';
-    const bodyPart = request.bodyPart?.toLowerCase() || '';
-    const notes = request.notes?.toLowerCase() || '';
-    const status = request.status?.toLowerCase() || '';
     return (
-      patientName.includes(searchLower) ||
-      doctorName.includes(searchLower) ||
-      radiologistName.includes(searchLower) ||
-      imagingType.includes(searchLower) ||
-      bodyPart.includes(searchLower) ||
-      notes.includes(searchLower) ||
-      status.includes(searchLower)
+      request.imagingType?.toLowerCase().includes(searchLower) ||
+      request.bodyPart?.toLowerCase().includes(searchLower) ||
+      request.notes?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -272,10 +257,16 @@ const RadiologistDashboard = () => {
             <input
               type="text"
               placeholder="Search requests..."
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-l-lg"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            <button
+              onClick={() => navigate("/radiology/schedule")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-r-lg flex items-center hover:bg-blue-700"
+            >
+              <PlusIcon className="h-5 w-5 mr-1" /> New Request
+            </button>
           </div>
         </div>
 
@@ -403,13 +394,13 @@ const RadiologistDashboard = () => {
 
         {/* Enhanced Report Submission Modal */}
         {selectedRequest && (
-          <div className="fixed inset-0 flex items-center justify-center z-50" onClick={() => {
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => {
             setSelectedRequest(null);
             setReportText("");
             setImages([]);
             setImagePreviews([]);
           }}>
-            <div className="bg-gray-200 p-8 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
               <h2 className="text-2xl font-bold mb-6 text-gray-900">
                 Submit Report for Request #{selectedRequest.id}
               </h2>
@@ -486,8 +477,8 @@ const RadiologistDashboard = () => {
 
         {/* View Details Modal */}
         {showDetails && (
-          <div className="fixed inset-0 flex items-center justify-center z-50" onClick={() => setShowDetails(null)}>
-            <div className="bg-gray-200 p-8 rounded-lg shadow-xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowDetails(null)}>
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
               <h2 className="text-2xl font-bold mb-6 text-gray-900">Scan Details</h2>
               <div className="space-y-4">
                 <p className="text-lg"><strong>Patient:</strong> {showDetails.medicalRecord?.patient?.person?.firstName} {showDetails.medicalRecord?.patient?.person?.lastName}</p>
