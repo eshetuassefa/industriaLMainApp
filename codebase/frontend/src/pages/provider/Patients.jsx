@@ -291,8 +291,8 @@ const Patients = () => {
                             {latestRecord ? new Date(latestRecord.visitDate).toLocaleDateString() : 'N/A'}
                           </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusStyles[patient.assignment.status]}`}>
-                              {patient.assignment.status}
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusStyles[patient.assignment?.status || 'Stable']}`}>
+                              {patient.assignment?.status || 'Stable'}
                             </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap flex gap-2">

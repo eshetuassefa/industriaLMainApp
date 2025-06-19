@@ -15,9 +15,11 @@ import ProviderLayout from "./layouts/ProviderLayout";
 import Patients from "./pages/provider/Patients";
 import Appointments from "./pages/provider/Appointments";
 import MedicalRecord from "./pages/provider/MedicalRecord";
-import MedicalRecords from "./pages/provider/MedicalRecords";
 import LabResults from "./pages/provider/LabResults";
 import LabResultDetails from "./pages/provider/LabResultDetails";
+import LabTests from "./pages/provider/LabTests";
+import Prescriptions from "./pages/provider/Prescriptions";
+import RadiologyRequests from "./pages/provider/RadiologyRequests";
 import RadiologyResults from "./pages/radiology/RadiologyResults";
 import LabDashboard from "./pages/lab/LabDashboard";
 import LabResultForm from "./pages/lab/LabResultForm";
@@ -149,10 +151,15 @@ const router = createBrowserRouter([
           { path: "dashboard", element: <DoctorDashboard /> },
           { path: "patients", element: <Patients /> },
           { path: "appointments", element: <Appointments /> },
-          { path: "medical-records", element: <MedicalRecords /> },
           { path: "medical-record/:patientId", element: <MedicalRecord /> },
+          { path: "medical-record/:patientId/lab-tests", element: <LabTests /> },
+          { path: "medical-record/:patientId/prescriptions", element: <Prescriptions /> },
+          { path: "medical-record/:patientId/radiology-requests", element: <RadiologyRequests /> },
           { path: "lab-results", element: <LabResults /> },
           { path: "lab-results/:resultId", element: <LabResultDetails /> },
+          { path: "lab-tests", element: <LabTests /> },
+          { path: "prescriptions", element: <Prescriptions /> },
+          { path: "radiology-requests", element: <RadiologyRequests /> },
           { path: "radiology", element: <RadiologyResults /> },
         ],
       },

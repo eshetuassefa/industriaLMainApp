@@ -474,6 +474,35 @@ export const getPatients = [
   },
 ];
 
+export const getPrescriptionsByPatient = [
+  authenticateToken,
+  authorizeRoles("HEALTHCARE_PROVIDER", "PHARMACIST"),
+  async (req: Request, res: Response) => {
+    try {
+      const { patientId } = req.params;
+      if (!patientId) {
+        return res.status(400).json({ message: "Patient ID is required" });
+      }
+      // Find all medical records for this patient
+      const medicalRecords = await prisma.medicalRecord.findMany({
+        where: { patientId },
+        select: { id: true }
+      });
+      const medicalRecordIds = medicalRecords.map(r => r.id);
+      // Find all prescriptions for these medical records
+      const prescriptions = await prisma.prescription.findMany({
+        where: { medicalRecordId: { in: medicalRecordIds } },
+        include: {
+          prescribedBy: { include: { person: true } }
+        }
+      });
+      res.status(200).json({ data: prescriptions });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch prescriptions", error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+];
+
 // Utility function for error handling
 function handleError(res: Response, error: unknown, defaultMessage: string) {
   if (error instanceof z.ZodError) {
@@ -489,15 +518,3 @@ function handleError(res: Response, error: unknown, defaultMessage: string) {
   console.error(error);
   res.status(500).json({ message: defaultMessage });
 }
-export default {
-  addDrug,
-  updateDrug,
-  addInventory,
-  fetchDrugs,
-  deleteDrug,
-  createPrescription,
-  confirmDrugDelivery,
-  getPrescription,
-  getPrescriptions,
-  getPatients,
-};

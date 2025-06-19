@@ -8,7 +8,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import labTechnicianService from "../../services/labTechnician.service";
+import labTechnicianService from "../../services/labtechnician.service";
 import { useToast } from "../../components/ui/use-toast";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";

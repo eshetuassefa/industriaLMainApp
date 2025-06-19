@@ -70,7 +70,6 @@ export default function PharmacistPage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [newPrescription, setNewPrescription] = useState({
     patientId: "",
-    hospitalId: "1",
     notes: "",
     drugs: [],
   });
@@ -394,7 +393,6 @@ export default function PharmacistPage() {
         setPrescriptions((prev) => [...prev, ...response.data]);
         setNewPrescription({
           patientId: "",
-          hospitalId: "1",
           notes: "",
           drugs: [],
         });
@@ -604,7 +602,7 @@ export default function PharmacistPage() {
         setActivityLog((prev) => [
           {
             id: prev.length + 1,
-            action: `Confirmed delivery for prescription ID: ${prescriptionId} (Patient: ${patientName})`,
+            action: `Confirmed prescription delivery  to: ${patientName}`,
             user: user.name || "Pharmacist",
             time: new Date().toLocaleTimeString([], {
               hour: "2-digit",

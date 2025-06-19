@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import authService from "../../services/auth.service";
@@ -22,11 +22,6 @@ const LoginForm = () => {
   const redirectTo = params.get("redirect")
     ? decodeURIComponent(params.get("redirect"))
     : "/";
-
-  useEffect(() => {
-    // Setup axios interceptors when component mounts
-    authService.setupAxiosInterceptors();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

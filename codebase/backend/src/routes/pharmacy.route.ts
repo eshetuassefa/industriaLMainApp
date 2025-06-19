@@ -10,6 +10,7 @@ import {
   getPrescription,
   getPrescriptions,
   getPatients,
+  getPrescriptionsByPatient,
 } from "../controllers/pharmacy.controller";
 import {
   authenticateToken,
@@ -304,5 +305,29 @@ router.post("/prescriptions/:id/deliver", authenticateToken, authorizeRoles("PHA
  *         description: Server error
  */
 router.get("/patients", authenticateToken, authorizeRoles("PHARMACIST"), getPatients);
+
+/**
+ * @swagger
+ * /api/pharmacy/patients/:patientId/prescriptions:
+ *   get:
+ *     summary: Get all prescriptions for a patient
+ *     tags: [Pharmacy]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: patientId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of prescriptions retrieved successfully
+ *       404:
+ *         description: Patient not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/patients/:patientId/prescriptions", authenticateToken, authorizeRoles("HEALTHCARE_PROVIDER", "PHARMACIST"), getPrescriptionsByPatient);
 
 export default router;

@@ -113,4 +113,119 @@ export const createAppointment = async (appointmentData) => {
   } catch (error) {
     throw handleApiError(error);
   }
+};
+
+export const createRadiologyRequest = async (requestData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+    const response = await axios.post(`${API_URL}/radiology/create-request`, requestData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const getRadiologyRequests = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+    const response = await axios.get(`${API_URL}/radiology/all-requests`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const createLabTestRequest = async (requestData) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+    const response = await axios.post(`${API_URL}/lab-results/create-request`, requestData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const getLabTestRequests = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+    const response = await axios.get(`${API_URL}/lab-results/get-all-requests`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const getLabTestTypes = async () => {
+  const token = localStorage.getItem('accessToken');
+  if (!token) throw new Error('No authentication token found. Please log in again.');
+  const response = await axios.get(`${API_URL}/lab-results/test-types`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const createPrescription = async (prescriptionData) => {
+  const token = localStorage.getItem('accessToken');
+  if (!token) throw new Error('No authentication token found. Please log in again.');
+  const response = await axios.post(`${API_URL}/pharmacy/prescriptions`, prescriptionData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const getPrescriptionsByPatient = async (patientId) => {
+  const token = localStorage.getItem('accessToken');
+  if (!token) throw new Error('No authentication token found. Please log in again.');
+  if (!patientId) throw new Error('Patient ID is required.');
+  const response = await axios.get(`${API_URL}/pharmacy/patients/${patientId}/prescriptions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+// Dashboard statistics endpoint
+export const getDashboardStats = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await axios.get(`${API_URL}/doctor/dashboard/stats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
 }; 

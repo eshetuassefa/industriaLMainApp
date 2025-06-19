@@ -7,8 +7,10 @@ import {
   getAllTestRequests,
   getTestRequestById,
 } from "../controllers/labResult.controller";
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
+const prisma = new PrismaClient();
 
 /**
  * @swagger
@@ -705,5 +707,15 @@ router.get("/get-all-requests", getAllTestRequests);
  *         description: Server error
  */
 router.get("/get-request/:requestId", getTestRequestById);
+
+// Add endpoint to get all test types
+router.get("/test-types", async (req, res) => {
+  try {
+    const testTypes = await prisma.testType.findMany();
+    res.json({ data: testTypes });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch test types", error: error instanceof Error ? error.message : String(error) });
+  }
+});
 
 export default router;
