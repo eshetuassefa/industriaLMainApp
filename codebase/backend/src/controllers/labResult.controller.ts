@@ -40,7 +40,7 @@ export const createTestRequest = composeHandler(
   [authenticateToken, authorizeRoles("HEALTHCARE_PROVIDER")],
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { patientId, testTypeId, hospitalId, notes } = req.body;
+      const { patientId, testTypeId, notes } = req.body;
 
       // Validate patient and testType existence
       const patient = await prisma.patient.findUnique({
@@ -59,13 +59,18 @@ export const createTestRequest = composeHandler(
         return;
       }
 
-      const hospital = await prisma.hospital.findUnique({
-        where: { id: hospitalId },
+      // Get hospitalId from the doctor (req.user)
+      const doctor = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+        select: { hospitalId: true },
       });
-      if (!hospital) {
-        res.status(404).json({ message: "Hospital not found" });
+      if (!doctor || !doctor.hospitalId) {
+        res
+          .status(400)
+          .json({ message: "Doctor is not associated with a hospital" });
         return;
       }
+      const hospitalId = doctor.hospitalId;
 
       const testRequest = await prisma.testRequest.create({
         data: {

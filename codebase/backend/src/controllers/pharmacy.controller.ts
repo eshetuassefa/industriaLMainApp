@@ -49,7 +49,7 @@ const searchDrugSchema = z.object({
 });
 
 const prescriptionIdSchema = z.object({
-  id: z.string().uuid()
+  id: z.string().uuid(),
 });
 
 // Drug Management Controllers
@@ -179,12 +179,10 @@ export const createPrescription = [
   authorizeRoles("HEALTHCARE_PROVIDER"),
   async (req: Request, res: Response) => {
     try {
-      const { patientId, hospitalId, notes, drugs } = req.body;
+      const { patientId, notes, drugs } = req.body;
 
       if (!patientId)
         return res.status(400).json({ message: "patientId is required" });
-      if (!hospitalId)
-        return res.status(400).json({ message: "hospitalId is required" });
       if (!Array.isArray(drugs) || drugs.length === 0)
         return res
           .status(400)
@@ -314,36 +312,36 @@ export const getPrescription = [
       console.log("Fetching prescription with ID:", id); // Debug log
 
       const prescription = await prisma.prescription.findUnique({
-        where: { 
-          id: id 
+        where: {
+          id: id,
         },
         include: {
-          prescribedBy: { 
-            include: { 
-              person: true 
-            } 
+          prescribedBy: {
+            include: {
+              person: true,
+            },
           },
-          deliveredBy: { 
-            include: { 
-              person: true 
-            } 
+          deliveredBy: {
+            include: {
+              person: true,
+            },
           },
           medicalRecord: {
-            include: { 
-              patient: { 
-                include: { 
-                  person: true 
-                } 
-              } 
+            include: {
+              patient: {
+                include: {
+                  person: true,
+                },
+              },
             },
           },
         },
       });
 
       if (!prescription) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          message: "Prescription not found" 
+          message: "Prescription not found",
         });
       }
 
@@ -389,13 +387,13 @@ export const getPrescription = [
         return res.status(400).json({
           success: false,
           message: "Invalid prescription ID format",
-          error: error.errors
+          error: error.errors,
         });
       }
       return res.status(500).json({
         success: false,
         message: "Failed to retrieve prescription",
-        error: error.message || "Unknown error occurred"
+        error: error.message || "Unknown error occurred",
       });
     }
   },
@@ -486,21 +484,26 @@ export const getPrescriptionsByPatient = [
       // Find all medical records for this patient
       const medicalRecords = await prisma.medicalRecord.findMany({
         where: { patientId },
-        select: { id: true }
+        select: { id: true },
       });
-      const medicalRecordIds = medicalRecords.map(r => r.id);
+      const medicalRecordIds = medicalRecords.map((r) => r.id);
       // Find all prescriptions for these medical records
       const prescriptions = await prisma.prescription.findMany({
         where: { medicalRecordId: { in: medicalRecordIds } },
         include: {
-          prescribedBy: { include: { person: true } }
-        }
+          prescribedBy: { include: { person: true } },
+        },
       });
       res.status(200).json({ data: prescriptions });
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch prescriptions", error: error instanceof Error ? error.message : String(error) });
+      res
+        .status(500)
+        .json({
+          message: "Failed to fetch prescriptions",
+          error: error instanceof Error ? error.message : String(error),
+        });
     }
-  }
+  },
 ];
 
 // Utility function for error handling

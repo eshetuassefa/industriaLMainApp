@@ -6,10 +6,14 @@ import {
   updateStaffController,
   deleteStaffController,
   getAllDepartmentsController,
+  getAllDepartmentsNoFilterController,
   createDepartmentController,
   associateDepartmentsController,
 } from "../controllers/admin.controller";
-import { authenticateToken, authorizeRoles } from "../middleware/auth.middleware";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/auth.middleware";
 
 const router = express.Router();
 
@@ -24,9 +28,26 @@ router.use("/departments/create", authorizeRoles("ADMIN"));
 router.use("/departments/associate", authorizeRoles("ADMIN"));
 
 // Routes accessible by both ADMIN and RECEPTIONIST
-router.get("/staffs/getall", authorizeRoles("ADMIN", "RECEPTIONIST"), getAllStaffsController);
-router.get("/staff/getsingle/:id", authorizeRoles("ADMIN", "RECEPTIONIST"), getStaffByIdController);
-router.get("/departments/getall", authorizeRoles("ADMIN", "RECEPTIONIST"), getAllDepartmentsController);
+router.get(
+  "/staffs/getall",
+  authorizeRoles("ADMIN", "RECEPTIONIST"),
+  getAllStaffsController
+);
+router.get(
+  "/staff/getsingle/:id",
+  authorizeRoles("ADMIN", "RECEPTIONIST"),
+  getStaffByIdController
+);
+router.get(
+  "/departments/getall",
+  authorizeRoles("ADMIN", "RECEPTIONIST"),
+  getAllDepartmentsController
+);
+router.get(
+  "/departments/getall-no-filter",
+  authorizeRoles("ADMIN", "RECEPTIONIST"),
+  getAllDepartmentsNoFilterController
+);
 
 /**
  * @swagger

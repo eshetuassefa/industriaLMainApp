@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   getPatientRecords,
   addMedicalRecord,
@@ -6,9 +6,14 @@ import {
   getDoctorAppointments,
   getAppointments,
   updateAppointment,
-  deleteAppointment
-} from '../controllers/doctor.controller';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
+  deleteAppointment,
+  getDashboardStats,
+  getForwardedPatients,
+} from "../controllers/doctor.controller";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/auth.middleware";
 
 const router = express.Router();
 
@@ -40,7 +45,7 @@ const router = express.Router();
  *       404:
  *         description: Patient not found
  */
-router.get('/patients/:patientId/records', getPatientRecords);
+router.get("/patients/:patientId/records", getPatientRecords);
 
 /**
  * @swagger
@@ -129,7 +134,7 @@ router.get('/patients/:patientId/records', getPatientRecords);
  *       400:
  *         description: Invalid input data
  */
-router.post('/medical-records', addMedicalRecord);
+router.post("/medical-records", addMedicalRecord);
 
 /**
  * @swagger
@@ -166,7 +171,7 @@ router.post('/medical-records', addMedicalRecord);
  *       400:
  *         description: Invalid input data
  */
-router.post('/appointments', createAppointment);
+router.post("/appointments", createAppointment);
 
 /**
  * @swagger
@@ -180,7 +185,7 @@ router.post('/appointments', createAppointment);
  *       200:
  *         description: Appointments retrieved successfully
  */
-router.get('/appointments', getDoctorAppointments);
+router.get("/appointments", getDoctorAppointments);
 
 /**
  * @swagger
@@ -203,7 +208,7 @@ router.get('/appointments', getDoctorAppointments);
  *       404:
  *         description: Appointment not found
  */
-router.get('/appointments/:appointmentId', getAppointments);
+router.get("/appointments/:appointmentId", getAppointments);
 
 /**
  * @swagger
@@ -241,7 +246,7 @@ router.get('/appointments/:appointmentId', getAppointments);
  *       404:
  *         description: Appointment not found
  */
-router.put('/appointments/:appointmentId', updateAppointment);
+router.put("/appointments/:appointmentId", updateAppointment);
 
 /**
  * @swagger
@@ -264,6 +269,124 @@ router.put('/appointments/:appointmentId', updateAppointment);
  *       404:
  *         description: Appointment not found
  */
-router.delete('/appointments/:appointmentId', deleteAppointment);
+router.delete("/appointments/:appointmentId", deleteAppointment);
+
+/**
+ * @swagger
+ * /api/doctor/dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics for the doctor
+ *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     todayAppointments:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         remaining:
+ *                           type: number
+ *                     activePatients:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         newThisWeek:
+ *                           type: number
+ *                     pendingLabResults:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         urgent:
+ *                           type: number
+ *                     criticalCases:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                     recentPatients:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     upcomingAppointments:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get("/dashboard/stats", getDashboardStats);
+
+/**
+ * @swagger
+ * /api/doctor/forwarded-patients:
+ *   get:
+ *     summary: Get all forwarded patients for the doctor
+ *     tags: [Doctor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Forwarded patients retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       patientId:
+ *                         type: string
+ *                       doctorId:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       notes:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       patient:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           person:
+ *                             type: object
+ *                           emergencyContact:
+ *                             type: object
+ *                           medicalRecords:
+ *                             type: array
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get("/forwarded-patients", getForwardedPatients);
 
 export default router;
